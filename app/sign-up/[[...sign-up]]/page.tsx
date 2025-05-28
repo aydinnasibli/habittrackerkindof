@@ -18,6 +18,10 @@ export default function SignUpPage() {
                             headerSubtitle: "text-muted-foreground",
                         }
                     }}
+                    signInUrl="/sign-in"
+                    redirectUrl="/dashboard"
+                    routing="path"
+                    path="/sign-up"
                 />
             </div>
         </div>
