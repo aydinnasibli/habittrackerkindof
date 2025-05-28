@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggle";
-import { useAuth } from "@/components/auth-provider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,10 +17,14 @@ import { Activity, User, Settings, LogOut } from "lucide-react";
 
 export function Header() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
-  const isPublicRoute = ['/', '/login', '/register'].includes(pathname);
+  const { isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
 
-  if (isPublicRoute && !user) {
+  // Routes where header should show sign-in/sign-up buttons
+  const isPublicRoute = ['/', '/sign-in', '/sign-up'].includes(pathname);
+
+  // Show public header on public routes when user is not signed in
+  if (isPublicRoute && !isSignedIn) {
     return (
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
@@ -29,11 +33,11 @@ export function Header() {
             <span className="font-bold text-xl">Necmettinyo</span>
           </Link>
           <nav className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Log in</Button>
+            <Link href="/sign-in">
+              <Button variant="ghost">Sign In</Button>
             </Link>
-            <Link href="/register">
-              <Button>Sign up</Button>
+            <Link href="/sign-up">
+              <Button>Sign Up</Button>
             </Link>
             <ModeToggle />
           </nav>
@@ -42,8 +46,10 @@ export function Header() {
     );
   }
 
-  if (!user) return null;
+  // Don't show header if user is not signed in on protected routes
+  if (!isSignedIn) return null;
 
+  // Show authenticated header
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -75,7 +81,9 @@ export function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                {user?.firstName || user?.emailAddresses[0]?.emailAddress || "My Account"}
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/profile" className="cursor-pointer flex w-full">
@@ -91,11 +99,11 @@ export function Header() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => logout()}
+                onClick={() => signOut()}
                 className="cursor-pointer"
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <span>Sign out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
