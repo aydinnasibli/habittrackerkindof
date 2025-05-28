@@ -5,7 +5,7 @@ import { CTASection } from '@/components/landing/cta-section';
 
 export default function Home() {
   return (
-    <div className="min-h-screen">
+    <div className="w-full">
       <HeroSection />
       <FeaturesSection />
       <TestimonialsSection />
