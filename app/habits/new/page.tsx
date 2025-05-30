@@ -1,3 +1,4 @@
+// app/habits/new/page.tsx
 "use client";
 
 import React from 'react';
@@ -9,46 +10,28 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-
+import { createHabit } from '@/lib/actions/habits';
 export default function NewHabitPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
-    const newHabit = {
-      id: Date.now().toString(),
-      name: formData.get('name'),
-      description: formData.get('description'),
-      category: formData.get('category'),
-      frequency: formData.get('frequency'),
-      timeOfDay: formData.get('timeOfDay'),
-      timeToComplete: formData.get('timeToComplete'),
-      priority: formData.get('priority'),
-      streak: 0,
-      status: 'active'
-    };
 
     try {
-      // Get existing habits from localStorage
-      const existingHabits = JSON.parse(localStorage.getItem('habits') || '[]');
-      
-      // Add new habit
-      const updatedHabits = [...existingHabits, newHabit];
-      
-      // Save to localStorage
-      localStorage.setItem('habits', JSON.stringify(updatedHabits));
+      const result = await createHabit(formData);
 
-      toast({
-        title: "Success",
-        description: "New habit has been created!",
-      });
-
-      router.push('/habits');
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "New habit has been created!",
+        });
+        router.push('/habits');
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -73,17 +56,17 @@ export default function NewHabitPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name">Habit Name</Label>
-              <Input 
+              <Input
                 id="name"
                 name="name"
                 placeholder="e.g., Morning Meditation"
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea 
+              <Textarea
                 id="description"
                 name="description"
                 placeholder="Describe your habit and why it's important to you"
@@ -94,7 +77,7 @@ export default function NewHabitPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select name="category" required defaultValue="Mindfulness">
+                <Select name="category" required defaultValue="">
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
@@ -110,7 +93,7 @@ export default function NewHabitPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="frequency">Frequency</Label>
-                <Select name="frequency" required defaultValue="Daily">
+                <Select name="frequency" required defaultValue="">
                   <SelectTrigger>
                     <SelectValue placeholder="Select frequency" />
                   </SelectTrigger>
@@ -126,7 +109,7 @@ export default function NewHabitPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="timeOfDay">Time of Day</Label>
-                <Select name="timeOfDay" required defaultValue="Morning">
+                <Select name="timeOfDay" required defaultValue="">
                   <SelectTrigger>
                     <SelectValue placeholder="Select time of day" />
                   </SelectTrigger>
@@ -141,7 +124,7 @@ export default function NewHabitPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="priority">Priority</Label>
-                <Select name="priority" required defaultValue="Medium">
+                <Select name="priority" required defaultValue="">
                   <SelectTrigger>
                     <SelectValue placeholder="Select priority" />
                   </SelectTrigger>
@@ -156,7 +139,7 @@ export default function NewHabitPage() {
 
             <div className="space-y-2">
               <Label htmlFor="timeToComplete">Time to Complete</Label>
-              <Input 
+              <Input
                 id="timeToComplete"
                 name="timeToComplete"
                 placeholder="e.g., 15 min"
@@ -165,16 +148,16 @@ export default function NewHabitPage() {
             </div>
 
             <div className="flex gap-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 className="w-full"
                 onClick={() => router.back()}
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full"
                 disabled={isSubmitting}
               >

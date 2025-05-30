@@ -187,7 +187,7 @@ export function HabitDNA() {
           <TabsTrigger value="visualization">Visualization</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="visualization">
           <Card>
             <CardHeader>
@@ -233,11 +233,11 @@ export function HabitDNA() {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="border rounded-md p-2 h-[500px]">
                 <svg ref={svgRef} width="100%" height="100%"></svg>
               </div>
-              
+
               <div className="mt-4 text-sm text-muted-foreground">
                 <p>
                   <strong>How to use:</strong> Drag nodes to rearrange. Adjust connection strength to show more or fewer connections.
@@ -251,7 +251,7 @@ export function HabitDNA() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="insights">
           <Card>
             <CardHeader>
@@ -291,7 +291,7 @@ export function HabitDNA() {
                     </li>
                   </ul>
                 </div>
-                
+
                 <div>
                   <h3 className="text-lg font-medium mb-3">Suggested Habit Chains</h3>
                   <div className="space-y-3">
@@ -313,7 +313,7 @@ export function HabitDNA() {
                         </div>
                       </CardContent>
                     </Card>
-                    
+
                     <Card className="bg-card border-border">
                       <CardContent className="p-4">
                         <h4 className="font-medium mb-2">Evening Reflection Chain</h4>
