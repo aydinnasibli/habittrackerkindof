@@ -1,14 +1,15 @@
 "use client";
 
-import { 
-  AreaChart, 
-  Area, 
+import { useState, useEffect } from "react";
+import {
+  AreaChart,
+  Area,
   BarChart,
   Bar,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -17,47 +18,209 @@ import {
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getUserHabits } from "@/lib/actions/habits";
+import { IHabit, IHabitCompletion } from "@/lib/types";
 
-// Mock data for the charts
-const weeklyData = [
-  { name: "Mon", completed: 5, total: 7 },
-  { name: "Tue", completed: 7, total: 7 },
-  { name: "Wed", completed: 4, total: 7 },
-  { name: "Thu", completed: 6, total: 7 },
-  { name: "Fri", completed: 5, total: 7 },
-  { name: "Sat", completed: 3, total: 5 },
-  { name: "Sun", completed: 4, total: 5 },
+const COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))"
 ];
 
-const monthlyData = Array.from({ length: 30 }, (_, i) => {
-  const completed = Math.floor(Math.random() * 6) + 2;
-  const total = Math.floor(Math.random() * 2) + 6;
-  return {
-    name: `Day ${i + 1}`,
-    completed,
-    total,
-    percentage: Math.round((completed / total) * 100),
-  };
-});
+type WeeklyData = {
+  name: string;
+  completed: number;
+  total: number;
+  percentage: number;
+};
 
-const categoriesData = [
-  { name: "Health", value: 35 },
-  { name: "Productivity", value: 25 },
-  { name: "Learning", value: 20 },
-  { name: "Social", value: 15 },
-  { name: "Mindfulness", value: 5 },
-];
+type CategoryData = {
+  name: string;
+  value: number;
+};
 
-const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+type StreakData = {
+  name: string;
+  streak: number;
+};
+
+type MonthlyData = {
+  name: string;
+  completed: number;
+  total: number;
+  percentage: number;
+};
 
 export function HabitStats() {
+  const [habits, setHabits] = useState<IHabit[]>([]);
+  const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
+  const [streakData, setStreakData] = useState<StreakData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadHabitsAndCalculateStats();
+  }, []);
+
+  const loadHabitsAndCalculateStats = async () => {
+    try {
+      const fetchedHabits = await getUserHabits();
+      setHabits(fetchedHabits);
+
+      calculateWeeklyStats(fetchedHabits);
+      calculateMonthlyStats(fetchedHabits);
+      calculateCategoryStats(fetchedHabits);
+      calculateStreakStats(fetchedHabits);
+    } catch (error) {
+      console.error('Error loading habits:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateWeeklyStats = (habits: IHabit[]) => {
+    const today = new Date();
+    const weekData: WeeklyData[] = [];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // Get data for the last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      const dayName = dayNames[date.getDay()];
+      let completed = 0;
+      let total = 0;
+
+      habits.forEach(habit => {
+        if (habit.status === 'active') {
+          total++;
+          const dayCompletion = habit.completions?.find(comp => {
+            const compDate = new Date(comp.date);
+            compDate.setHours(0, 0, 0, 0);
+            return compDate.getTime() === date.getTime();
+          });
+
+          if (dayCompletion?.completed) {
+            completed++;
+          }
+        }
+      });
+
+      weekData.push({
+        name: dayName,
+        completed,
+        total: total || 1, // Avoid division by zero
+        percentage: total > 0 ? Math.round((completed / total) * 100) : 0
+      });
+    }
+
+    setWeeklyData(weekData);
+  };
+
+  const calculateMonthlyStats = (habits: IHabit[]) => {
+    const today = new Date();
+    const monthData: MonthlyData[] = [];
+
+    // Get data for the last 30 days
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      let completed = 0;
+      let total = 0;
+
+      habits.forEach(habit => {
+        if (habit.status === 'active') {
+          total++;
+          const dayCompletion = habit.completions?.find(comp => {
+            const compDate = new Date(comp.date);
+            compDate.setHours(0, 0, 0, 0);
+            return compDate.getTime() === date.getTime();
+          });
+
+          if (dayCompletion?.completed) {
+            completed++;
+          }
+        }
+      });
+
+      monthData.push({
+        name: `Day ${30 - i}`,
+        completed,
+        total: total || 1,
+        percentage: total > 0 ? Math.round((completed / total) * 100) : 0
+      });
+    }
+
+    setMonthlyData(monthData);
+  };
+
+  const calculateCategoryStats = (habits: IHabit[]) => {
+    const categoryCount: { [key: string]: number } = {};
+
+    habits.forEach(habit => {
+      if (habit.status === 'active') {
+        categoryCount[habit.category] = (categoryCount[habit.category] || 0) + 1;
+      }
+    });
+
+    const total = Object.values(categoryCount).reduce((sum, count) => sum + count, 0);
+
+    const categories = Object.entries(categoryCount).map(([name, count]) => ({
+      name,
+      value: total > 0 ? Math.round((count / total) * 100) : 0
+    }));
+
+    setCategoryData(categories);
+  };
+
+  const calculateStreakStats = (habits: IHabit[]) => {
+    const activeHabits = habits
+      .filter(habit => habit.status === 'active')
+      .sort((a, b) => b.streak - a.streak)
+      .slice(0, 5); // Top 5 streaks
+
+    const streaks = activeHabits.map(habit => ({
+      name: habit.name.length > 12 ? habit.name.substring(0, 12) + '...' : habit.name,
+      streak: habit.streak
+    }));
+
+    setStreakData(streaks);
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[1, 2, 3].map(i => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="h-4 bg-muted rounded w-1/2"></div>
+                <div className="h-3 bg-muted rounded w-3/4 mt-2"></div>
+              </CardHeader>
+              <CardContent className="h-[300px]">
+                <div className="animate-pulse bg-muted h-full rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle>Completion Rate</CardTitle>
-            <CardDescription>Your habit completion over time</CardDescription>
+            <CardTitle>Weekly Progress</CardTitle>
+            <CardDescription>Your habit completion over the last 7 days</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -69,7 +232,10 @@ export function HabitStats() {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip
-                  formatter={(value) => [`${value} habits`, "Completed"]}
+                  formatter={(value, name) => [
+                    name === 'completed' ? `${value} habits` : `${value}%`,
+                    name === 'completed' ? 'Completed' : 'Completion Rate'
+                  ]}
                   labelFormatter={(label) => `${label}`}
                 />
                 <Area
@@ -90,57 +256,63 @@ export function HabitStats() {
             <CardDescription>Breakdown of your habit types</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoriesData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {categoriesData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value) => [`${value}%`, "Percentage"]}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            {categoryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => [`${value}%`, "Percentage"]}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No habit categories found
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Streaks</CardTitle>
-            <CardDescription>Your current habit streaks</CardDescription>
+            <CardTitle>Current Streaks</CardTitle>
+            <CardDescription>Your active habit streaks</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={[
-                  { name: "Meditation", streak: 21 },
-                  { name: "Reading", streak: 8 },
-                  { name: "Exercise", streak: 12 },
-                  { name: "Water", streak: 15 },
-                  { name: "Journal", streak: 5 },
-                ]}
-                layout="vertical"
-                margin={{ top: 5, right: 5, left: 50, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="name" />
-                <Tooltip 
-                  formatter={(value) => [`${value} days`, "Current Streak"]}
-                />
-                <Bar dataKey="streak" fill="hsl(var(--chart-2))" />
-              </BarChart>
-            </ResponsiveContainer>
+            {streakData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={streakData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 5, left: 50, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="name" />
+                  <Tooltip
+                    formatter={(value) => [`${value} days`, "Current Streak"]}
+                  />
+                  <Bar dataKey="streak" fill="hsl(var(--chart-2))" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No active habits found
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -149,7 +321,7 @@ export function HabitStats() {
         <CardHeader>
           <CardTitle>Monthly Performance</CardTitle>
           <CardDescription>
-            Your habit completion percentage over the last 30 days
+            Your habit completion over the last 30 days
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -160,7 +332,7 @@ export function HabitStats() {
                 <TabsTrigger value="raw">Raw Numbers</TabsTrigger>
               </TabsList>
             </div>
-            
+
             <TabsContent value="percentage" className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
@@ -168,13 +340,13 @@ export function HabitStats() {
                   margin={{ top: 5, right: 5, left: 0, bottom: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
+                  <XAxis
+                    dataKey="name"
                     tick={{ fontSize: 12 }}
                     interval={4}
                   />
                   <YAxis domain={[0, 100]} />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value) => [`${value}%`, "Completion Rate"]}
                   />
                   <Area
@@ -187,7 +359,7 @@ export function HabitStats() {
                 </AreaChart>
               </ResponsiveContainer>
             </TabsContent>
-            
+
             <TabsContent value="raw" className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -195,8 +367,8 @@ export function HabitStats() {
                   margin={{ top: 5, right: 5, left: 0, bottom: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
+                  <XAxis
+                    dataKey="name"
                     tick={{ fontSize: 12 }}
                     interval={4}
                   />

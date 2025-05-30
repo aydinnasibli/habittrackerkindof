@@ -46,12 +46,13 @@ export async function createHabit(formData: FormData) {
         return { success: false, error: error instanceof Error ? error.message : 'Failed to create habit' };
     }
 }
-
+// lib/actions/habits.ts - Fixed getUserHabits function
 export async function getUserHabits(): Promise<IHabit[]> {
     try {
         const { userId } = await auth();
 
         if (!userId) {
+            console.log('No authenticated user found');
             return [];
         }
 
@@ -63,24 +64,31 @@ export async function getUserHabits(): Promise<IHabit[]> {
             .lean<LeanHabit[]>()
             .exec();
 
+        // Add null check and ensure we always return an array
+        if (!habits || !Array.isArray(habits)) {
+            console.log('No habits found or invalid data structure');
+            return [];
+        }
+
         return habits.map(habit => ({
             _id: habit._id?.toString() || '',
-            clerkUserId: habit.clerkUserId,
-            name: habit.name,
-            description: habit.description,
-            category: habit.category,
-            frequency: habit.frequency,
-            timeOfDay: habit.timeOfDay,
-            timeToComplete: habit.timeToComplete,
-            priority: habit.priority,
+            clerkUserId: habit.clerkUserId || '',
+            name: habit.name || '',
+            description: habit.description || '',
+            category: habit.category || 'Health',
+            frequency: habit.frequency || 'Daily',
+            timeOfDay: habit.timeOfDay || 'Morning',
+            timeToComplete: habit.timeToComplete || '5 minutes',
+            priority: habit.priority || 'Medium',
             streak: habit.streak || 0,
             status: habit.status || 'active',
-            completions: habit.completions || [],
+            completions: Array.isArray(habit.completions) ? habit.completions : [],
             createdAt: habit.createdAt || new Date(),
             updatedAt: habit.updatedAt || new Date(),
         })) as IHabit[];
     } catch (error) {
         console.error('Error fetching habits:', error);
+        // Always return an empty array instead of undefined
         return [];
     }
 }
