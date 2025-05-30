@@ -4,8 +4,13 @@ import { RecommendedHabits } from "@/components/dashboard/recommended-habits";
 import { HabitDNA } from "@/components/dashboard/habit-dna";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { getHabitAnalytics } from "@/lib/actions/habits";
+import { TrendingUp, Target, Calendar, Award } from "lucide-react";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const analytics = await getHabitAnalytics(7);
+
   return (
     <div className="container py-8">
       <div className="mb-8">
@@ -25,85 +30,147 @@ export default function DashboardPage() {
 
         <TabsContent value="overview" className="space-y-8">
           <HabitOverview />
-          
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Habits</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analytics.totalHabits}</div>
+                <p className="text-xs text-muted-foreground">
+                  Currently tracking
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Weekly Success</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analytics.completionRate}%</div>
+                <p className="text-xs text-muted-foreground">
+                  Completion rate this week
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Streaks</CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analytics.streakSum}</div>
+                <p className="text-xs text-muted-foreground">
+                  Combined streak days
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Best Day</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {analytics.weeklyData.length > 0
+                    ? Math.max(...analytics.weeklyData.map(d => d.rate))
+                    : 0}%
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Best completion rate
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card>
               <CardHeader>
-                <CardTitle>Today's Impact</CardTitle>
+                <CardTitle>Weekly Progress</CardTitle>
                 <CardDescription>
-                  The compound effect of your habits today
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span>Productivity</span>
-                    <span className="font-medium text-green-500">+12%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Energy</span>
-                    <span className="font-medium text-green-500">+8%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Focus</span>
-                    <span className="font-medium text-green-500">+15%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Mood</span>
-                    <span className="font-medium text-green-500">+10%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Habit Weather Forecast</CardTitle>
-                <CardDescription>
-                  Predicted difficulty for the next 7 days
+                  Your habit completion over the last 7 days
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="w-20 text-sm">{day}</div>
-                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full ${
-                            index === 2 || index === 5 ? "bg-yellow-500" : 
-                            index === 3 ? "bg-red-500" : "bg-green-500"
-                          }`} 
-                          style={{ 
-                            width: `${
-                              index === 2 ? "70%" : 
-                              index === 3 ? "85%" : 
-                              index === 5 ? "65%" : 
-                              "40%"
-                            }` 
-                          }}
-                        />
+                  {analytics.weeklyData.map((day, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="w-20 text-sm font-medium">
+                        {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
                       </div>
-                      <div className="w-16 text-sm text-right">
-                        {index === 2 || index === 5 ? "Moderate" : 
-                         index === 3 ? "Difficult" : "Easy"}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Progress value={day.rate} className="flex-1" />
+                          <span className="text-sm font-medium w-12 text-right">
+                            {day.rate}%
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {day.completed}/{day.total} habits completed
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+                <CardDescription>
+                  Shortcuts to boost your habit success
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                    <div className="font-medium">Set Reminders</div>
+                    <div className="text-sm text-muted-foreground">
+                      Never miss a habit with smart notifications
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                    <div className="font-medium">Create Habit Stack</div>
+                    <div className="text-sm text-muted-foreground">
+                      Link habits together for better consistency
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                    <div className="font-medium">Review Goals</div>
+                    <div className="text-sm text-muted-foreground">
+                      Adjust your habits based on progress
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                    <div className="font-medium">Export Data</div>
+                    <div className="text-sm text-muted-foreground">
+                      Download your habit tracking history
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="analytics">
           <HabitStats />
         </TabsContent>
-        
+
         <TabsContent value="recommended">
           <RecommendedHabits />
         </TabsContent>
-        
+
         <TabsContent value="dna">
           <HabitDNA />
         </TabsContent>

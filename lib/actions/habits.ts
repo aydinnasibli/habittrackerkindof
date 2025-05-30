@@ -46,7 +46,7 @@ export async function createHabit(formData: FormData) {
         return { success: false, error: error instanceof Error ? error.message : 'Failed to create habit' };
     }
 }
-// lib/actions/habits.ts - Fixed getUserHabits function
+
 export async function getUserHabits(): Promise<IHabit[]> {
     try {
         const { userId } = await auth();
@@ -64,7 +64,6 @@ export async function getUserHabits(): Promise<IHabit[]> {
             .lean<LeanHabit[]>()
             .exec();
 
-        // Add null check and ensure we always return an array
         if (!habits || !Array.isArray(habits)) {
             console.log('No habits found or invalid data structure');
             return [];
@@ -88,7 +87,6 @@ export async function getUserHabits(): Promise<IHabit[]> {
         })) as IHabit[];
     } catch (error) {
         console.error('Error fetching habits:', error);
-        // Always return an empty array instead of undefined
         return [];
     }
 }
@@ -144,7 +142,6 @@ export async function completeHabit(habitId: string) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // First, get the current habit to check if already completed today
         const habit = await Habit.findOne({
             _id: new Types.ObjectId(habitId),
             clerkUserId: userId
@@ -154,7 +151,6 @@ export async function completeHabit(habitId: string) {
             throw new Error('Habit not found');
         }
 
-        // Check if already completed today
         const completions = habit.completions || [];
         const alreadyCompleted = completions.some((completion: IHabitCompletion) => {
             const completionDate = new Date(completion.date);
@@ -166,7 +162,18 @@ export async function completeHabit(habitId: string) {
             throw new Error('Habit already completed today');
         }
 
-        // Add completion and increment streak
+        // Calculate new streak
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const wasCompletedYesterday = completions.some((completion: IHabitCompletion) => {
+            const completionDate = new Date(completion.date);
+            completionDate.setHours(0, 0, 0, 0);
+            return completionDate.getTime() === yesterday.getTime() && completion.completed;
+        });
+
+        const newStreak = wasCompletedYesterday || habit.streak === 0 ? habit.streak + 1 : 1;
+
         const result = await Habit.updateOne(
             { _id: new Types.ObjectId(habitId), clerkUserId: userId },
             {
@@ -176,8 +183,10 @@ export async function completeHabit(habitId: string) {
                         completed: true
                     }
                 },
-                $inc: { streak: 1 },
-                $set: { updatedAt: new Date() }
+                $set: {
+                    streak: newStreak,
+                    updatedAt: new Date()
+                }
             }
         );
 
@@ -210,13 +219,16 @@ export async function skipHabit(habitId: string) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        // Remove today's completion if it exists, instead of adding a false completion
         const result = await Habit.updateOne(
             { _id: new Types.ObjectId(habitId), clerkUserId: userId },
             {
-                $push: {
+                $pull: {
                     completions: {
-                        date: today,
-                        completed: false
+                        date: {
+                            $gte: today,
+                            $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+                        }
                     }
                 },
                 $set: {
@@ -365,11 +377,6 @@ export async function deleteHabitChain(chainId: string) {
     }
 }
 
-
-
-
-// Add this function to your lib/actions/habits.ts file
-
 export async function updateHabit(habitId: string, updateData: {
     name: string;
     description: string;
@@ -412,3 +419,91 @@ export async function updateHabit(habitId: string, updateData: {
     }
 }
 
+// New function to get habit analytics
+export async function getHabitAnalytics(days: number = 7) {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
+        }
+
+        await connectToDatabase();
+
+        const habits = await Habit.find({ clerkUserId: userId, status: 'active' }).lean();
+
+        const endDate = new Date();
+        endDate.setHours(23, 59, 59, 999);
+
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days + 1);
+        startDate.setHours(0, 0, 0, 0);
+
+        const weeklyData = [];
+        let totalCompletions = 0;
+        let totalPossible = 0;
+
+        for (let i = 0; i < days; i++) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + i);
+            date.setHours(0, 0, 0, 0);
+
+            let dayCompletions = 0;
+            let dayPossible = 0;
+
+            habits.forEach(habit => {
+                // Check if habit should be done on this day based on frequency
+                const dayOfWeek = date.getDay();
+                let shouldDoToday = false;
+
+                switch (habit.frequency) {
+                    case 'Daily':
+                        shouldDoToday = true;
+                        break;
+                    case 'Weekdays':
+                        shouldDoToday = dayOfWeek >= 1 && dayOfWeek <= 5;
+                        break;
+                    case 'Weekends':
+                        shouldDoToday = dayOfWeek === 0 || dayOfWeek === 6;
+                        break;
+                    case 'Mon, Wed, Fri':
+                        shouldDoToday = dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5;
+                        break;
+                    case 'Tue, Thu':
+                        shouldDoToday = dayOfWeek === 2 || dayOfWeek === 4;
+                        break;
+                }
+
+                if (shouldDoToday) {
+                    dayPossible++;
+                    const completed = habit.completions?.some((completion: any) => {
+                        const compDate = new Date(completion.date);
+                        compDate.setHours(0, 0, 0, 0);
+                        return compDate.getTime() === date.getTime() && completion.completed;
+                    });
+                    if (completed) dayCompletions++;
+                }
+            });
+
+            weeklyData.push({
+                date: date.toISOString().split('T')[0],
+                completed: dayCompletions,
+                total: dayPossible,
+                rate: dayPossible > 0 ? Math.round((dayCompletions / dayPossible) * 100) : 0
+            });
+
+            totalCompletions += dayCompletions;
+            totalPossible += dayPossible;
+        }
+
+        return {
+            totalHabits: habits.length,
+            completionRate: totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0,
+            streakSum: habits.reduce((sum, habit) => sum + (habit.streak || 0), 0),
+            weeklyData
+        };
+    } catch (error) {
+        console.error('Error getting habit analytics:', error);
+        return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
+    }
+}

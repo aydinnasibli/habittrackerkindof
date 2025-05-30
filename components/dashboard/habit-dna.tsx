@@ -454,93 +454,221 @@ export function HabitDNA() {
         </TabsContent>
 
         <TabsContent value="insights">
-          <Card>
-            <CardHeader>
-              <CardTitle>Habit Connection Insights</CardTitle>
-              <CardDescription>
-                Patterns and recommendations based on your actual habit data
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="bg-muted p-4 rounded-md">
-                  <h3 className="text-lg font-medium mb-2">Key Insights</h3>
-                  <ul className="space-y-3">
-                    {insights.map((insight, index) => (
-                      <li key={index} className="flex items-start">
-                        {insight.type === 'positive' ? (
-                          <PlusCircle className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        ) : (
-                          <MinusCircle className="h-5 w-5 text-yellow-500 mr-2 shrink-0 mt-0.5" />
-                        )}
-                        <span>{insight.text}</span>
-                      </li>
-                    ))}
-                    {insights.length === 0 && (
-                      <li className="text-muted-foreground">
-                        Add more habits to see personalized insights about your habit connections.
-                      </li>
-                    )}
-                  </ul>
-                </div>
+          <div className="space-y-6">
+            {/* Header Section */}
+            <Card className="bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-pink-500/10 border-none">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">🧬</span>
+                  </div>
+                  Habit Connection Insights
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Discover patterns and get personalized recommendations based on your habit data
+                </CardDescription>
+              </CardHeader>
+            </Card>
 
-                <div>
-                  <h3 className="text-lg font-medium mb-3">Habit Statistics</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="bg-card border-border">
-                      <CardContent className="p-4">
-                        <div className="text-2xl font-bold text-center">
+            {/* Key Insights Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <span className="text-green-600 text-xs">💡</span>
+                  </div>
+                  Key Insights
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {insights.length > 0 ? (
+                  <div className="space-y-4">
+                    {insights.map((insight, index) => (
+                      <div
+                        key={index}
+                        className={`p-4 rounded-lg border-l-4 ${insight.type === 'positive'
+                          ? 'bg-green-50 border-l-green-500 dark:bg-green-900/20'
+                          : 'bg-yellow-50 border-l-yellow-500 dark:bg-yellow-900/20'
+                          }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-1 p-1 rounded-full ${insight.type === 'positive'
+                            ? 'bg-green-100 dark:bg-green-800'
+                            : 'bg-yellow-100 dark:bg-yellow-800'
+                            }`}>
+                            {insight.type === 'positive' ? (
+                              <PlusCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            ) : (
+                              <MinusCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium leading-relaxed">{insight.text}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                      <span className="text-2xl">🌱</span>
+                    </div>
+                    <p className="text-muted-foreground">
+                      Add more habits to see personalized insights about your habit connections.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Statistics Grid */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <span className="text-blue-600 text-xs">📊</span>
+                  </div>
+                  Habit Statistics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                    <Card className="relative bg-card/50 backdrop-blur border-border/50 hover:shadow-lg transition-all duration-300">
+                      <CardContent className="p-6 text-center">
+                        <div className="h-12 w-12 mx-auto mb-3 rounded-full bg-purple-500/10 flex items-center justify-center">
+                          <span className="text-purple-600 text-xl">🎯</span>
+                        </div>
+                        <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                           {habitData?.nodes.length || 0}
                         </div>
-                        <div className="text-sm text-muted-foreground text-center">
+                        <div className="text-sm text-muted-foreground font-medium">
                           Total Habits
                         </div>
                       </CardContent>
                     </Card>
-                    <Card className="bg-card border-border">
-                      <CardContent className="p-4">
-                        <div className="text-2xl font-bold text-center">
+                  </div>
+
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                    <Card className="relative bg-card/50 backdrop-blur border-border/50 hover:shadow-lg transition-all duration-300">
+                      <CardContent className="p-6 text-center">
+                        <div className="h-12 w-12 mx-auto mb-3 rounded-full bg-blue-500/10 flex items-center justify-center">
+                          <span className="text-blue-600 text-xl">🔗</span>
+                        </div>
+                        <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                           {habitData?.links.length || 0}
                         </div>
-                        <div className="text-sm text-muted-foreground text-center">
+                        <div className="text-sm text-muted-foreground font-medium">
                           Connections
                         </div>
                       </CardContent>
                     </Card>
-                    <Card className="bg-card border-border">
-                      <CardContent className="p-4">
-                        <div className="text-2xl font-bold text-center">
+                  </div>
+
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                    <Card className="relative bg-card/50 backdrop-blur border-border/50 hover:shadow-lg transition-all duration-300">
+                      <CardContent className="p-6 text-center">
+                        <div className="h-12 w-12 mx-auto mb-3 rounded-full bg-green-500/10 flex items-center justify-center">
+                          <span className="text-green-600 text-xl">🔥</span>
+                        </div>
+                        <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                           {habitData?.nodes.reduce((sum, node) => sum + node.streak, 0) || 0}
                         </div>
-                        <div className="text-sm text-muted-foreground text-center">
+                        <div className="text-sm text-muted-foreground font-medium">
                           Total Streak Days
                         </div>
                       </CardContent>
                     </Card>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                {habitData && habitData.nodes.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Category Distribution</h3>
-                    <div className="space-y-2">
-                      {Object.entries(
-                        habitData.nodes.reduce((acc, node) => {
-                          acc[node.category] = (acc[node.category] || 0) + 1;
-                          return acc;
-                        }, {} as Record<string, number>)
-                      ).map(([category, count]) => (
-                        <div key={category} className="flex justify-between items-center p-2 bg-muted rounded">
-                          <span className="font-medium">{category}</span>
-                          <span className="text-sm text-muted-foreground">{count} habit{count !== 1 ? 's' : ''}</span>
-                        </div>
-                      ))}
+            {/* Category Distribution */}
+            {habitData && habitData.nodes.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-full bg-orange-500/20 flex items-center justify-center">
+                      <span className="text-orange-600 text-xs">📈</span>
                     </div>
+                    Category Distribution
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {Object.entries(
+                      habitData.nodes.reduce((acc, node) => {
+                        acc[node.category] = (acc[node.category] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>)
+                    ).map(([category, count], index) => {
+                      const colors = [
+                        'from-purple-500 to-pink-500',
+                        'from-blue-500 to-cyan-500',
+                        'from-green-500 to-emerald-500',
+                        'from-yellow-500 to-orange-500',
+                        'from-red-500 to-pink-500'
+                      ];
+                      const bgColors = [
+                        'bg-purple-500/10',
+                        'bg-blue-500/10',
+                        'bg-green-500/10',
+                        'bg-yellow-500/10',
+                        'bg-red-500/10'
+                      ];
+                      const textColors = [
+                        'text-purple-600',
+                        'text-blue-600',
+                        'text-green-600',
+                        'text-yellow-600',
+                        'text-red-600'
+                      ];
+
+                      const colorIndex = index % colors.length;
+                      const percentage = ((count / habitData.nodes.length) * 100).toFixed(1);
+
+                      return (
+                        <div
+                          key={category}
+                          className={`group p-4 rounded-lg ${bgColors[colorIndex]} border border-border/50 hover:border-border transition-all duration-300 hover:shadow-md`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`h-3 w-3 rounded-full bg-gradient-to-r ${colors[colorIndex]}`}></div>
+                              <span className="font-medium">{category}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-semibold ${textColors[colorIndex]}`}>
+                                {count} habit{count !== 1 ? 's' : ''}
+                              </span>
+                              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                                {percentage}%
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full bg-gradient-to-r ${colors[colorIndex]} transition-all duration-500 ease-out`}
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
+
+
+          </div>
         </TabsContent>
       </Tabs>
     </div>
