@@ -369,16 +369,16 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
         return `${minutes}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // Break screen with enhanced UI
+    // Break screen with dark theme
     if (session.onBreak) {
         return (
             <div className="max-w-2xl mx-auto space-y-6">
-                <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-100">
+                <Card className="border-border bg-card">
                     <CardHeader className="text-center">
-                        <div className="mx-auto w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4 animate-pulse">
-                            <Coffee className="h-10 w-10 text-blue-600" />
+                        <div className="mx-auto w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4 animate-pulse">
+                            <Coffee className="h-10 w-10 text-muted-foreground" />
                         </div>
-                        <CardTitle className="text-3xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        <CardTitle className="text-3xl text-foreground">
                             Break Time! ☕
                         </CardTitle>
                         <CardDescription className="text-lg">
@@ -386,19 +386,19 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="text-center space-y-6">
-                        <div className="text-5xl font-bold text-blue-600 animate-pulse">
+                        <div className="text-5xl font-bold text-foreground animate-pulse">
                             {formatTime(breakTimeLeft)}
                         </div>
                         <p className="text-muted-foreground">
                             Time remaining • Stretch, breathe, hydrate!
                         </p>
-                        <div className="bg-white/70 rounded-lg p-4 text-sm text-blue-700">
+                        <div className="bg-muted rounded-lg p-4 text-sm text-muted-foreground">
                             💡 <strong>Pro tip:</strong> Use this time to reflect on your progress or do some light stretching
                         </div>
                         <Button
                             onClick={handleEndBreak}
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                            className="w-full"
                             size="lg"
                         >
                             {loading ? (
@@ -419,15 +419,15 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
             {/* Celebration overlay */}
             {showCelebration && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                    <div className="bg-white rounded-lg p-8 text-center animate-bounce">
+                    <div className="bg-card border rounded-lg p-8 text-center animate-bounce">
                         <Trophy className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-                        <h2 className="text-2xl font-bold text-green-600">Habit Completed! 🎉</h2>
+                        <h2 className="text-2xl font-bold text-foreground">Habit Completed! 🎉</h2>
                     </div>
                 </div>
             )}
 
-            {/* Enhanced Session Header */}
-            <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-100">
+            {/* Session Header */}
+            <Card className="border-border bg-card">
                 <CardHeader>
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
@@ -443,7 +443,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                             </CardDescription>
                         </div>
                         <div className="text-right">
-                            <div className="flex items-center gap-2 text-lg font-semibold text-green-700">
+                            <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
                                 <Timer className="h-5 w-5" />
                                 {formatTime(elapsedTime)}
                             </div>
@@ -454,20 +454,20 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                     </div>
                     <Progress value={progress} className="mt-4 h-3" />
                     {motivation && !session.pausedAt && (
-                        <div className="mt-4 p-3 bg-white/70 rounded-lg text-center text-sm font-medium text-green-800 animate-fade-in">
+                        <div className="mt-4 p-3 bg-muted rounded-lg text-center text-sm font-medium text-foreground animate-fade-in">
                             {motivation}
                         </div>
                     )}
                 </CardHeader>
             </Card>
 
-            {/* Enhanced Current Habit Card */}
+            {/* Current Habit Card */}
             {currentHabit && (
-                <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+                <Card className="border-border bg-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-xl">
-                            <Target className="h-6 w-6 text-blue-600" />
-                            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                            <Target className="h-6 w-6 text-foreground" />
+                            <span className="text-foreground">
                                 {currentHabit.habitName}
                             </span>
                         </CardTitle>
@@ -477,7 +477,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                     </CardHeader>
                     <CardContent>
                         {session.pausedAt ? (
-                            <Alert className="border-yellow-200 bg-yellow-50">
+                            <Alert className="border-border bg-muted">
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>
                                     Session is paused. Click Resume when you're ready to continue!
@@ -485,8 +485,8 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                             </Alert>
                         ) : (
                             <div className="space-y-6">
-                                <div className="bg-white/70 rounded-lg p-4">
-                                    <p className="text-sm text-blue-700 font-medium">
+                                <div className="bg-muted rounded-lg p-4">
+                                    <p className="text-sm text-muted-foreground font-medium">
                                         🎯 <strong>Focus Mode:</strong> Give this habit your full attention. You've got this!
                                     </p>
                                 </div>
@@ -494,7 +494,6 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                                     <Button
                                         onClick={() => setShowCompleteDialog(true)}
                                         disabled={loading}
-                                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                                         size="lg"
                                     >
                                         <Check className="mr-2 h-4 w-4" />
@@ -525,7 +524,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                 </Card>
             )}
 
-            {/* Enhanced Session Controls */}
+            {/* Session Controls */}
             <Card>
                 <CardContent className="pt-6">
                     <div className="flex gap-3 justify-center">
@@ -557,7 +556,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                 </CardContent>
             </Card>
 
-            {/* Enhanced Habits Progress List */}
+            {/* Habits Progress List */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -573,22 +572,22 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                         {session.habits.map((habit, index) => (
                             <div
                                 key={`${habit.habitId}-${index}`}
-                                className={`flex items-center gap-4 p-4 rounded-lg transition-all ${index === session.currentHabitIndex
-                                        ? 'bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-200 shadow-md'
-                                        : habit.status === 'completed'
-                                            ? 'bg-gradient-to-r from-green-100 to-emerald-100 border border-green-200'
-                                            : habit.status === 'skipped'
-                                                ? 'bg-gradient-to-r from-yellow-100 to-amber-100 border border-yellow-200'
-                                                : 'bg-gray-50 border border-gray-200'
+                                className={`flex items-center gap-4 p-4 rounded-lg transition-all border ${index === session.currentHabitIndex
+                                    ? 'bg-muted border-2 border-border shadow-md'
+                                    : habit.status === 'completed'
+                                        ? 'bg-muted/60 border-border'
+                                        : habit.status === 'skipped'
+                                            ? 'bg-muted/40 border-border'
+                                            : 'bg-background border-border'
                                     }`}
                             >
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${habit.status === 'completed'
-                                        ? 'bg-green-500 text-white'
-                                        : habit.status === 'skipped'
-                                            ? 'bg-yellow-500 text-white'
-                                            : index === session.currentHabitIndex
-                                                ? 'bg-blue-500 text-white animate-pulse'
-                                                : 'bg-white border-2 border-gray-300'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : habit.status === 'skipped'
+                                        ? 'bg-muted text-muted-foreground'
+                                        : index === session.currentHabitIndex
+                                            ? 'bg-primary text-primary-foreground animate-pulse'
+                                            : 'bg-background border-2 border-border'
                                     }`}>
                                     {habit.status === 'completed' ? (
                                         <Check className="h-5 w-5" />
@@ -601,8 +600,8 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                                     )}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="font-semibold text-gray-800">{habit.habitName}</div>
-                                    <div className="text-sm text-gray-600 flex items-center gap-2">
+                                    <div className="font-semibold text-foreground">{habit.habitName}</div>
+                                    <div className="text-sm text-muted-foreground flex items-center gap-2">
                                         <Clock className="h-3 w-3" />
                                         {habit.duration}
                                     </div>
@@ -627,7 +626,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                 </CardContent>
             </Card>
 
-            {/* Enhanced Complete Habit Dialog */}
+            {/* Complete Habit Dialog */}
             <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -658,7 +657,6 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                         <Button
                             onClick={handleCompleteHabit}
                             disabled={loading}
-                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                         >
                             {loading ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -671,7 +669,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                 </DialogContent>
             </Dialog>
 
-            {/* Enhanced Skip Habit Dialog */}
+            {/* Skip Habit Dialog */}
             <Dialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -707,7 +705,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                 </DialogContent>
             </Dialog>
 
-            {/* Enhanced Abandon Session Dialog */}
+            {/* Abandon Session Dialog */}
             <Dialog open={showAbandonDialog} onOpenChange={setShowAbandonDialog}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -717,7 +715,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+                        <div className="bg-muted border rounded-lg p-4 text-sm text-muted-foreground">
                             💡 <strong>Remember:</strong> Progress isn't about perfection. Every step counts, and you can always start again!
                         </div>
                     </div>

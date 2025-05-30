@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Plus, X, Settings, Play, MoreHorizontal, Loader2, AlertCircle } from "lucide-react";
+import { ArrowRight, Plus, X, Settings, Play, MoreHorizontal, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +43,7 @@ import {
   getActiveChainSession,
   abandonChainSession
 } from "@/lib/actions/chainSessions";
+import { ChainSession } from "./chain-session"; // Import your existing component
 
 export function HabitChains() {
   const [chains, setChains] = useState<IHabitChain[]>([]);
@@ -51,6 +52,7 @@ export function HabitChains() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [showSession, setShowSession] = useState(false); // New state to control session view
 
   // Form state for creating new chain
   const [formData, setFormData] = useState({
@@ -66,6 +68,14 @@ export function HabitChains() {
     loadData();
   }, []);
 
+  // Auto-show session if there's an active one on load
+  useEffect(() => {
+    if (activeSession && !showSession) {
+      // Optionally auto-show the session, or let user manually navigate to it
+      // setShowSession(true);
+    }
+  }, [activeSession]);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -75,7 +85,7 @@ export function HabitChains() {
         getActiveChainSession()
       ]);
       setChains(chainsData);
-      setHabits(habitsData.filter(h => h.status === 'active')); // Only show active habits for chain creation
+      setHabits(habitsData.filter(h => h.status === 'active'));
       setActiveSession(activeSessionData);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -109,14 +119,13 @@ export function HabitChains() {
 
         const chain = chains.find(c => c._id === chainId);
         toast({
-          title: "Chain Started!",
-          description: result.message || `Successfully started ${chain?.name} chain.`,
+          title: "🚀 Chain Started!",
+          description: `${chain?.name} is now active. Let's build those habits!`,
         });
 
-        // You could redirect to a chain session page here if you have one
-        // router.push(`/habits/chain-session/${result.sessionId}`);
+        // Automatically show the session view
+        setShowSession(true);
       } else {
-        // Handle the case where user already has an active session
         if (result.activeSessionId) {
           toast({
             title: "Active Session Found",
@@ -147,10 +156,11 @@ export function HabitChains() {
       const result = await abandonChainSession(activeSession._id);
 
       if (result.success) {
-        await loadData(); // Refresh data
+        await loadData();
+        setShowSession(false); // Hide session view
         toast({
-          title: "Session Abandoned",
-          description: result.message,
+          title: "Session Ended",
+          description: "That's okay! Every attempt makes you stronger. Try again when you're ready!",
         });
       } else {
         throw new Error(result.error);
@@ -167,10 +177,21 @@ export function HabitChains() {
     }
   };
 
+  const handleGoToSession = () => {
+    if (activeSession) {
+      setShowSession(true);
+    }
+  };
+
+  const handleSessionEnd = async () => {
+    // Called when session completes or is abandoned from within ChainSession component
+    setShowSession(false);
+    await loadData(); // Refresh to update active session state
+  };
+
   const deleteChain = async (chainId: string) => {
     if (!chainId) return;
 
-    // Prevent deleting chain if it's currently active
     if (activeSession && activeSession.chainId === chainId) {
       toast({
         title: "Cannot Delete",
@@ -184,7 +205,7 @@ export function HabitChains() {
     try {
       const result = await deleteHabitChain(chainId);
       if (result.success) {
-        await loadData(); // Refresh the list
+        await loadData();
         toast({
           title: "Chain Deleted",
           description: "The habit chain has been removed.",
@@ -259,7 +280,7 @@ export function HabitChains() {
       });
 
       if (result.success) {
-        await loadData(); // Refresh the list
+        await loadData();
         setCreateDialogOpen(false);
         setFormData({
           name: "",
@@ -268,8 +289,8 @@ export function HabitChains() {
           selectedHabits: []
         });
         toast({
-          title: "Chain Created",
-          description: "Your habit chain has been created successfully.",
+          title: "🎉 Chain Created!",
+          description: "Your habit chain is ready to start building amazing habits!",
         });
       } else {
         throw new Error(result.error);
@@ -285,7 +306,6 @@ export function HabitChains() {
   };
 
   const isChainStartDisabled = (chainId: string) => {
-    // Disable if there's an active session or if this specific chain is being processed
     return !!activeSession || actionLoading === chainId;
   };
 
@@ -295,6 +315,35 @@ export function HabitChains() {
     if (activeSession) return "Another Chain Active";
     return "Start Chain";
   };
+
+  // Show session view if requested and there's an active session
+  if (showSession && activeSession) {
+    return (
+      <div className="space-y-6">
+        {/* Back to chains button */}
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            onClick={() => setShowSession(false)}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Chains
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Chain Session</h1>
+            <p className="text-muted-foreground">Stay focused and build your habits!</p>
+          </div>
+        </div>
+
+        {/* Render the ChainSession component */}
+        <ChainSession
+          initialSession={activeSession}
+          onSessionEnd={handleSessionEnd}
+        />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -309,30 +358,43 @@ export function HabitChains() {
 
   return (
     <div className="space-y-6">
-      {/* Active Session Alert */}
+      {/* Dark Active Session Alert */}
       {activeSession && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
+        <Alert className="border-emerald-800 bg-emerald-950/50">
+          <AlertCircle className="h-4 w-4 text-emerald-400" />
           <AlertDescription className="flex items-center justify-between">
-            <span>
-              You have an active chain session: <strong>{activeSession.chainName}</strong>
-              {activeSession.onBreak && " (currently on break)"}
-              {activeSession.pausedAt && " (currently paused)"}
-            </span>
+            <div>
+              <span className="font-medium text-emerald-100">
+                🔥 Active Chain: <strong className="text-white">{activeSession.chainName}</strong>
+              </span>
+              <div className="text-sm text-emerald-200 mt-1">
+                Progress: {activeSession.habits.filter(h => h.status === 'completed').length} of {activeSession.totalHabits} habits completed
+                {activeSession.onBreak && " • Currently on break ☕"}
+                {activeSession.pausedAt && " • Currently paused ⏸️"}
+              </div>
+            </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGoToSession}
+                className="border-emerald-700 hover:bg-emerald-900"
+              >
+                🎯 Continue Session
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleAbandonActiveSession}
                 disabled={actionLoading === 'abandon'}
+                className="border-red-800 hover:bg-red-900"
               >
                 {actionLoading === 'abandon' ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "Abandon Session"
+                  "End Session"
                 )}
               </Button>
-              {/* You can add a "Go to Session" button here if you have a dedicated session page */}
             </div>
           </AlertDescription>
         </Alert>
@@ -342,12 +404,12 @@ export function HabitChains() {
         <div>
           <h2 className="text-2xl font-bold">Habit Chains</h2>
           <p className="text-muted-foreground">
-            Create sequences of habits that trigger each other
+            Create sequences of habits that trigger each other for maximum momentum
           </p>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button disabled={!!activeSession}>
+            <Button disabled={!!activeSession} className="hover:bg-primary/90">
               <Plus className="mr-2 h-4 w-4" /> New Chain
             </Button>
           </DialogTrigger>
@@ -364,7 +426,7 @@ export function HabitChains() {
                   <Label htmlFor="chain-name">Chain Name</Label>
                   <Input
                     id="chain-name"
-                    placeholder="e.g., Morning Routine"
+                    placeholder="e.g., Morning Power Hour"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   />
@@ -376,10 +438,10 @@ export function HabitChains() {
                       <SelectValue placeholder="Select time" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Morning">Morning</SelectItem>
-                      <SelectItem value="Afternoon">Afternoon</SelectItem>
-                      <SelectItem value="Evening">Evening</SelectItem>
-                      <SelectItem value="Night">Night</SelectItem>
+                      <SelectItem value="Morning">🌅 Morning</SelectItem>
+                      <SelectItem value="Afternoon">☀️ Afternoon</SelectItem>
+                      <SelectItem value="Evening">🌆 Evening</SelectItem>
+                      <SelectItem value="Night">🌙 Night</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -389,7 +451,7 @@ export function HabitChains() {
                 <Label htmlFor="chain-description">Description</Label>
                 <Textarea
                   id="chain-description"
-                  placeholder="Describe what this chain helps you achieve"
+                  placeholder="Describe what this chain helps you achieve..."
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
@@ -418,9 +480,11 @@ export function HabitChains() {
                   <div className="space-y-2">
                     {formData.selectedHabits.map((habit, index) => (
                       <div key={habit.habitId} className="flex items-center gap-2 p-3 bg-muted rounded-md">
-                        <span className="text-sm font-medium">{index + 1}.</span>
+                        <span className="text-sm font-medium w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center">
+                          {index + 1}
+                        </span>
                         <div className="flex-1">
-                          <span>{habit.habitName}</span>
+                          <span className="font-medium">{habit.habitName}</span>
                           <Badge variant="secondary" className="ml-2">{habit.duration}</Badge>
                         </div>
                         <Button
@@ -432,8 +496,8 @@ export function HabitChains() {
                         </Button>
                       </div>
                     ))}
-                    <div className="text-sm text-muted-foreground">
-                      Total estimated time: {calculateTotalTime()} minutes
+                    <div className="text-sm text-muted-foreground bg-muted p-2 rounded text-center">
+                      💡 Total estimated time: <strong>{calculateTotalTime()} minutes</strong>
                     </div>
                   </div>
                 )}
@@ -443,21 +507,28 @@ export function HabitChains() {
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateChain}>Create Chain</Button>
+              <Button onClick={handleCreateChain}>
+                🚀 Create Chain
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
       {chains.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-8">
-            <p className="text-muted-foreground mb-4">
-              You haven't created any habit chains yet.
+        <Card className="border-muted">
+          <CardContent className="text-center py-12">
+            <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <Plus className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Ready to Build Powerful Habits?</h3>
+            <p className="text-muted-foreground mb-6">
+              Create your first habit chain and start building momentum that compounds!
             </p>
             <Button
               onClick={() => setCreateDialogOpen(true)}
               disabled={!!activeSession}
+              size="lg"
             >
               <Plus className="mr-2 h-4 w-4" /> Create Your First Chain
             </Button>
@@ -466,19 +537,22 @@ export function HabitChains() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {chains.map((chain) => (
-            <Card key={chain._id} className="overflow-hidden">
+            <Card key={chain._id} className={`overflow-hidden transition-all hover:shadow-lg ${activeSession && activeSession.chainId === chain._id
+              ? 'ring-2 ring-emerald-500 bg-emerald-950/20'
+              : 'hover:border-primary/50'
+              }`}>
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       {chain.name}
                       {activeSession && activeSession.chainId === chain._id && (
-                        <Badge variant="default" className="text-xs">
-                          Active
+                        <Badge className="bg-emerald-600 hover:bg-emerald-700">
+                          🔥 Active
                         </Badge>
                       )}
                     </CardTitle>
-                    <CardDescription>{chain.description}</CardDescription>
+                    <CardDescription className="mt-1">{chain.description}</CardDescription>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -495,7 +569,7 @@ export function HabitChains() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Options</DropdownMenuLabel>
+                      <DropdownMenuLabel>Chain Options</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleStartChain(chain._id!)}
@@ -504,13 +578,19 @@ export function HabitChains() {
                         <Play className="mr-2 h-4 w-4" />
                         {getChainStartButtonText(chain._id!)}
                       </DropdownMenuItem>
+                      {activeSession && activeSession.chainId === chain._id && (
+                        <DropdownMenuItem onClick={handleGoToSession}>
+                          <AlertCircle className="mr-2 h-4 w-4" />
+                          Go to Session
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem disabled>
                         <Settings className="mr-2 h-4 w-4" /> Edit Chain
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => deleteChain(chain._id!)}
-                        className="text-red-600"
+                        className="text-red-400 hover:text-red-300"
                         disabled={activeSession?.chainId === chain._id}
                       >
                         <X className="mr-2 h-4 w-4" /> Delete Chain
@@ -521,13 +601,19 @@ export function HabitChains() {
               </CardHeader>
               <CardContent>
                 <div className="mb-4 flex items-center justify-between">
-                  <Badge variant="outline">{chain.timeOfDay}</Badge>
-                  <span className="text-sm text-muted-foreground">
-                    Total: {chain.totalTime}
+                  <Badge variant="outline" className="font-medium">
+                    {chain.timeOfDay === 'Morning' && '🌅'}
+                    {chain.timeOfDay === 'Afternoon' && '☀️'}
+                    {chain.timeOfDay === 'Evening' && '🌆'}
+                    {chain.timeOfDay === 'Night' && '🌙'}
+                    {chain.timeOfDay}
+                  </Badge>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    📊 {chain.totalTime}
                   </span>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 mb-6">
                   {chain.habits.map((habit, index) => (
                     <div key={`${habit.habitId}-${index}`} className="flex items-center">
                       {index > 0 && (
@@ -536,29 +622,41 @@ export function HabitChains() {
                         </div>
                       )}
                       {index === 0 && <div className="w-8" />}
-                      <div className="flex-1 p-3 bg-muted rounded-md">
+                      <div className="flex-1 p-3 bg-muted/50 rounded-md border border-border">
                         <div className="flex justify-between items-center">
-                          <span>{habit.habitName}</span>
-                          <Badge variant="secondary">{habit.duration}</Badge>
+                          <span className="font-medium">{habit.habitName}</span>
+                          <Badge variant="secondary">
+                            ⏱️ {habit.duration}
+                          </Badge>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-6">
+                <div className="space-y-2">
                   <Button
-                    className="w-full"
-                    variant={activeSession && activeSession.chainId === chain._id ? "default" : "outline"}
-                    onClick={() => handleStartChain(chain._id!)}
-                    disabled={isChainStartDisabled(chain._id!)}
+                    className={`w-full ${activeSession && activeSession.chainId === chain._id
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : ""
+                      }`}
+                    onClick={() => activeSession && activeSession.chainId === chain._id ? handleGoToSession() : handleStartChain(chain._id!)}
+                    disabled={isChainStartDisabled(chain._id!) && !(activeSession && activeSession.chainId === chain._id)}
+                    size="lg"
                   >
                     {actionLoading === chain._id ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : activeSession && activeSession.chainId === chain._id ? (
+                      <>
+                        <AlertCircle className="mr-2 h-4 w-4" />
+                        🎯 Continue Session
+                      </>
                     ) : (
-                      <Play className="mr-2 h-4 w-4" />
+                      <>
+                        <Play className="mr-2 h-4 w-4" />
+                        🚀 Start Chain
+                      </>
                     )}
-                    {getChainStartButtonText(chain._id!)}
                   </Button>
                 </div>
               </CardContent>
