@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, MoreHorizontal, Zap } from "lucide-react";
+import { Check, X, MoreHorizontal, Zap, Edit, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -16,6 +16,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { completeHabit, skipHabit, getUserHabits } from "@/lib/actions/habits";
 import { IHabit } from "@/lib/types";
+import { HabitDetailModal } from "@/components/modals/habit-detail-modal";
+import { HabitEditModal } from "@/components/modals/habit-edit-modal";
 
 type HabitWithCompletion = IHabit & {
   completedToday: boolean;
@@ -25,6 +27,9 @@ type HabitWithCompletion = IHabit & {
 export function HabitOverview() {
   const [habits, setHabits] = useState<HabitWithCompletion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedHabit, setSelectedHabit] = useState<IHabit | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -136,6 +141,31 @@ export function HabitOverview() {
     }
   };
 
+  const handleHabitNameClick = (habit: IHabit) => {
+    setSelectedHabit(habit);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleEditHabit = (habit: IHabit) => {
+    setSelectedHabit(habit);
+    setIsEditModalOpen(true);
+  };
+
+  const handleViewDetails = (habit: IHabit) => {
+    setSelectedHabit(habit);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setSelectedHabit(null);
+    setIsDetailModalOpen(false);
+    setIsEditModalOpen(false);
+  };
+
+  const handleHabitUpdate = async () => {
+    await loadHabits();
+  };
+
   if (loading) {
     return (
       <Card>
@@ -165,105 +195,130 @@ export function HabitOverview() {
   const completionPercentage = habits.length > 0 ? (completedCount / habits.length) * 100 : 0;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-xl font-bold">Today's Habits</CardTitle>
-        <div className="flex items-center gap-2">
-          <div className="text-sm text-muted-foreground">
-            {completedCount} of {habits.length} completed
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-xl font-bold">Today's Habits</CardTitle>
+          <div className="flex items-center gap-2">
+            <div className="text-sm text-muted-foreground">
+              {completedCount} of {habits.length} completed
+            </div>
+            <Progress value={completionPercentage} className="w-24" />
           </div>
-          <Progress value={completionPercentage} className="w-24" />
-        </div>
-      </CardHeader>
-      <CardContent>
-        {habits.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No active habits found.</p>
-            <p className="text-sm mt-2">Create your first habit to get started!</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {habits.map((habit) => (
-              <div
-                key={habit._id}
-                className={`p-4 border rounded-lg flex items-center justify-between group ${habit.completedToday
-                  ? "bg-muted/30 border-muted"
-                  : "bg-card border-border"
-                  }`}
-              >
-                <div className="flex items-center gap-4">
-                  <Button
-                    size="icon"
-                    variant={habit.completedToday ? "default" : "outline"}
-                    className={`h-10 w-10 rounded-full transition-colors ${habit.completedToday ? "bg-primary" : ""
-                      }`}
-                    onClick={() => toggleHabit(habit._id, habit.completedToday)}
-                  >
-                    {habit.completedToday ? (
-                      <Check className="h-5 w-5 text-primary-foreground" />
-                    ) : (
-                      <div className="h-5 w-5" />
-                    )}
-                  </Button>
-                  <div>
-                    <div
-                      className={`font-medium ${habit.completedToday ? "line-through text-muted-foreground" : ""
+        </CardHeader>
+        <CardContent>
+          {habits.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No active habits found.</p>
+              <p className="text-sm mt-2">Create your first habit to get started!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {habits.map((habit) => (
+                <div
+                  key={habit._id}
+                  className={`p-4 border rounded-lg flex items-center justify-between group transition-colors ${habit.completedToday
+                    ? "bg-muted/30 border-muted"
+                    : "bg-card border-border hover:bg-muted/10"
+                    }`}
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <Button
+                      size="icon"
+                      variant={habit.completedToday ? "default" : "outline"}
+                      className={`h-10 w-10 rounded-full transition-colors ${habit.completedToday ? "bg-primary" : ""
                         }`}
+                      onClick={() => toggleHabit(habit._id, habit.completedToday)}
                     >
-                      {habit.name}
-                    </div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-2">
-                      <span>{habit.timeOfDay}</span>
-                      <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
-                      <span>{habit.streak} day streak</span>
-                      <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
-                      <span className="capitalize">{habit.priority.toLowerCase()} priority</span>
+                      {habit.completedToday ? (
+                        <Check className="h-5 w-5 text-primary-foreground" />
+                      ) : (
+                        <div className="h-5 w-5" />
+                      )}
+                    </Button>
+                    <div className="flex-1">
+                      <div
+                        className={`font-medium cursor-pointer hover:text-primary transition-colors ${habit.completedToday ? "line-through text-muted-foreground" : ""
+                          }`}
+                        onClick={() => handleHabitNameClick(habit)}
+                      >
+                        {habit.name}
+                      </div>
+                      <div className="text-sm text-muted-foreground flex items-center gap-2">
+                        <span>{habit.timeOfDay}</span>
+                        <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
+                        <span>{habit.streak} day streak</span>
+                        <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
+                        <span className="capitalize">{habit.priority.toLowerCase()} priority</span>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm px-2 py-1 bg-secondary rounded-full hidden md:inline-block">
+                      Impact: {habit.impactScore}/10
+                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Options</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => toggleHabit(habit._id, habit.completedToday)}
+                          className="cursor-pointer"
+                        >
+                          {habit.completedToday ? (
+                            <>
+                              <X className="mr-2 h-4 w-4" />
+                              Mark as incomplete
+                            </>
+                          ) : (
+                            <>
+                              <Check className="mr-2 h-4 w-4" />
+                              Mark as complete
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleEditHabit(habit)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit habit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleViewDetails(habit)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View details
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm px-2 py-1 bg-secondary rounded-full hidden md:inline-block">
-                    Impact: {habit.impactScore}/10
-                  </span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Options</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => toggleHabit(habit._id, habit.completedToday)}
-                        className="cursor-pointer"
-                      >
-                        {habit.completedToday ? (
-                          <>
-                            <X className="mr-2 h-4 w-4" />
-                            Mark as incomplete
-                          </>
-                        ) : (
-                          <>
-                            <Check className="mr-2 h-4 w-4" />
-                            Mark as complete
-                          </>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">
-                        Edit habit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">
-                        View details
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Modals */}
+      <HabitDetailModal
+        habit={selectedHabit}
+        isOpen={isDetailModalOpen}
+        onClose={handleModalClose}
+      />
+
+      <HabitEditModal
+        habit={selectedHabit}
+        isOpen={isEditModalOpen}
+        onClose={handleModalClose}
+        onUpdate={handleHabitUpdate}
+      />
+    </>
   );
 }

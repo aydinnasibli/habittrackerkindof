@@ -364,3 +364,50 @@ export async function deleteHabitChain(chainId: string) {
         return { success: false, error: error instanceof Error ? error.message : 'Failed to delete habit chain' };
     }
 }
+
+
+
+
+// Add this function to your lib/actions/habits.ts file
+
+export async function updateHabit(habitId: string, updateData: {
+    name: string;
+    description: string;
+    category: string;
+    frequency: string;
+    timeOfDay: string;
+    timeToComplete: string;
+    priority: string;
+}) {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(habitId)) {
+            throw new Error('Invalid habit ID');
+        }
+
+        await connectToDatabase();
+
+        const result = await Habit.updateOne(
+            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
+            {
+                ...updateData,
+                updatedAt: new Date()
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            throw new Error('Habit not found or unauthorized');
+        }
+
+        revalidatePath('/habits');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating habit:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to update habit' };
+    }
+}
