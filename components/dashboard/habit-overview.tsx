@@ -38,7 +38,7 @@ function getUserTimezone(): string {
 function getCurrentDateInTimezone(timezone: string): string {
   try {
     const now = new Date();
-    return now.toLocaleDateString('sv-SE', { timeZone: timezone });
+    return now.toLocaleDateString('tr-TR', { timeZone: timezone });
   } catch (error) {
     console.warn('Failed to get date in timezone, falling back to UTC:', error);
     return new Date().toISOString().split('T')[0];
@@ -331,8 +331,8 @@ export function HabitOverview() {
                 <div
                   key={habit._id}
                   className={`p-4 border rounded-lg flex items-center justify-between group transition-all duration-200 ${habit.completedToday
-                      ? "bg-muted/30 border-muted"
-                      : "bg-card border-border hover:bg-muted/10 hover:border-muted-foreground/20"
+                    ? "bg-muted/30 border-muted"
+                    : "bg-card border-border hover:bg-muted/10 hover:border-muted-foreground/20"
                     }`}
                 >
                   <div className="flex items-center gap-4 flex-1">
@@ -340,8 +340,8 @@ export function HabitOverview() {
                       size="icon"
                       variant={habit.completedToday ? "default" : "outline"}
                       className={`h-10 w-10 rounded-full transition-all duration-200 ${habit.completedToday
-                          ? "bg-primary hover:bg-primary/90"
-                          : "hover:bg-primary/10 hover:border-primary/50"
+                        ? "bg-primary hover:bg-primary/90"
+                        : "hover:bg-primary/10 hover:border-primary/50"
                         } ${isToggling[habit._id] ? "animate-pulse" : ""}`}
                       onClick={() => toggleHabit(habit._id, habit.completedToday)}
                       disabled={isToggling[habit._id]}

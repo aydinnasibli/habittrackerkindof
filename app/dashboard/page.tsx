@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { getHabitAnalytics } from "@/lib/actions/habits";
 import { TrendingUp, Target, Calendar, Award } from "lucide-react";
-
 export default async function DashboardPage() {
   const analytics = await getHabitAnalytics(7);
 
