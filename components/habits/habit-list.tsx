@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger 
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,22 +110,22 @@ export function HabitList() {
   const router = useRouter();
 
   // Save habits to localStorage whenever they change
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem("habits", JSON.stringify(habits));
   }, [habits]);
 
   // Filter habits based on search and tab
   const filterHabits = (status: string) => {
     return habits
-      .filter(habit => 
-        habit.status === status && 
+      .filter(habit =>
+        habit.status === status &&
         (habit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         habit.category.toLowerCase().includes(searchQuery.toLowerCase()))
+          habit.category.toLowerCase().includes(searchQuery.toLowerCase()))
       );
   };
 
   const handleArchiveHabit = (id: string) => {
-    setHabits(habits.map(habit => 
+    setHabits(habits.map(habit =>
       habit.id === id ? { ...habit, status: "archived" } : habit
     ));
     toast({
@@ -135,19 +135,19 @@ export function HabitList() {
   };
 
   const handlePauseHabit = (id: string) => {
-    setHabits(habits.map(habit => 
+    setHabits(habits.map(habit =>
       habit.id === id ? { ...habit, status: habit.status === "paused" ? "active" : "paused" } : habit
     ));
     toast({
       title: habits.find(h => h.id === id)?.status === "paused" ? "Habit resumed" : "Habit paused",
-      description: habits.find(h => h.id === id)?.status === "paused" ? 
-        "Tracking for this habit has been resumed." : 
+      description: habits.find(h => h.id === id)?.status === "paused" ?
+        "Tracking for this habit has been resumed." :
         "Tracking for this habit has been paused."
     });
   };
 
   const handleCompleteHabit = (id: string) => {
-    setHabits(habits.map(habit => 
+    setHabits(habits.map(habit =>
       habit.id === id ? { ...habit, streak: habit.streak + 1 } : habit
     ));
     toast({
@@ -157,7 +157,7 @@ export function HabitList() {
   };
 
   const handleSkipHabit = (id: string) => {
-    setHabits(habits.map(habit => 
+    setHabits(habits.map(habit =>
       habit.id === id ? { ...habit, streak: 0 } : habit
     ));
     toast({
@@ -219,14 +219,14 @@ export function HabitList() {
           <TabsTrigger value="paused">Paused</TabsTrigger>
           <TabsTrigger value="archived">Archived</TabsTrigger>
         </TabsList>
-        
+
         {["active", "paused", "archived"].map((status) => (
           <TabsContent key={status} value={status}>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle>
-                  {status === "active" ? "Active Habits" : 
-                   status === "paused" ? "Paused Habits" : "Archived Habits"}
+                  {status === "active" ? "Active Habits" :
+                    status === "paused" ? "Paused Habits" : "Archived Habits"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -258,7 +258,7 @@ export function HabitList() {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-2 self-end sm:self-auto">
                           {status === "active" && (
                             <Badge variant="outline\" className="bg-secondary">
@@ -304,8 +304,8 @@ export function HabitList() {
                         <>
                           No {status} habits match your search.
                           <div className="mt-2">
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => setSearchQuery("")}
                             >
@@ -315,11 +315,11 @@ export function HabitList() {
                         </>
                       ) : (
                         <>
-                          {status === "active" 
-                            ? "You don't have any active habits. Add one to get started!" 
-                            : status === "paused" 
-                            ? "You don't have any paused habits."
-                            : "You don't have any archived habits."}
+                          {status === "active"
+                            ? "You don't have any active habits. Add one to get started!"
+                            : status === "paused"
+                              ? "You don't have any paused habits."
+                              : "You don't have any archived habits."}
                         </>
                       )}
                     </div>
