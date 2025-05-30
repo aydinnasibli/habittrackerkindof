@@ -24,6 +24,29 @@ type HabitWithCompletion = IHabit & {
   impactScore: number;
 };
 
+// Helper function to check if habit should show today based on frequency
+function shouldShowToday(frequency: string): boolean {
+  const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const todayName = dayNames[today];
+
+  switch (frequency) {
+    case 'Daily':
+      return true;
+    case 'Weekdays':
+      return today >= 1 && today <= 5; // Monday to Friday
+    case 'Weekends':
+      return today === 0 || today === 6; // Saturday and Sunday
+    case 'Mon, Wed, Fri':
+      return today === 1 || today === 3 || today === 5; // Monday, Wednesday, Friday
+    case 'Tue, Thu':
+      return today === 2 || today === 4; // Tuesday, Thursday
+    default:
+      // Handle custom frequencies - check if today's name is in the frequency string
+      return frequency.toLowerCase().includes(todayName.toLowerCase());
+  }
+}
+
 export function HabitOverview() {
   const [habits, setHabits] = useState<HabitWithCompletion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +67,7 @@ export function HabitOverview() {
 
       const habitsWithCompletion = fetchedHabits
         .filter(habit => habit.status === 'active')
+        .filter(habit => shouldShowToday(habit.frequency)) // NEW: Filter by frequency
         .map(habit => {
           const completedToday = habit.completions?.some(completion => {
             const completionDate = new Date(completion.date);
@@ -209,8 +233,8 @@ export function HabitOverview() {
         <CardContent>
           {habits.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>No active habits found.</p>
-              <p className="text-sm mt-2">Create your first habit to get started!</p>
+              <p>No habits scheduled for today.</p>
+              <p className="text-sm mt-2">Check back on your scheduled days!</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -246,6 +270,8 @@ export function HabitOverview() {
                       </div>
                       <div className="text-sm text-muted-foreground flex items-center gap-2">
                         <span>{habit.timeOfDay}</span>
+                        <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
+                        <span>{habit.frequency}</span>
                         <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
                         <span>{habit.streak} day streak</span>
                         <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>

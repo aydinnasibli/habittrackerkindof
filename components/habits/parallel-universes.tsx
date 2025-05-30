@@ -124,17 +124,6 @@ export function ParallelUniverses() {
   const maintainedData = generateTimelineData(true, parseInt(timeRange));
   const brokenData = generateTimelineData(false, parseInt(timeRange));
 
-  const combinedData = maintainedData.map((item, index) => ({
-    day: item.day,
-    maintainedEnergy: item.energy,
-    brokenEnergy: brokenData[index].energy,
-    maintainedProductivity: item.productivity,
-    brokenProductivity: brokenData[index].productivity,
-    maintainedMood: item.mood,
-    brokenMood: brokenData[index].mood,
-    maintainedHealth: item.health,
-    brokenHealth: brokenData[index].health,
-  }));
 
   if (isLoading) {
     return (
@@ -287,106 +276,11 @@ export function ParallelUniverses() {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="combined">
+          <Tabs defaultValue="comparison">
             <TabsList className="mb-4">
-              <TabsTrigger value="combined">Combined View</TabsTrigger>
               <TabsTrigger value="comparison">Side by Side</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="combined" className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={combinedData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottomRight', offset: -5 }} />
-                  <YAxis label={{ value: 'Score', angle: -90, position: 'insideLeft' }} domain={[0, 100]} />
-                  <Tooltip />
-                  <Legend />
-
-                  {selectedMetrics.includes("energy") && (
-                    <>
-                      <Line
-                        type="monotone"
-                        dataKey="maintainedEnergy"
-                        name="Energy (Maintained)"
-                        stroke="hsl(var(--chart-1))"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="brokenEnergy"
-                        name="Energy (Broken)"
-                        stroke="hsl(var(--chart-1))"
-                        strokeDasharray="5 5"
-                        strokeWidth={2}
-                      />
-                    </>
-                  )}
-
-                  {selectedMetrics.includes("productivity") && (
-                    <>
-                      <Line
-                        type="monotone"
-                        dataKey="maintainedProductivity"
-                        name="Productivity (Maintained)"
-                        stroke="hsl(var(--chart-2))"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="brokenProductivity"
-                        name="Productivity (Broken)"
-                        stroke="hsl(var(--chart-2))"
-                        strokeDasharray="5 5"
-                        strokeWidth={2}
-                      />
-                    </>
-                  )}
-
-                  {selectedMetrics.includes("mood") && (
-                    <>
-                      <Line
-                        type="monotone"
-                        dataKey="maintainedMood"
-                        name="Mood (Maintained)"
-                        stroke="hsl(var(--chart-3))"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="brokenMood"
-                        name="Mood (Broken)"
-                        stroke="hsl(var(--chart-3))"
-                        strokeDasharray="5 5"
-                        strokeWidth={2}
-                      />
-                    </>
-                  )}
-
-                  {selectedMetrics.includes("health") && (
-                    <>
-                      <Line
-                        type="monotone"
-                        dataKey="maintainedHealth"
-                        name="Health (Maintained)"
-                        stroke="hsl(var(--chart-4))"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="brokenHealth"
-                        name="Health (Broken)"
-                        stroke="hsl(var(--chart-4))"
-                        strokeDasharray="5 5"
-                        strokeWidth={2}
-                      />
-                    </>
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
-            </TabsContent>
 
             <TabsContent value="comparison">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

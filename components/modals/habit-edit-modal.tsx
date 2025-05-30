@@ -190,21 +190,14 @@ export function HabitEditModal({ habit, isOpen, onClose, onUpdate }: HabitEditMo
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="timeToComplete">Duration</Label>
-                            <Select value={formData.timeToComplete} onValueChange={(value) => handleChange("timeToComplete", value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select duration" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="5 minutes">5 minutes</SelectItem>
-                                    <SelectItem value="10 minutes">10 minutes</SelectItem>
-                                    <SelectItem value="15 minutes">15 minutes</SelectItem>
-                                    <SelectItem value="30 minutes">30 minutes</SelectItem>
-                                    <SelectItem value="45 minutes">45 minutes</SelectItem>
-                                    <SelectItem value="1 hour">1 hour</SelectItem>
-                                    <SelectItem value="1+ hours">1+ hours</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <Label htmlFor="timeToComplete">Time to Complete</Label>
+                            <Input
+                                id="timeToComplete"
+                                value={formData.timeToComplete}
+                                onChange={(e) => handleChange("timeToComplete", e.target.value)}
+                                placeholder="e.g., 10 minutes, 1 hour"
+                                required
+                            />
                         </div>
                     </div>
 
