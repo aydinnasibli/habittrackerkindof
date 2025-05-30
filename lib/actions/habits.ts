@@ -9,8 +9,36 @@ import { HabitChain } from '@/lib/models/HabitChain';
 import { IHabit, IHabitChain, IHabitCompletion } from '@/lib/types';
 import { Types, FlattenMaps } from 'mongoose';
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 type LeanHabit = FlattenMaps<IHabit> & { _id: Types.ObjectId };
 type LeanHabitChain = FlattenMaps<IHabitChain> & { _id: Types.ObjectId };
+
+// Helper function to get user's local date string (YYYY-MM-DD format)
+function getUserLocalDateString(timezone: string): string {
+    const now = new Date();
+    return now.toLocaleDateString('sv-SE', { timeZone: timezone }); // sv-SE gives YYYY-MM-DD format
+}
+
+// Helper function to get start and end of day in user's timezone
+function getUserDayBounds(dateString: string, timezone: string) {
+    const startOfDay = new Date(`${dateString}T00:00:00.000`);
+    const endOfDay = new Date(`${dateString}T23:59:59.999`);
+
+    // Convert to UTC for database storage
+    const startUTC = new Date(startOfDay.toLocaleString('en-US', { timeZone: timezone }));
+    const endUTC = new Date(endOfDay.toLocaleString('en-US', { timeZone: timezone }));
+
+    return { startUTC, endUTC };
+}
+
+// Helper function to check if dates are the same day in user's timezone
+function isSameDayInTimezone(date1: Date, date2: Date, timezone: string): boolean {
+    const dateStr1 = date1.toLocaleDateString('sv-SE', { timeZone: timezone });
+    const dateStr2 = date2.toLocaleDateString('sv-SE', { timeZone: timezone });
+    return dateStr1 === dateStr2;
+}
 
 export async function createHabit(formData: FormData) {
     try {
@@ -47,7 +75,7 @@ export async function createHabit(formData: FormData) {
     }
 }
 
-export async function getUserHabits(): Promise<IHabit[]> {
+export async function getUserHabits(timezone?: string): Promise<IHabit[]> {
     try {
         const { userId } = await auth();
 
@@ -91,6 +119,281 @@ export async function getUserHabits(): Promise<IHabit[]> {
     }
 }
 
+export async function completeHabit(habitId: string, timezone: string = 'UTC') {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(habitId)) {
+            throw new Error('Invalid habit ID');
+        }
+
+        await connectToDatabase();
+
+        const userToday = getUserLocalDateString(timezone);
+        const { startUTC, endUTC } = getUserDayBounds(userToday, timezone);
+
+        const habit = await Habit.findOne({
+            _id: new Types.ObjectId(habitId),
+            clerkUserId: userId
+        }).lean<LeanHabit>();
+
+        if (!habit) {
+            throw new Error('Habit not found');
+        }
+
+        const completions = habit.completions || [];
+        const alreadyCompleted = completions.some((completion: IHabitCompletion) => {
+            return isSameDayInTimezone(new Date(completion.date), new Date(), timezone) && completion.completed;
+        });
+
+        if (alreadyCompleted) {
+            throw new Error('Habit already completed today');
+        }
+
+        // Calculate new streak
+        let newStreak = 1;
+
+        // Check if habit was completed yesterday in user's timezone
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterdayString = yesterdayDate.toLocaleDateString('sv-SE', { timeZone: timezone });
+
+        const completedYesterday = completions.some((completion: IHabitCompletion) => {
+            const completionDateString = new Date(completion.date).toLocaleDateString('sv-SE', { timeZone: timezone });
+            return completionDateString === yesterdayString && completion.completed;
+        });
+
+        if (completedYesterday && habit.streak > 0) {
+            newStreak = habit.streak + 1;
+        } else {
+            newStreak = 1; // Start new streak
+        }
+
+        // Use current time but we'll track which day it belongs to in user's timezone
+        const completionDate = new Date();
+
+        const result = await Habit.updateOne(
+            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
+            {
+                $push: {
+                    completions: {
+                        date: completionDate,
+                        completed: true
+                    }
+                },
+                $set: {
+                    streak: newStreak,
+                    updatedAt: new Date()
+                }
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            throw new Error('Habit not found or unauthorized');
+        }
+
+        revalidatePath('/habits');
+        return { success: true, newStreak };
+    } catch (error) {
+        console.error('Error completing habit:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to complete habit' };
+    }
+}
+
+export async function skipHabit(habitId: string, timezone: string = 'UTC') {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(habitId)) {
+            throw new Error('Invalid habit ID');
+        }
+
+        await connectToDatabase();
+
+        const userToday = getUserLocalDateString(timezone);
+
+        const habit = await Habit.findOne({
+            _id: new Types.ObjectId(habitId),
+            clerkUserId: userId
+        }).lean<LeanHabit>();
+
+        if (!habit) {
+            throw new Error('Habit not found');
+        }
+
+        const completions = habit.completions || [];
+
+        // Check if habit was completed today in user's timezone
+        const completedToday = completions.some((completion: IHabitCompletion) => {
+            return isSameDayInTimezone(new Date(completion.date), new Date(), timezone) && completion.completed;
+        });
+
+        if (!completedToday) {
+            throw new Error('Habit was not completed today');
+        }
+
+        // Calculate new streak after removing today's completion
+        const completionsWithoutToday = completions.filter((completion: IHabitCompletion) => {
+            return !isSameDayInTimezone(new Date(completion.date), new Date(), timezone) && completion.completed;
+        });
+
+        const newStreak = calculateStreakFromCompletions(completionsWithoutToday, timezone);
+
+        // Remove today's completion
+        const result = await Habit.updateOne(
+            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
+            {
+                $pull: {
+                    completions: {
+                        date: {
+                            $gte: new Date(new Date().toLocaleDateString('sv-SE', { timeZone: timezone }) + 'T00:00:00.000Z'),
+                            $lt: new Date(new Date().toLocaleDateString('sv-SE', { timeZone: timezone }) + 'T23:59:59.999Z')
+                        }
+                    }
+                },
+                $set: {
+                    streak: newStreak,
+                    updatedAt: new Date()
+                }
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            throw new Error('Habit not found or unauthorized');
+        }
+
+        revalidatePath('/habits');
+        return { success: true, newStreak };
+    } catch (error) {
+        console.error('Error skipping habit:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to skip habit' };
+    }
+}
+
+export async function getHabitAnalytics(days: number = 7, timezone: string = 'UTC') {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
+        }
+
+        await connectToDatabase();
+
+        const habits = await Habit.find({ clerkUserId: userId, status: 'active' }).lean();
+
+        const weeklyData = [];
+        let totalCompletions = 0;
+        let totalPossible = 0;
+
+        for (let i = 0; i < days; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateString = date.toLocaleDateString('sv-SE', { timeZone: timezone });
+
+            let dayCompletions = 0;
+            let dayPossible = 0;
+
+            habits.forEach(habit => {
+                // Check if habit should be done on this day based on frequency
+                const dayOfWeek = new Date(dateString + 'T12:00:00').getDay();
+                let shouldDoToday = shouldShowForDay(habit.frequency, dayOfWeek);
+
+                if (shouldDoToday) {
+                    dayPossible++;
+                    const completed = habit.completions?.some((completion: any) => {
+                        const completionDateString = new Date(completion.date).toLocaleDateString('sv-SE', { timeZone: timezone });
+                        return completionDateString === dateString && completion.completed;
+                    });
+                    if (completed) dayCompletions++;
+                }
+            });
+
+            weeklyData.push({
+                date: dateString,
+                completed: dayCompletions,
+                total: dayPossible,
+                rate: dayPossible > 0 ? Math.round((dayCompletions / dayPossible) * 100) : 0
+            });
+
+            totalCompletions += dayCompletions;
+            totalPossible += dayPossible;
+        }
+
+        return {
+            totalHabits: habits.length,
+            completionRate: totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0,
+            streakSum: habits.reduce((sum, habit) => sum + (habit.streak || 0), 0),
+            weeklyData: weeklyData.reverse() // Show chronologically
+        };
+    } catch (error) {
+        console.error('Error getting habit analytics:', error);
+        return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
+    }
+}
+
+// Helper function to check if habit should show for a specific day
+function shouldShowForDay(frequency: string, dayOfWeek: number): boolean {
+    switch (frequency) {
+        case 'Daily':
+            return true;
+        case 'Weekdays':
+            return dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
+        case 'Weekends':
+            return dayOfWeek === 0 || dayOfWeek === 6; // Saturday and Sunday
+        case 'Mon, Wed, Fri':
+            return dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5;
+        case 'Tue, Thu':
+            return dayOfWeek === 2 || dayOfWeek === 4;
+        default:
+            return true;
+    }
+}
+
+// Helper function to calculate streak considering timezone
+function calculateStreakFromCompletions(completions: IHabitCompletion[], timezone: string): number {
+    if (!completions || completions.length === 0) return 0;
+
+    // Group completions by date in user's timezone
+    const completionsByDate = new Map<string, boolean>();
+
+    completions.forEach(completion => {
+        if (completion.completed) {
+            const dateString = new Date(completion.date).toLocaleDateString('sv-SE', { timeZone: timezone });
+            completionsByDate.set(dateString, true);
+        }
+    });
+
+    if (completionsByDate.size === 0) return 0;
+
+    let streak = 0;
+    const today = new Date();
+
+    // Start from yesterday and work backwards
+    for (let i = 1; i <= 365; i++) { // Max reasonable streak
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dateString = checkDate.toLocaleDateString('sv-SE', { timeZone: timezone });
+
+        if (completionsByDate.has(dateString)) {
+            streak++;
+        } else {
+            break; // Streak is broken
+        }
+    }
+
+    return streak;
+}
+
+// Keep other existing functions unchanged...
 export async function updateHabitStatus(habitId: string, status: 'active' | 'paused' | 'archived') {
     try {
         const { userId } = await auth();
@@ -125,7 +428,6 @@ export async function updateHabitStatus(habitId: string, status: 'active' | 'pau
     }
 }
 
-
 export async function deleteHabit(habitId: string) {
     try {
         const { userId } = await auth();
@@ -157,7 +459,49 @@ export async function deleteHabit(habitId: string) {
     }
 }
 
-// Habit Chain Actions
+export async function updateHabit(habitId: string, updateData: {
+    name: string;
+    description: string;
+    category: string;
+    frequency: string;
+    timeOfDay: string;
+    timeToComplete: string;
+    priority: string;
+}) {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(habitId)) {
+            throw new Error('Invalid habit ID');
+        }
+
+        await connectToDatabase();
+
+        const result = await Habit.updateOne(
+            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
+            {
+                ...updateData,
+                updatedAt: new Date()
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            throw new Error('Habit not found or unauthorized');
+        }
+
+        revalidatePath('/habits');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating habit:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to update habit' };
+    }
+}
+
+// Habit Chain functions remain the same...
 export async function createHabitChain(data: {
     name: string;
     description: string;
@@ -251,382 +595,4 @@ export async function deleteHabitChain(chainId: string) {
         console.error('Error deleting habit chain:', error);
         return { success: false, error: error instanceof Error ? error.message : 'Failed to delete habit chain' };
     }
-}
-
-export async function updateHabit(habitId: string, updateData: {
-    name: string;
-    description: string;
-    category: string;
-    frequency: string;
-    timeOfDay: string;
-    timeToComplete: string;
-    priority: string;
-}) {
-    try {
-        const { userId } = await auth();
-
-        if (!userId) {
-            throw new Error('User not authenticated');
-        }
-
-        if (!Types.ObjectId.isValid(habitId)) {
-            throw new Error('Invalid habit ID');
-        }
-
-        await connectToDatabase();
-
-        const result = await Habit.updateOne(
-            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
-            {
-                ...updateData,
-                updatedAt: new Date()
-            }
-        );
-
-        if (result.matchedCount === 0) {
-            throw new Error('Habit not found or unauthorized');
-        }
-
-        revalidatePath('/habits');
-        return { success: true };
-    } catch (error) {
-        console.error('Error updating habit:', error);
-        return { success: false, error: error instanceof Error ? error.message : 'Failed to update habit' };
-    }
-}
-
-// New function to get habit analytics
-export async function getHabitAnalytics(days: number = 7) {
-    try {
-        const { userId } = await auth();
-
-        if (!userId) {
-            return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
-        }
-
-        await connectToDatabase();
-
-        const habits = await Habit.find({ clerkUserId: userId, status: 'active' }).lean();
-
-        const endDate = new Date();
-        endDate.setHours(23, 59, 59, 999);
-
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - days + 1);
-        startDate.setHours(0, 0, 0, 0);
-
-        const weeklyData = [];
-        let totalCompletions = 0;
-        let totalPossible = 0;
-
-        for (let i = 0; i < days; i++) {
-            const date = new Date(startDate);
-            date.setDate(date.getDate() + i);
-            date.setHours(0, 0, 0, 0);
-
-            let dayCompletions = 0;
-            let dayPossible = 0;
-
-            habits.forEach(habit => {
-                // Check if habit should be done on this day based on frequency
-                const dayOfWeek = date.getDay();
-                let shouldDoToday = false;
-
-                switch (habit.frequency) {
-                    case 'Daily':
-                        shouldDoToday = true;
-                        break;
-                    case 'Weekdays':
-                        shouldDoToday = dayOfWeek >= 1 && dayOfWeek <= 5;
-                        break;
-                    case 'Weekends':
-                        shouldDoToday = dayOfWeek === 0 || dayOfWeek === 6;
-                        break;
-                    case 'Mon, Wed, Fri':
-                        shouldDoToday = dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5;
-                        break;
-                    case 'Tue, Thu':
-                        shouldDoToday = dayOfWeek === 2 || dayOfWeek === 4;
-                        break;
-                }
-
-                if (shouldDoToday) {
-                    dayPossible++;
-                    const completed = habit.completions?.some((completion: any) => {
-                        const compDate = new Date(completion.date);
-                        compDate.setHours(0, 0, 0, 0);
-                        return compDate.getTime() === date.getTime() && completion.completed;
-                    });
-                    if (completed) dayCompletions++;
-                }
-            });
-
-            weeklyData.push({
-                date: date.toISOString().split('T')[0],
-                completed: dayCompletions,
-                total: dayPossible,
-                rate: dayPossible > 0 ? Math.round((dayCompletions / dayPossible) * 100) : 0
-            });
-
-            totalCompletions += dayCompletions;
-            totalPossible += dayPossible;
-        }
-
-        return {
-            totalHabits: habits.length,
-            completionRate: totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0,
-            streakSum: habits.reduce((sum, habit) => sum + (habit.streak || 0), 0),
-            weeklyData
-        };
-    } catch (error) {
-        console.error('Error getting habit analytics:', error);
-        return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
-    }
-}
-
-
-
-
-
-export async function skipHabit(habitId: string) {
-    try {
-        const { userId } = await auth();
-
-        if (!userId) {
-            throw new Error('User not authenticated');
-        }
-
-        if (!Types.ObjectId.isValid(habitId)) {
-            throw new Error('Invalid habit ID');
-        }
-
-        await connectToDatabase();
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // First, get the habit to calculate the new streak properly
-        const habit = await Habit.findOne({
-            _id: new Types.ObjectId(habitId),
-            clerkUserId: userId
-        }).lean<LeanHabit>();
-
-        if (!habit) {
-            throw new Error('Habit not found');
-        }
-
-        const completions = habit.completions || [];
-
-        // Check if habit was completed today
-        const completedToday = completions.some((completion: IHabitCompletion) => {
-            const completionDate = new Date(completion.date);
-            completionDate.setHours(0, 0, 0, 0);
-            return completionDate.getTime() === today.getTime() && completion.completed;
-        });
-
-        if (!completedToday) {
-            throw new Error('Habit was not completed today');
-        }
-
-        // Calculate the new streak after removing today's completion
-        let newStreak = 0;
-
-        if (habit.streak > 0) {
-            // Sort completions by date (newest first)
-            const sortedCompletions = completions
-                .filter((completion: IHabitCompletion) => completion.completed)
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-            // Remove today's completion from consideration
-            const completionsWithoutToday = sortedCompletions.filter((completion: IHabitCompletion) => {
-                const compDate = new Date(completion.date);
-                compDate.setHours(0, 0, 0, 0);
-                return compDate.getTime() !== today.getTime();
-            });
-
-            // Calculate streak from yesterday backwards
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-
-            let currentDate = new Date(yesterday);
-
-            for (const completion of completionsWithoutToday) {
-                const completionDate = new Date(completion.date);
-                completionDate.setHours(0, 0, 0, 0);
-
-                // Check if this completion is for the current date we're checking
-                if (completionDate.getTime() === currentDate.getTime()) {
-                    newStreak++;
-                    // Move to the previous day
-                    currentDate.setDate(currentDate.getDate() - 1);
-                } else if (completionDate.getTime() < currentDate.getTime()) {
-                    // There's a gap in the streak, so we stop
-                    break;
-                }
-            }
-        }
-
-        // Remove today's completion and update the streak
-        const result = await Habit.updateOne(
-            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
-            {
-                $pull: {
-                    completions: {
-                        date: {
-                            $gte: today,
-                            $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
-                        }
-                    }
-                },
-                $set: {
-                    streak: newStreak,
-                    updatedAt: new Date()
-                }
-            }
-        );
-
-        if (result.matchedCount === 0) {
-            throw new Error('Habit not found or unauthorized');
-        }
-
-        revalidatePath('/habits');
-        return { success: true, newStreak };
-    } catch (error) {
-        console.error('Error skipping habit:', error);
-        return { success: false, error: error instanceof Error ? error.message : 'Failed to skip habit' };
-    }
-}
-
-// Also, let's improve the completeHabit function for better streak calculation
-export async function completeHabit(habitId: string) {
-    try {
-        const { userId } = await auth();
-
-        if (!userId) {
-            throw new Error('User not authenticated');
-        }
-
-        if (!Types.ObjectId.isValid(habitId)) {
-            throw new Error('Invalid habit ID');
-        }
-
-        await connectToDatabase();
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const habit = await Habit.findOne({
-            _id: new Types.ObjectId(habitId),
-            clerkUserId: userId
-        }).lean<LeanHabit>();
-
-        if (!habit) {
-            throw new Error('Habit not found');
-        }
-
-        const completions = habit.completions || [];
-        const alreadyCompleted = completions.some((completion: IHabitCompletion) => {
-            const completionDate = new Date(completion.date);
-            completionDate.setHours(0, 0, 0, 0);
-            return completionDate.getTime() === today.getTime() && completion.completed;
-        });
-
-        if (alreadyCompleted) {
-            throw new Error('Habit already completed today');
-        }
-
-        // Calculate new streak more accurately
-        let newStreak = 1; // At least 1 since we're completing today
-
-        // Get yesterday's date
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        // Check if habit was completed yesterday
-        const completedYesterday = completions.some((completion: IHabitCompletion) => {
-            const completionDate = new Date(completion.date);
-            completionDate.setHours(0, 0, 0, 0);
-            return completionDate.getTime() === yesterday.getTime() && completion.completed;
-        });
-
-        if (completedYesterday) {
-            // Continue the existing streak
-            newStreak = habit.streak + 1;
-        } else if (habit.streak === 0) {
-            // Starting a new streak
-            newStreak = 1;
-        } else {
-            // There was a gap, so reset to 1
-            newStreak = 1;
-        }
-
-        const result = await Habit.updateOne(
-            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
-            {
-                $push: {
-                    completions: {
-                        date: today,
-                        completed: true
-                    }
-                },
-                $set: {
-                    streak: newStreak,
-                    updatedAt: new Date()
-                }
-            }
-        );
-
-        if (result.matchedCount === 0) {
-            throw new Error('Habit not found or unauthorized');
-        }
-
-        revalidatePath('/habits');
-        return { success: true, newStreak };
-    } catch (error) {
-        console.error('Error completing habit:', error);
-        return { success: false, error: error instanceof Error ? error.message : 'Failed to complete habit' };
-    }
-}
-
-// Helper function to calculate accurate streak (can be used by both functions)
-function calculateStreakFromCompletions(completions: IHabitCompletion[], excludeToday: boolean = false): number {
-    if (!completions || completions.length === 0) return 0;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Filter and sort completions
-    let validCompletions = completions
-        .filter((completion: IHabitCompletion) => completion.completed)
-        .map((completion: IHabitCompletion) => {
-            const date = new Date(completion.date);
-            date.setHours(0, 0, 0, 0);
-            return date;
-        })
-        .sort((a, b) => b.getTime() - a.getTime()); // Sort by date descending
-
-    // Exclude today if requested
-    if (excludeToday) {
-        validCompletions = validCompletions.filter(date => date.getTime() !== today.getTime());
-    }
-
-    if (validCompletions.length === 0) return 0;
-
-    let streak = 0;
-    let expectedDate = excludeToday ?
-        new Date(today.getTime() - 24 * 60 * 60 * 1000) : // Start from yesterday
-        today; // Start from today
-
-    for (const completionDate of validCompletions) {
-        if (completionDate.getTime() === expectedDate.getTime()) {
-            streak++;
-            expectedDate.setDate(expectedDate.getDate() - 1); // Move to previous day
-        } else if (completionDate.getTime() < expectedDate.getTime()) {
-            // Gap found, streak is broken
-            break;
-        }
-        // If completionDate > expectedDate, skip this completion (future date)
-    }
-
-    return streak;
 }
