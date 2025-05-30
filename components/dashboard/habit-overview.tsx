@@ -18,32 +18,64 @@ import { completeHabit, skipHabit, getUserHabits } from "@/lib/actions/habits";
 import { IHabit } from "@/lib/types";
 import { HabitDetailModal } from "@/components/modals/habit-detail-modal";
 import { HabitEditModal } from "../modals/habit-edit-modal";
+
 type HabitWithCompletion = IHabit & {
   completedToday: boolean;
   impactScore: number;
 };
 
+// Helper function to get user's timezone
+function getUserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return 'UTC'; // Fallback
+  }
+}
+
 // Helper function to check if habit should show today based on frequency
-function shouldShowToday(frequency: string): boolean {
-  const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',];
-  const todayName = dayNames[today];
+function shouldShowToday(frequency: string, timezone: string): boolean {
+  const now = new Date();
+  const today = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+  // Get the day in user's timezone
+  const userDate = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+  const userDay = userDate.getDay();
 
   switch (frequency) {
     case 'Daily':
       return true;
     case 'Weekdays':
-      return today >= 1 && today <= 5; // Monday to Friday
+      return userDay >= 1 && userDay <= 5; // Monday to Friday
     case 'Weekends':
-      return today === 0 || today === 6; // Saturday and Sunday
+      return userDay === 0 || userDay === 6; // Saturday and Sunday
     case 'Mon, Wed, Fri':
-      return today === 1 || today === 3 || today === 5; // Monday, Wednesday, Friday
+      return userDay === 1 || userDay === 3 || userDay === 5; // Monday, Wednesday, Friday
     case 'Tue, Thu':
-      return today === 2 || today === 4; // Tuesday, Thursday
+      return userDay === 2 || userDay === 4; // Tuesday, Thursday
     default:
-      // Handle custom frequencies - check if today's name is in the frequency string
-      return frequency.toLowerCase().includes(todayName.toLowerCase());
+      // Handle custom frequencies
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const todayName = dayNames[userDay];
+      return frequency.toLowerCase().includes(todayName);
   }
+}
+
+// Helper function to check if habit is completed today in user's timezone
+function isCompletedToday(completions: any[], timezone: string): boolean {
+  if (!completions || completions.length === 0) return false;
+
+  const now = new Date();
+  const todayString = now.toLocaleDateString('sv-SE', { timeZone: timezone }); // YYYY-MM-DD format
+
+  return completions.some(completion => {
+    if (!completion.completed) return false;
+
+    const completionDate = new Date(completion.date);
+    const completionString = completionDate.toLocaleDateString('sv-SE', { timeZone: timezone });
+
+    return completionString === todayString;
+  });
 }
 
 export function HabitOverview() {
@@ -52,27 +84,29 @@ export function HabitOverview() {
   const [selectedHabit, setSelectedHabit] = useState<IHabit | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const { toast } = useToast();
 
   useEffect(() => {
-    loadHabits();
+    // Set user's timezone
+    setUserTimezone(getUserTimezone());
   }, []);
+
+  useEffect(() => {
+    if (userTimezone) {
+      loadHabits();
+    }
+  }, [userTimezone]);
 
   const loadHabits = async () => {
     try {
-      const fetchedHabits = await getUserHabits();
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const fetchedHabits = await getUserHabits(userTimezone);
 
       const habitsWithCompletion = fetchedHabits
         .filter(habit => habit.status === 'active')
-        .filter(habit => shouldShowToday(habit.frequency)) // NEW: Filter by frequency
+        .filter(habit => shouldShowToday(habit.frequency, userTimezone))
         .map(habit => {
-          const completedToday = habit.completions?.some(completion => {
-            const completionDate = new Date(completion.date);
-            completionDate.setHours(0, 0, 0, 0);
-            return completionDate.getTime() === today.getTime() && completion.completed;
-          }) || false;
+          const completedToday = isCompletedToday(habit.completions, userTimezone);
 
           // Calculate impact score based on streak and priority
           const priorityMultiplier = habit.priority === 'High' ? 1.5 : habit.priority === 'Medium' ? 1.2 : 1.0;
@@ -102,7 +136,7 @@ export function HabitOverview() {
     try {
       if (currentStatus) {
         // If completed, skip it (mark as not completed)
-        const result = await skipHabit(habitId);
+        const result = await skipHabit(habitId, userTimezone);
         if (!result.success) {
           throw new Error(result.error);
         }
@@ -112,7 +146,7 @@ export function HabitOverview() {
         });
       } else {
         // If not completed, complete it
-        const result = await completeHabit(habitId);
+        const result = await completeHabit(habitId, userTimezone);
         if (!result.success) {
           throw new Error(result.error);
         }
