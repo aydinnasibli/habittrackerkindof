@@ -1,11 +1,13 @@
 import { HabitList } from "@/components/habits/habit-list";
 import { HabitChains } from "@/components/habits/habit-chains";
 import { ParallelUniverses } from "@/components/habits/parallel-universes";
+import { PastSessions } from "@/components/habits/past-sessions";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import React from "react";
+
 export default function HabitsPage() {
   return (
     <div className="container py-8">
@@ -27,6 +29,7 @@ export default function HabitsPage() {
         <TabsList>
           <TabsTrigger value="all">All Habits</TabsTrigger>
           <TabsTrigger value="chains">Habit Chains</TabsTrigger>
+          <TabsTrigger value="sessions">Past Sessions</TabsTrigger>
           <TabsTrigger value="universes">Parallel Universes</TabsTrigger>
         </TabsList>
 
@@ -36,6 +39,10 @@ export default function HabitsPage() {
 
         <TabsContent value="chains">
           <HabitChains />
+        </TabsContent>
+
+        <TabsContent value="sessions">
+          <PastSessions />
         </TabsContent>
 
         <TabsContent value="universes">

@@ -341,6 +341,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                     title: "Session Ended",
                     description: "That's okay! Every attempt makes you stronger. Try again when you're ready!",
                 });
+                setShowAbandonDialog(false); // Only close on success
                 onSessionEnd();
             } else {
                 throw new Error(result.error);
@@ -352,9 +353,10 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                 description: "Failed to abandon session. Please try again.",
                 variant: "destructive"
             });
+            // Don't close dialog on error - let user try again
         } finally {
             setLoading(false);
-            setShowAbandonDialog(false);
+            // Remove setShowAbandonDialog(false) from here
         }
     };
 

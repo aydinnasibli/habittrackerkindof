@@ -499,3 +499,51 @@ export async function endBreak(sessionId: string) {
         };
     }
 }
+
+// Add this function to your existing lib/actions/chainSessions.ts file
+
+export async function getPastChainSessions(): Promise<IChainSession[]> {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            return [];
+        }
+
+        await connectToDatabase();
+
+        const sessions = await ChainSession
+            .find({
+                clerkUserId: userId,
+                status: { $in: ['completed', 'abandoned'] }
+            })
+            .sort({ createdAt: -1 }) // Most recent first
+            .limit(50) // Limit to last 50 sessions
+            .lean<LeanChainSession[]>()
+            .exec();
+
+        return sessions.map(session => ({
+            _id: session._id?.toString() || '',
+            clerkUserId: session.clerkUserId,
+            chainId: session.chainId,
+            chainName: session.chainName,
+            status: session.status,
+            startedAt: session.startedAt,
+            completedAt: session.completedAt,
+            currentHabitIndex: session.currentHabitIndex,
+            totalHabits: session.totalHabits,
+            habits: session.habits || [],
+            totalDuration: session.totalDuration,
+            actualDuration: session.actualDuration,
+            pausedAt: session.pausedAt,
+            pauseDuration: session.pauseDuration || 0,
+            breakStartedAt: session.breakStartedAt,
+            onBreak: session.onBreak || false,
+            createdAt: session.createdAt || new Date(),
+            updatedAt: session.updatedAt || new Date(),
+        } as IChainSession));
+    } catch (error) {
+        console.error('Error fetching past chain sessions:', error);
+        return [];
+    }
+}
