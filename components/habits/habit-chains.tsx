@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Plus, X, Settings, Play, MoreHorizontal, Loader2 } from "lucide-react";
+import { ArrowRight, Plus, X, Settings, Play, MoreHorizontal, Loader2, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,18 +26,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Alert,
+  AlertDescription,
+} from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { IHabit, IHabitChain } from "@/lib/types";
+import { IHabit, IHabitChain, IChainSession } from "@/lib/types";
 import {
   getUserHabits,
   getUserHabitChains,
   createHabitChain,
   deleteHabitChain
 } from "@/lib/actions/habits";
+import {
+  startHabitChain,
+  getActiveChainSession,
+  abandonChainSession
+} from "@/lib/actions/chainSessions";
 
 export function HabitChains() {
   const [chains, setChains] = useState<IHabitChain[]>([]);
   const [habits, setHabits] = useState<IHabit[]>([]);
+  const [activeSession, setActiveSession] = useState<IChainSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -59,12 +69,14 @@ export function HabitChains() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [chainsData, habitsData] = await Promise.all([
+      const [chainsData, habitsData, activeSessionData] = await Promise.all([
         getUserHabitChains(),
-        getUserHabits()
+        getUserHabits(),
+        getActiveChainSession()
       ]);
       setChains(chainsData);
       setHabits(habitsData.filter(h => h.status === 'active')); // Only show active habits for chain creation
+      setActiveSession(activeSessionData);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -77,17 +89,97 @@ export function HabitChains() {
     }
   };
 
-  const startChain = (chainId: string) => {
-    const chain = chains.find(c => c._id === chainId);
-    toast({
-      title: "Chain Initiated",
-      description: `Starting the ${chain?.name} chain now.`,
-    });
-    // Here you would implement the logic to actually start the chain
-    // This could involve creating a session, setting timers, etc.
+  const handleStartChain = async (chainId: string) => {
+    if (!chainId) {
+      toast({
+        title: "Error",
+        description: "Invalid chain ID",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setActionLoading(chainId);
+    try {
+      const result = await startHabitChain(chainId);
+
+      if (result.success) {
+        // Refresh data to get the new active session
+        await loadData();
+
+        const chain = chains.find(c => c._id === chainId);
+        toast({
+          title: "Chain Started!",
+          description: result.message || `Successfully started ${chain?.name} chain.`,
+        });
+
+        // You could redirect to a chain session page here if you have one
+        // router.push(`/habits/chain-session/${result.sessionId}`);
+      } else {
+        // Handle the case where user already has an active session
+        if (result.activeSessionId) {
+          toast({
+            title: "Active Session Found",
+            description: result.error,
+            variant: "destructive"
+          });
+        } else {
+          throw new Error(result.error);
+        }
+      }
+    } catch (error) {
+      console.error('Error starting chain:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start chain. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleAbandonActiveSession = async () => {
+    if (!activeSession?._id) return;
+
+    setActionLoading('abandon');
+    try {
+      const result = await abandonChainSession(activeSession._id);
+
+      if (result.success) {
+        await loadData(); // Refresh data
+        toast({
+          title: "Session Abandoned",
+          description: result.message,
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error abandoning session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to abandon session. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const deleteChain = async (chainId: string) => {
+    if (!chainId) return;
+
+    // Prevent deleting chain if it's currently active
+    if (activeSession && activeSession.chainId === chainId) {
+      toast({
+        title: "Cannot Delete",
+        description: "Cannot delete a chain that has an active session. Please complete or abandon the session first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setActionLoading(chainId);
     try {
       const result = await deleteHabitChain(chainId);
@@ -101,6 +193,7 @@ export function HabitChains() {
         throw new Error(result.error);
       }
     } catch (error) {
+      console.error('Error deleting chain:', error);
       toast({
         title: "Error",
         description: "Failed to delete chain. Please try again.",
@@ -132,6 +225,7 @@ export function HabitChains() {
     setFormData(prev => ({
       ...prev,
       selectedHabits: prev.selectedHabits.filter((_, i) => i !== index)
+        .map((habit, newIndex) => ({ ...habit, order: newIndex }))
     }));
   };
 
@@ -181,12 +275,25 @@ export function HabitChains() {
         throw new Error(result.error);
       }
     } catch (error) {
+      console.error('Error creating chain:', error);
       toast({
         title: "Error",
         description: "Failed to create chain. Please try again.",
         variant: "destructive"
       });
     }
+  };
+
+  const isChainStartDisabled = (chainId: string) => {
+    // Disable if there's an active session or if this specific chain is being processed
+    return !!activeSession || actionLoading === chainId;
+  };
+
+  const getChainStartButtonText = (chainId: string) => {
+    if (actionLoading === chainId) return "Starting...";
+    if (activeSession && activeSession.chainId === chainId) return "Currently Active";
+    if (activeSession) return "Another Chain Active";
+    return "Start Chain";
   };
 
   if (loading) {
@@ -202,6 +309,35 @@ export function HabitChains() {
 
   return (
     <div className="space-y-6">
+      {/* Active Session Alert */}
+      {activeSession && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>
+              You have an active chain session: <strong>{activeSession.chainName}</strong>
+              {activeSession.onBreak && " (currently on break)"}
+              {activeSession.pausedAt && " (currently paused)"}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAbandonActiveSession}
+                disabled={actionLoading === 'abandon'}
+              >
+                {actionLoading === 'abandon' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Abandon Session"
+                )}
+              </Button>
+              {/* You can add a "Go to Session" button here if you have a dedicated session page */}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Habit Chains</h2>
@@ -211,7 +347,7 @@ export function HabitChains() {
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button disabled={!!activeSession}>
               <Plus className="mr-2 h-4 w-4" /> New Chain
             </Button>
           </DialogTrigger>
@@ -319,7 +455,10 @@ export function HabitChains() {
             <p className="text-muted-foreground mb-4">
               You haven't created any habit chains yet.
             </p>
-            <Button onClick={() => setCreateDialogOpen(true)}>
+            <Button
+              onClick={() => setCreateDialogOpen(true)}
+              disabled={!!activeSession}
+            >
               <Plus className="mr-2 h-4 w-4" /> Create Your First Chain
             </Button>
           </CardContent>
@@ -331,7 +470,14 @@ export function HabitChains() {
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle>{chain.name}</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      {chain.name}
+                      {activeSession && activeSession.chainId === chain._id && (
+                        <Badge variant="default" className="text-xs">
+                          Active
+                        </Badge>
+                      )}
+                    </CardTitle>
                     <CardDescription>{chain.description}</CardDescription>
                   </div>
                   <DropdownMenu>
@@ -351,16 +497,21 @@ export function HabitChains() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Options</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => startChain(chain._id!)}>
-                        <Play className="mr-2 h-4 w-4" /> Start Chain
+                      <DropdownMenuItem
+                        onClick={() => handleStartChain(chain._id!)}
+                        disabled={isChainStartDisabled(chain._id!)}
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        {getChainStartButtonText(chain._id!)}
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem disabled>
                         <Settings className="mr-2 h-4 w-4" /> Edit Chain
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => deleteChain(chain._id!)}
                         className="text-red-600"
+                        disabled={activeSession?.chainId === chain._id}
                       >
                         <X className="mr-2 h-4 w-4" /> Delete Chain
                       </DropdownMenuItem>
@@ -398,10 +549,16 @@ export function HabitChains() {
                 <div className="mt-6">
                   <Button
                     className="w-full"
-                    variant="outline"
-                    onClick={() => startChain(chain._id!)}
+                    variant={activeSession && activeSession.chainId === chain._id ? "default" : "outline"}
+                    onClick={() => handleStartChain(chain._id!)}
+                    disabled={isChainStartDisabled(chain._id!)}
                   >
-                    <Play className="mr-2 h-4 w-4" /> Start Chain
+                    {actionLoading === chain._id ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Play className="mr-2 h-4 w-4" />
+                    )}
+                    {getChainStartButtonText(chain._id!)}
                   </Button>
                 </div>
               </CardContent>
