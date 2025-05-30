@@ -6,32 +6,36 @@ import { revalidatePath } from 'next/cache';
 import { connectToDatabase } from '@/lib/mongoose';
 import { Habit } from '@/lib/models/Habit';
 import { HabitChain } from '@/lib/models/HabitChain';
-import { IHabit } from '@/lib/types';
+import { IHabit, IHabitChain, IHabitCompletion } from '@/lib/types';
+import { Types, FlattenMaps } from 'mongoose';
+
+type LeanHabit = FlattenMaps<IHabit> & { _id: Types.ObjectId };
+type LeanHabitChain = FlattenMaps<IHabitChain> & { _id: Types.ObjectId };
 
 export async function createHabit(formData: FormData) {
-    const { userId } = await auth();
-
-    if (!userId) {
-        throw new Error('User not authenticated');
-    }
-
-    await connectToDatabase();
-
-    const habitData = {
-        clerkUserId: userId,
-        name: formData.get('name') as string,
-        description: formData.get('description') as string,
-        category: formData.get('category') as string,
-        frequency: formData.get('frequency') as string,
-        timeOfDay: formData.get('timeOfDay') as string,
-        timeToComplete: formData.get('timeToComplete') as string,
-        priority: formData.get('priority') as string,
-        streak: 0,
-        status: 'active' as const,
-        completions: []
-    };
-
     try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        await connectToDatabase();
+
+        const habitData = {
+            clerkUserId: userId,
+            name: formData.get('name') as string,
+            description: formData.get('description') as string,
+            category: formData.get('category') as string,
+            frequency: formData.get('frequency') as string,
+            timeOfDay: formData.get('timeOfDay') as string,
+            timeToComplete: formData.get('timeToComplete') as string,
+            priority: formData.get('priority') as string,
+            streak: 0,
+            status: 'active' as const,
+            completions: []
+        };
+
         const habit = new Habit(habitData);
         await habit.save();
 
@@ -39,32 +43,42 @@ export async function createHabit(formData: FormData) {
         return { success: true, id: habit._id.toString() };
     } catch (error) {
         console.error('Error creating habit:', error);
-        throw new Error('Failed to create habit');
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to create habit' };
     }
 }
 
 export async function getUserHabits(): Promise<IHabit[]> {
-    const { userId } = await auth();
-
-    if (!userId) {
-        return [];
-    }
-
-    await connectToDatabase();
-
     try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            return [];
+        }
+
+        await connectToDatabase();
+
         const habits = await Habit
             .find({ clerkUserId: userId })
             .sort({ createdAt: -1 })
-            .lean()
+            .lean<LeanHabit[]>()
             .exec();
 
         return habits.map(habit => ({
-            ...habit,
-            _id: habit._id?.toString(),
-            createdAt: habit.createdAt,
-            updatedAt: habit.updatedAt,
-        }));
+            _id: habit._id?.toString() || '',
+            clerkUserId: habit.clerkUserId,
+            name: habit.name,
+            description: habit.description,
+            category: habit.category,
+            frequency: habit.frequency,
+            timeOfDay: habit.timeOfDay,
+            timeToComplete: habit.timeToComplete,
+            priority: habit.priority,
+            streak: habit.streak || 0,
+            status: habit.status || 'active',
+            completions: habit.completions || [],
+            createdAt: habit.createdAt || new Date(),
+            updatedAt: habit.updatedAt || new Date(),
+        })) as IHabit[];
     } catch (error) {
         console.error('Error fetching habits:', error);
         return [];
@@ -72,17 +86,21 @@ export async function getUserHabits(): Promise<IHabit[]> {
 }
 
 export async function updateHabitStatus(habitId: string, status: 'active' | 'paused' | 'archived') {
-    const { userId } = await auth();
-
-    if (!userId) {
-        throw new Error('User not authenticated');
-    }
-
-    await connectToDatabase();
-
     try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(habitId)) {
+            throw new Error('Invalid habit ID');
+        }
+
+        await connectToDatabase();
+
         const result = await Habit.updateOne(
-            { _id: habitId, clerkUserId: userId },
+            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
             {
                 status,
                 updatedAt: new Date()
@@ -97,32 +115,40 @@ export async function updateHabitStatus(habitId: string, status: 'active' | 'pau
         return { success: true };
     } catch (error) {
         console.error('Error updating habit status:', error);
-        throw new Error('Failed to update habit status');
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to update habit status' };
     }
 }
 
 export async function completeHabit(habitId: string) {
-    const { userId } = await auth();
-
-    if (!userId) {
-        throw new Error('User not authenticated');
-    }
-
-    await connectToDatabase();
-
     try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(habitId)) {
+            throw new Error('Invalid habit ID');
+        }
+
+        await connectToDatabase();
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         // First, get the current habit to check if already completed today
-        const habit = await Habit.findOne({ _id: habitId, clerkUserId: userId });
+        const habit = await Habit.findOne({
+            _id: new Types.ObjectId(habitId),
+            clerkUserId: userId
+        }).lean<LeanHabit>();
 
         if (!habit) {
             throw new Error('Habit not found');
         }
 
         // Check if already completed today
-        const alreadyCompleted = habit.completions.some(completion => {
+        const completions = habit.completions || [];
+        const alreadyCompleted = completions.some((completion: IHabitCompletion) => {
             const completionDate = new Date(completion.date);
             completionDate.setHours(0, 0, 0, 0);
             return completionDate.getTime() === today.getTime() && completion.completed;
@@ -134,7 +160,7 @@ export async function completeHabit(habitId: string) {
 
         // Add completion and increment streak
         const result = await Habit.updateOne(
-            { _id: habitId, clerkUserId: userId },
+            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
             {
                 $push: {
                     completions: {
@@ -155,25 +181,29 @@ export async function completeHabit(habitId: string) {
         return { success: true };
     } catch (error) {
         console.error('Error completing habit:', error);
-        throw new Error('Failed to complete habit');
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to complete habit' };
     }
 }
 
 export async function skipHabit(habitId: string) {
-    const { userId } = await auth();
-
-    if (!userId) {
-        throw new Error('User not authenticated');
-    }
-
-    await connectToDatabase();
-
     try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(habitId)) {
+            throw new Error('Invalid habit ID');
+        }
+
+        await connectToDatabase();
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const result = await Habit.updateOne(
-            { _id: habitId, clerkUserId: userId },
+            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
             {
                 $push: {
                     completions: {
@@ -196,21 +226,28 @@ export async function skipHabit(habitId: string) {
         return { success: true };
     } catch (error) {
         console.error('Error skipping habit:', error);
-        throw new Error('Failed to skip habit');
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to skip habit' };
     }
 }
 
 export async function deleteHabit(habitId: string) {
-    const { userId } = await auth();
-
-    if (!userId) {
-        throw new Error('User not authenticated');
-    }
-
-    await connectToDatabase();
-
     try {
-        const result = await Habit.deleteOne({ _id: habitId, clerkUserId: userId });
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(habitId)) {
+            throw new Error('Invalid habit ID');
+        }
+
+        await connectToDatabase();
+
+        const result = await Habit.deleteOne({
+            _id: new Types.ObjectId(habitId),
+            clerkUserId: userId
+        });
 
         if (result.deletedCount === 0) {
             throw new Error('Habit not found or unauthorized');
@@ -220,7 +257,7 @@ export async function deleteHabit(habitId: string) {
         return { success: true };
     } catch (error) {
         console.error('Error deleting habit:', error);
-        throw new Error('Failed to delete habit');
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to delete habit' };
     }
 }
 
@@ -232,15 +269,15 @@ export async function createHabitChain(data: {
     timeOfDay: string;
     totalTime: string;
 }) {
-    const { userId } = await auth();
-
-    if (!userId) {
-        throw new Error('User not authenticated');
-    }
-
-    await connectToDatabase();
-
     try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        await connectToDatabase();
+
         const habitChain = new HabitChain({
             clerkUserId: userId,
             ...data
@@ -252,32 +289,37 @@ export async function createHabitChain(data: {
         return { success: true, id: habitChain._id.toString() };
     } catch (error) {
         console.error('Error creating habit chain:', error);
-        throw new Error('Failed to create habit chain');
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to create habit chain' };
     }
 }
 
-export async function getUserHabitChains() {
-    const { userId } = await auth();
-
-    if (!userId) {
-        return [];
-    }
-
-    await connectToDatabase();
-
+export async function getUserHabitChains(): Promise<IHabitChain[]> {
     try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            return [];
+        }
+
+        await connectToDatabase();
+
         const chains = await HabitChain
             .find({ clerkUserId: userId })
             .sort({ createdAt: -1 })
-            .lean()
+            .lean<LeanHabitChain[]>()
             .exec();
 
         return chains.map(chain => ({
-            ...chain,
-            _id: chain._id?.toString(),
-            createdAt: chain.createdAt,
-            updatedAt: chain.updatedAt,
-        }));
+            _id: chain._id?.toString() || '',
+            clerkUserId: chain.clerkUserId,
+            name: chain.name,
+            description: chain.description,
+            habits: chain.habits || [],
+            timeOfDay: chain.timeOfDay,
+            totalTime: chain.totalTime,
+            createdAt: chain.createdAt || new Date(),
+            updatedAt: chain.updatedAt || new Date(),
+        })) as IHabitChain[];
     } catch (error) {
         console.error('Error fetching habit chains:', error);
         return [];
@@ -285,16 +327,23 @@ export async function getUserHabitChains() {
 }
 
 export async function deleteHabitChain(chainId: string) {
-    const { userId } = await auth();
-
-    if (!userId) {
-        throw new Error('User not authenticated');
-    }
-
-    await connectToDatabase();
-
     try {
-        const result = await HabitChain.deleteOne({ _id: chainId, clerkUserId: userId });
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(chainId)) {
+            throw new Error('Invalid chain ID');
+        }
+
+        await connectToDatabase();
+
+        const result = await HabitChain.deleteOne({
+            _id: new Types.ObjectId(chainId),
+            clerkUserId: userId
+        });
 
         if (result.deletedCount === 0) {
             throw new Error('Habit chain not found or unauthorized');
@@ -304,6 +353,6 @@ export async function deleteHabitChain(chainId: string) {
         return { success: true };
     } catch (error) {
         console.error('Error deleting habit chain:', error);
-        throw new Error('Failed to delete habit chain');
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to delete habit chain' };
     }
 }
