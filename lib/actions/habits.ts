@@ -411,3 +411,4 @@ export async function updateHabit(habitId: string, updateData: {
         return { success: false, error: error instanceof Error ? error.message : 'Failed to update habit' };
     }
 }
+
