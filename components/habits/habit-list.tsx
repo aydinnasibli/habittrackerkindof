@@ -24,95 +24,49 @@ import {
   ListFilter,
   Calendar,
   Clock,
-  Activity
+  Activity,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-
-// Mock data for habits
-const initialHabits = [
-  {
-    id: "1",
-    name: "Morning Meditation",
-    category: "Mindfulness",
-    frequency: "Daily",
-    streak: 21,
-    timeOfDay: "Morning",
-    timeToComplete: "10 min",
-    priority: "High",
-    status: "active",
-  },
-  {
-    id: "2",
-    name: "Exercise",
-    category: "Health",
-    frequency: "Mon, Wed, Fri",
-    streak: 12,
-    timeOfDay: "Evening",
-    timeToComplete: "45 min",
-    priority: "High",
-    status: "active",
-  },
-  {
-    id: "3",
-    name: "Read",
-    category: "Learning",
-    frequency: "Daily",
-    streak: 8,
-    timeOfDay: "Evening",
-    timeToComplete: "30 min",
-    priority: "Medium",
-    status: "active",
-  },
-  {
-    id: "4",
-    name: "Drink Water",
-    category: "Health",
-    frequency: "Daily",
-    streak: 15,
-    timeOfDay: "Throughout day",
-    timeToComplete: "1 min",
-    priority: "Medium",
-    status: "active",
-  },
-  {
-    id: "5",
-    name: "Journal",
-    category: "Mindfulness",
-    frequency: "Daily",
-    streak: 5,
-    timeOfDay: "Evening",
-    timeToComplete: "15 min",
-    priority: "Low",
-    status: "active",
-  },
-  {
-    id: "6",
-    name: "No Social Media",
-    category: "Digital Wellbeing",
-    frequency: "Weekdays",
-    streak: 0,
-    timeOfDay: "All day",
-    timeToComplete: "All day",
-    priority: "Medium",
-    status: "paused",
-  }
-];
+import { IHabit } from "@/lib/types";
+import {
+  getUserHabits,
+  updateHabitStatus,
+  completeHabit,
+  skipHabit,
+  deleteHabit
+} from "@/lib/actions/habits";
 
 export function HabitList() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [habits, setHabits] = useState(() => {
-    // Try to get habits from localStorage
-    const savedHabits = localStorage.getItem("habits");
-    return savedHabits ? JSON.parse(savedHabits) : initialHabits;
-  });
+  const [habits, setHabits] = useState<IHabit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
-  // Save habits to localStorage whenever they change
+  // Load habits from database
   useEffect(() => {
-    localStorage.setItem("habits", JSON.stringify(habits));
-  }, [habits]);
+    loadHabits();
+  }, []);
+
+  const loadHabits = async () => {
+    try {
+      setLoading(true);
+      const fetchedHabits = await getUserHabits();
+      setHabits(fetchedHabits);
+    } catch (error) {
+      console.error('Error loading habits:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load habits. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter habits based on search and tab
   const filterHabits = (status: string) => {
@@ -124,46 +78,129 @@ export function HabitList() {
       );
   };
 
-  const handleArchiveHabit = (id: string) => {
-    setHabits(habits.map(habit =>
-      habit.id === id ? { ...habit, status: "archived" } : habit
-    ));
-    toast({
-      title: "Habit archived",
-      description: "You can still view this habit in the archived tab."
-    });
+  const handleArchiveHabit = async (id: string) => {
+    setActionLoading(id);
+    try {
+      const result = await updateHabitStatus(id, "archived");
+      if (result.success) {
+        await loadHabits(); // Refresh the list
+        toast({
+          title: "Habit archived",
+          description: "You can still view this habit in the archived tab."
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to archive habit. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handlePauseHabit = (id: string) => {
-    setHabits(habits.map(habit =>
-      habit.id === id ? { ...habit, status: habit.status === "paused" ? "active" : "paused" } : habit
-    ));
-    toast({
-      title: habits.find(h => h.id === id)?.status === "paused" ? "Habit resumed" : "Habit paused",
-      description: habits.find(h => h.id === id)?.status === "paused" ?
-        "Tracking for this habit has been resumed." :
-        "Tracking for this habit has been paused."
-    });
+  const handlePauseHabit = async (id: string) => {
+    setActionLoading(id);
+    try {
+      const habit = habits.find(h => h._id === id);
+      const newStatus = habit?.status === "paused" ? "active" : "paused";
+
+      const result = await updateHabitStatus(id, newStatus);
+      if (result.success) {
+        await loadHabits(); // Refresh the list
+        toast({
+          title: newStatus === "paused" ? "Habit paused" : "Habit resumed",
+          description: newStatus === "paused" ?
+            "Tracking for this habit has been paused." :
+            "Tracking for this habit has been resumed."
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update habit status. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleCompleteHabit = (id: string) => {
-    setHabits(habits.map(habit =>
-      habit.id === id ? { ...habit, streak: habit.streak + 1 } : habit
-    ));
-    toast({
-      title: "Habit completed",
-      description: "Great job! Keep up the momentum!"
-    });
+  const handleCompleteHabit = async (id: string) => {
+    setActionLoading(id);
+    try {
+      const result = await completeHabit(id);
+      if (result.success) {
+        await loadHabits(); // Refresh the list
+        toast({
+          title: "Habit completed",
+          description: "Great job! Keep up the momentum!"
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to complete habit. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleSkipHabit = (id: string) => {
-    setHabits(habits.map(habit =>
-      habit.id === id ? { ...habit, streak: 0 } : habit
-    ));
-    toast({
-      title: "Habit skipped",
-      description: "Don't worry, you can start a new streak tomorrow!"
-    });
+  const handleSkipHabit = async (id: string) => {
+    setActionLoading(id);
+    try {
+      const result = await skipHabit(id);
+      if (result.success) {
+        await loadHabits(); // Refresh the list
+        toast({
+          title: "Habit skipped",
+          description: "Don't worry, you can start a new streak tomorrow!"
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to skip habit. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteHabit = async (id: string) => {
+    setActionLoading(id);
+    try {
+      const result = await deleteHabit(id);
+      if (result.success) {
+        await loadHabits(); // Refresh the list
+        toast({
+          title: "Habit deleted",
+          description: "The habit has been permanently removed."
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete habit. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -192,6 +229,17 @@ export function HabitList() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="container mx-auto space-y-6">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading habits...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -215,9 +263,15 @@ export function HabitList() {
 
       <Tabs defaultValue="active" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="paused">Paused</TabsTrigger>
-          <TabsTrigger value="archived">Archived</TabsTrigger>
+          <TabsTrigger value="active">
+            Active ({filterHabits("active").length})
+          </TabsTrigger>
+          <TabsTrigger value="paused">
+            Paused ({filterHabits("paused").length})
+          </TabsTrigger>
+          <TabsTrigger value="archived">
+            Archived ({filterHabits("archived").length})
+          </TabsTrigger>
         </TabsList>
 
         {["active", "paused", "archived"].map((status) => (
@@ -234,7 +288,7 @@ export function HabitList() {
                   {filterHabits(status).length > 0 ? (
                     filterHabits(status).map((habit) => (
                       <div
-                        key={habit.id}
+                        key={habit._id}
                         className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4"
                       >
                         <div className="space-y-1">
@@ -243,6 +297,7 @@ export function HabitList() {
                             {getPriorityIcon(habit.priority)}
                             <Badge variant="outline">{habit.category}</Badge>
                           </div>
+                          <p className="text-sm text-muted-foreground">{habit.description}</p>
                           <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
                             <div className="flex items-center">
                               <Calendar className="mr-1 h-4 w-4" />
@@ -261,38 +316,57 @@ export function HabitList() {
 
                         <div className="flex items-center gap-2 self-end sm:self-auto">
                           {status === "active" && (
-                            <Badge variant="outline\" className="bg-secondary">
+                            <Badge variant="outline" className="bg-secondary">
                               {habit.timeToComplete}
                             </Badge>
                           )}
                           {getStatusBadge(habit.status)}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={actionLoading === habit._id}
+                              >
+                                {actionLoading === habit._id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <MoreHorizontal className="h-4 w-4" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Options</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleCompleteHabit(habit.id)}>
-                                <Check className="mr-2 h-4 w-4" /> Complete Today
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleSkipHabit(habit.id)}>
-                                <X className="mr-2 h-4 w-4" /> Skip Today
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              {status === "active" && (
+                                <>
+                                  <DropdownMenuItem onClick={() => handleCompleteHabit(habit._id!)}>
+                                    <Check className="mr-2 h-4 w-4" /> Complete Today
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleSkipHabit(habit._id!)}>
+                                    <X className="mr-2 h-4 w-4" /> Skip Today
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuItem onClick={() => router.push(`/habits/${habit._id}/edit`)}>
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handlePauseHabit(habit.id)}>
+                              <DropdownMenuItem onClick={() => handlePauseHabit(habit._id!)}>
                                 {habit.status === "paused" ? "Resume Habit" : "Pause Habit"}
                               </DropdownMenuItem>
                               {habit.status !== "archived" && (
-                                <DropdownMenuItem onClick={() => handleArchiveHabit(habit.id)}>
+                                <DropdownMenuItem onClick={() => handleArchiveHabit(habit._id!)}>
                                   Archive Habit
                                 </DropdownMenuItem>
                               )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteHabit(habit._id!)}
+                                className="text-red-600"
+                              >
+                                Delete Habit
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
