@@ -102,7 +102,7 @@ export default async function DashboardPage() {
                   {analytics.weeklyData.map((day, index) => (
                     <div key={index} className="flex items-center gap-4">
                       <div className="w-20 text-sm font-medium">
-                        {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                        {new Date(day.date).toLocaleDateString('tr-TR', { weekday: 'short' })}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">

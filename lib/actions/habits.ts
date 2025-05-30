@@ -125,130 +125,6 @@ export async function updateHabitStatus(habitId: string, status: 'active' | 'pau
     }
 }
 
-export async function completeHabit(habitId: string) {
-    try {
-        const { userId } = await auth();
-
-        if (!userId) {
-            throw new Error('User not authenticated');
-        }
-
-        if (!Types.ObjectId.isValid(habitId)) {
-            throw new Error('Invalid habit ID');
-        }
-
-        await connectToDatabase();
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const habit = await Habit.findOne({
-            _id: new Types.ObjectId(habitId),
-            clerkUserId: userId
-        }).lean<LeanHabit>();
-
-        if (!habit) {
-            throw new Error('Habit not found');
-        }
-
-        const completions = habit.completions || [];
-        const alreadyCompleted = completions.some((completion: IHabitCompletion) => {
-            const completionDate = new Date(completion.date);
-            completionDate.setHours(0, 0, 0, 0);
-            return completionDate.getTime() === today.getTime() && completion.completed;
-        });
-
-        if (alreadyCompleted) {
-            throw new Error('Habit already completed today');
-        }
-
-        // Calculate new streak
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        const wasCompletedYesterday = completions.some((completion: IHabitCompletion) => {
-            const completionDate = new Date(completion.date);
-            completionDate.setHours(0, 0, 0, 0);
-            return completionDate.getTime() === yesterday.getTime() && completion.completed;
-        });
-
-        const newStreak = wasCompletedYesterday || habit.streak === 0 ? habit.streak + 1 : 1;
-
-        const result = await Habit.updateOne(
-            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
-            {
-                $push: {
-                    completions: {
-                        date: today,
-                        completed: true
-                    }
-                },
-                $set: {
-                    streak: newStreak,
-                    updatedAt: new Date()
-                }
-            }
-        );
-
-        if (result.matchedCount === 0) {
-            throw new Error('Habit not found or unauthorized');
-        }
-
-        revalidatePath('/habits');
-        return { success: true };
-    } catch (error) {
-        console.error('Error completing habit:', error);
-        return { success: false, error: error instanceof Error ? error.message : 'Failed to complete habit' };
-    }
-}
-
-export async function skipHabit(habitId: string) {
-    try {
-        const { userId } = await auth();
-
-        if (!userId) {
-            throw new Error('User not authenticated');
-        }
-
-        if (!Types.ObjectId.isValid(habitId)) {
-            throw new Error('Invalid habit ID');
-        }
-
-        await connectToDatabase();
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // Remove today's completion if it exists, instead of adding a false completion
-        const result = await Habit.updateOne(
-            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
-            {
-                $pull: {
-                    completions: {
-                        date: {
-                            $gte: today,
-                            $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
-                        }
-                    }
-                },
-                $set: {
-                    streak: 0,
-                    updatedAt: new Date()
-                }
-            }
-        );
-
-        if (result.matchedCount === 0) {
-            throw new Error('Habit not found or unauthorized');
-        }
-
-        revalidatePath('/habits');
-        return { success: true };
-    } catch (error) {
-        console.error('Error skipping habit:', error);
-        return { success: false, error: error instanceof Error ? error.message : 'Failed to skip habit' };
-    }
-}
 
 export async function deleteHabit(habitId: string) {
     try {
@@ -506,4 +382,251 @@ export async function getHabitAnalytics(days: number = 7) {
         console.error('Error getting habit analytics:', error);
         return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
     }
+}
+
+
+
+
+
+export async function skipHabit(habitId: string) {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(habitId)) {
+            throw new Error('Invalid habit ID');
+        }
+
+        await connectToDatabase();
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // First, get the habit to calculate the new streak properly
+        const habit = await Habit.findOne({
+            _id: new Types.ObjectId(habitId),
+            clerkUserId: userId
+        }).lean<LeanHabit>();
+
+        if (!habit) {
+            throw new Error('Habit not found');
+        }
+
+        const completions = habit.completions || [];
+
+        // Check if habit was completed today
+        const completedToday = completions.some((completion: IHabitCompletion) => {
+            const completionDate = new Date(completion.date);
+            completionDate.setHours(0, 0, 0, 0);
+            return completionDate.getTime() === today.getTime() && completion.completed;
+        });
+
+        if (!completedToday) {
+            throw new Error('Habit was not completed today');
+        }
+
+        // Calculate the new streak after removing today's completion
+        let newStreak = 0;
+
+        if (habit.streak > 0) {
+            // Sort completions by date (newest first)
+            const sortedCompletions = completions
+                .filter((completion: IHabitCompletion) => completion.completed)
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            // Remove today's completion from consideration
+            const completionsWithoutToday = sortedCompletions.filter((completion: IHabitCompletion) => {
+                const compDate = new Date(completion.date);
+                compDate.setHours(0, 0, 0, 0);
+                return compDate.getTime() !== today.getTime();
+            });
+
+            // Calculate streak from yesterday backwards
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            let currentDate = new Date(yesterday);
+
+            for (const completion of completionsWithoutToday) {
+                const completionDate = new Date(completion.date);
+                completionDate.setHours(0, 0, 0, 0);
+
+                // Check if this completion is for the current date we're checking
+                if (completionDate.getTime() === currentDate.getTime()) {
+                    newStreak++;
+                    // Move to the previous day
+                    currentDate.setDate(currentDate.getDate() - 1);
+                } else if (completionDate.getTime() < currentDate.getTime()) {
+                    // There's a gap in the streak, so we stop
+                    break;
+                }
+            }
+        }
+
+        // Remove today's completion and update the streak
+        const result = await Habit.updateOne(
+            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
+            {
+                $pull: {
+                    completions: {
+                        date: {
+                            $gte: today,
+                            $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+                        }
+                    }
+                },
+                $set: {
+                    streak: newStreak,
+                    updatedAt: new Date()
+                }
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            throw new Error('Habit not found or unauthorized');
+        }
+
+        revalidatePath('/habits');
+        return { success: true, newStreak };
+    } catch (error) {
+        console.error('Error skipping habit:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to skip habit' };
+    }
+}
+
+// Also, let's improve the completeHabit function for better streak calculation
+export async function completeHabit(habitId: string) {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        if (!Types.ObjectId.isValid(habitId)) {
+            throw new Error('Invalid habit ID');
+        }
+
+        await connectToDatabase();
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const habit = await Habit.findOne({
+            _id: new Types.ObjectId(habitId),
+            clerkUserId: userId
+        }).lean<LeanHabit>();
+
+        if (!habit) {
+            throw new Error('Habit not found');
+        }
+
+        const completions = habit.completions || [];
+        const alreadyCompleted = completions.some((completion: IHabitCompletion) => {
+            const completionDate = new Date(completion.date);
+            completionDate.setHours(0, 0, 0, 0);
+            return completionDate.getTime() === today.getTime() && completion.completed;
+        });
+
+        if (alreadyCompleted) {
+            throw new Error('Habit already completed today');
+        }
+
+        // Calculate new streak more accurately
+        let newStreak = 1; // At least 1 since we're completing today
+
+        // Get yesterday's date
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Check if habit was completed yesterday
+        const completedYesterday = completions.some((completion: IHabitCompletion) => {
+            const completionDate = new Date(completion.date);
+            completionDate.setHours(0, 0, 0, 0);
+            return completionDate.getTime() === yesterday.getTime() && completion.completed;
+        });
+
+        if (completedYesterday) {
+            // Continue the existing streak
+            newStreak = habit.streak + 1;
+        } else if (habit.streak === 0) {
+            // Starting a new streak
+            newStreak = 1;
+        } else {
+            // There was a gap, so reset to 1
+            newStreak = 1;
+        }
+
+        const result = await Habit.updateOne(
+            { _id: new Types.ObjectId(habitId), clerkUserId: userId },
+            {
+                $push: {
+                    completions: {
+                        date: today,
+                        completed: true
+                    }
+                },
+                $set: {
+                    streak: newStreak,
+                    updatedAt: new Date()
+                }
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            throw new Error('Habit not found or unauthorized');
+        }
+
+        revalidatePath('/habits');
+        return { success: true, newStreak };
+    } catch (error) {
+        console.error('Error completing habit:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to complete habit' };
+    }
+}
+
+// Helper function to calculate accurate streak (can be used by both functions)
+function calculateStreakFromCompletions(completions: IHabitCompletion[], excludeToday: boolean = false): number {
+    if (!completions || completions.length === 0) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Filter and sort completions
+    let validCompletions = completions
+        .filter((completion: IHabitCompletion) => completion.completed)
+        .map((completion: IHabitCompletion) => {
+            const date = new Date(completion.date);
+            date.setHours(0, 0, 0, 0);
+            return date;
+        })
+        .sort((a, b) => b.getTime() - a.getTime()); // Sort by date descending
+
+    // Exclude today if requested
+    if (excludeToday) {
+        validCompletions = validCompletions.filter(date => date.getTime() !== today.getTime());
+    }
+
+    if (validCompletions.length === 0) return 0;
+
+    let streak = 0;
+    let expectedDate = excludeToday ?
+        new Date(today.getTime() - 24 * 60 * 60 * 1000) : // Start from yesterday
+        today; // Start from today
+
+    for (const completionDate of validCompletions) {
+        if (completionDate.getTime() === expectedDate.getTime()) {
+            streak++;
+            expectedDate.setDate(expectedDate.getDate() - 1); // Move to previous day
+        } else if (completionDate.getTime() < expectedDate.getTime()) {
+            // Gap found, streak is broken
+            break;
+        }
+        // If completionDate > expectedDate, skip this completion (future date)
+    }
+
+    return streak;
 }

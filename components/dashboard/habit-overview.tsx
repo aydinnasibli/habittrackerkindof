@@ -17,8 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { completeHabit, skipHabit, getUserHabits } from "@/lib/actions/habits";
 import { IHabit } from "@/lib/types";
 import { HabitDetailModal } from "@/components/modals/habit-detail-modal";
-import { HabitEditModal } from "@/components/modals/habit-edit-modal";
-
+import { HabitEditModal } from "../modals/habit-edit-modal";
 type HabitWithCompletion = IHabit & {
   completedToday: boolean;
   impactScore: number;
@@ -27,7 +26,7 @@ type HabitWithCompletion = IHabit & {
 // Helper function to check if habit should show today based on frequency
 function shouldShowToday(frequency: string): boolean {
   const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',];
   const todayName = dayNames[today];
 
   switch (frequency) {
