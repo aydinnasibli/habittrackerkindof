@@ -1,7 +1,7 @@
 // components/habits/chain-session.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +79,19 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
         "Building habits is building your character. Stay strong! 🏆"
     ];
 
+    // Calculate progress and current habit with memoization
+    const { completedHabits, currentHabit, progress } = useMemo(() => {
+        const completed = session.habits.filter(h => h.status === 'completed').length;
+        const current = session.habits[session.currentHabitIndex];
+        const progressPercentage = session.totalHabits > 0 ? (completed / session.totalHabits) * 100 : 0;
+
+        return {
+            completedHabits: completed,
+            currentHabit: current,
+            progress: Math.round(progressPercentage)
+        };
+    }, [session.habits, session.currentHabitIndex, session.totalHabits]);
+
     // Update motivation quote every 30 seconds during active sessions
     useEffect(() => {
         if (session.status === 'active' && !session.pausedAt && !session.onBreak) {
@@ -152,10 +165,6 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
         return () => clearInterval(interval);
     }, [refreshSession]);
 
-    const currentHabit = session.habits[session.currentHabitIndex];
-    const completedHabits = session.habits.filter(h => h.status === 'completed').length;
-    const progress = ((completedHabits) / session.totalHabits) * 100;
-
     const handleCompleteHabit = async () => {
         if (!session._id) return;
 
@@ -182,12 +191,15 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                     onSessionEnd();
                 } else {
                     await refreshSession();
-                    // Motivational message for continuing
-                    toast({
-                        title: "💪 Momentum Building!",
-                        description: `${session.totalHabits - completedHabits - 1} habits to go. You're unstoppable!`,
-                        duration: 3000,
-                    });
+                    // Motivational message for continuing - use the latest completed count
+                    const remainingHabits = session.totalHabits - completedHabits - 1;
+                    if (remainingHabits > 0) {
+                        toast({
+                            title: "💪 Momentum Building!",
+                            description: `${remainingHabits} habits to go. You're unstoppable!`,
+                            duration: 3000,
+                        });
+                    }
                 }
 
                 setNotes("");
@@ -450,7 +462,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                                 {formatTime(elapsedTime)}
                             </div>
                             <div className="text-sm text-muted-foreground mt-1">
-                                {Math.round(progress)}% Complete
+                                {progress}% Complete
                             </div>
                         </div>
                     </div>
