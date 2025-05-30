@@ -7,6 +7,8 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, MinusCircle, ZoomIn, ZoomOut, RotateCcw, Loader2 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+import { getUserHabits } from "@/lib/actions/habits";
+import { IHabit } from "@/lib/types";
 import * as d3 from "d3";
 
 type HabitNode = {
@@ -40,7 +42,7 @@ const categoryGroups: Record<string, number> = {
 };
 
 // Function to calculate habit connections based on time overlap and category similarity
-const calculateHabitConnections = (habits: any[]): HabitLink[] => {
+const calculateHabitConnections = (habits: IHabit[]): HabitLink[] => {
   const links: HabitLink[] = [];
 
   for (let i = 0; i < habits.length; i++) {
@@ -81,8 +83,8 @@ const calculateHabitConnections = (habits: any[]): HabitLink[] => {
 
       if (connectionStrength > 2) {
         links.push({
-          source: habit1._id,
-          target: habit2._id,
+          source: habit1._id!,
+          target: habit2._id!,
           value: Math.min(10, Math.round(connectionStrength))
         });
       }
@@ -101,24 +103,13 @@ export function HabitDNA() {
   const [error, setError] = useState<string | null>(null);
   const { user } = useUser();
 
-  // Fetch habits data from MongoDB
+  // Fetch habits data using server action
   const fetchHabits = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/habits', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch habits');
-      }
-
-      const habits = await response.json();
+      const habits = await getUserHabits();
 
       if (!habits || habits.length === 0) {
         // Create mock data if no habits exist
@@ -140,8 +131,8 @@ export function HabitDNA() {
         setHabitData({ nodes: mockNodes, links: mockLinks });
       } else {
         // Transform real habits data
-        const nodes: HabitNode[] = habits.map((habit: any) => ({
-          id: habit._id,
+        const nodes: HabitNode[] = habits.map((habit: IHabit) => ({
+          id: habit._id!,
           name: habit.name,
           value: Math.max(30, Math.min(100, habit.streak * 5 + 50)), // Scale based on streak
           group: categoryGroups[habit.category] || 1,
