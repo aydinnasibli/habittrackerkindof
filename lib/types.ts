@@ -38,3 +38,36 @@ export interface IHabitChain {
     createdAt: Date;
     updatedAt: Date;
 }
+
+// Chain Session Types
+export interface IChainSession {
+    _id?: string;
+    clerkUserId: string;
+    chainId: string;
+    chainName: string;
+    status: 'active' | 'completed' | 'abandoned';
+    startedAt: Date;
+    completedAt?: Date;
+    currentHabitIndex: number;
+    totalHabits: number;
+    habits: IChainSessionHabit[];
+    totalDuration: string;
+    actualDuration?: number;
+    pausedAt?: Date;
+    pauseDuration: number;
+    breakStartedAt?: Date;
+    onBreak: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface IChainSessionHabit {
+    habitId: string;
+    habitName: string;
+    duration: string;
+    order: number;
+    startedAt?: Date;
+    completedAt?: Date;
+    status: 'pending' | 'active' | 'completed' | 'skipped';
+    notes?: string;
+}

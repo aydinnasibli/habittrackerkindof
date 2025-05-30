@@ -19,7 +19,6 @@ import {
   ArrowUp,
   ArrowDown,
   Search,
-  ListFilter,
   Calendar,
   Clock,
   Activity,
@@ -40,14 +39,7 @@ import {
 } from "@/lib/actions/habits";
 import { HabitDetailModal } from "@/components/modals/habit-detail-modal";
 import { HabitEditModal } from "@/components/modals/habit-edit-modal";
-import { HabitFilterModal } from "@/components/modals/habit-filter-modal";
 
-interface FilterOptions {
-  categories: string[];
-  priorities: string[];
-  timeOfDay: string[];
-  frequencies: string[];
-}
 
 export function HabitList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,13 +49,6 @@ export function HabitList() {
   const [selectedHabit, setSelectedHabit] = useState<IHabit | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [filters, setFilters] = useState<FilterOptions>({
-    categories: [],
-    priorities: [],
-    timeOfDay: [],
-    frequencies: []
-  });
   const { toast } = useToast();
   const router = useRouter();
 
@@ -103,25 +88,7 @@ export function HabitList() {
 
         if (!matchesSearch) return false;
 
-        // Category filter
-        if (filters.categories.length > 0 && !filters.categories.includes(habit.category)) {
-          return false;
-        }
 
-        // Priority filter
-        if (filters.priorities.length > 0 && !filters.priorities.includes(habit.priority)) {
-          return false;
-        }
-
-        // Time of day filter
-        if (filters.timeOfDay.length > 0 && !filters.timeOfDay.includes(habit.timeOfDay)) {
-          return false;
-        }
-
-        // Frequency filter
-        if (filters.frequencies.length > 0 && !filters.frequencies.includes(habit.frequency)) {
-          return false;
-        }
 
         return true;
       });
@@ -240,21 +207,6 @@ export function HabitList() {
     }
   };
 
-  const getActiveFilterCount = () => {
-    return filters.categories.length +
-      filters.priorities.length +
-      filters.timeOfDay.length +
-      filters.frequencies.length;
-  };
-
-  const clearAllFilters = () => {
-    setFilters({
-      categories: [],
-      priorities: [],
-      timeOfDay: [],
-      frequencies: []
-    });
-  };
 
   if (loading) {
     return (
@@ -279,29 +231,8 @@ export function HabitList() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Button
-          variant="outline"
-          className="sm:w-auto w-full"
-          onClick={() => setShowFilterModal(true)}
-        >
-          <ListFilter className="mr-2 h-4 w-4" />
-          Filter
-          {getActiveFilterCount() > 0 && (
-            <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
-              {getActiveFilterCount()}
-            </Badge>
-          )}
-        </Button>
-        {getActiveFilterCount() > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearAllFilters}
-            className="text-muted-foreground"
-          >
-            Clear filters
-          </Button>
-        )}
+
+
         <Button onClick={() => router.push('/habits/new')}>
           Add New Habit
         </Button>
@@ -426,9 +357,8 @@ export function HabitList() {
                     ))
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      {searchQuery || getActiveFilterCount() > 0 ? (
+                      {searchQuery ? (
                         <>
-                          No {status} habits match your search{getActiveFilterCount() > 0 ? ' and filters' : ''}.
                           <div className="mt-2 space-x-2">
                             {searchQuery && (
                               <Button
@@ -439,15 +369,7 @@ export function HabitList() {
                                 Clear search
                               </Button>
                             )}
-                            {getActiveFilterCount() > 0 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={clearAllFilters}
-                              >
-                                Clear filters
-                              </Button>
-                            )}
+
                           </div>
                         </>
                       ) : (
@@ -492,13 +414,6 @@ export function HabitList() {
         }}
       />
 
-      <HabitFilterModal
-        isOpen={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        filters={filters}
-        onFiltersChange={setFilters}
-        habits={habits}
-      />
     </div>
   );
 }
