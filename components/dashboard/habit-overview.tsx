@@ -38,7 +38,8 @@ function getUserTimezone(): string {
 function getCurrentDateInTimezone(timezone: string): string {
   try {
     const now = new Date();
-    return now.toLocaleDateString('tr-TR', { timeZone: timezone });
+    // Use sv-SE locale for consistent YYYY-MM-DD format
+    return now.toLocaleDateString('sv-SE', { timeZone: timezone });
   } catch (error) {
     console.warn('Failed to get date in timezone, falling back to UTC:', error);
     return new Date().toISOString().split('T')[0];
@@ -91,6 +92,7 @@ function isCompletedToday(completions: any[], timezone: string): boolean {
 
     try {
       const completionDate = new Date(completion.date);
+      // Use sv-SE locale for consistent YYYY-MM-DD format matching
       const completionString = completionDate.toLocaleDateString('sv-SE', { timeZone: timezone });
       return completionString === todayString;
     } catch (error) {
@@ -181,24 +183,55 @@ export function HabitOverview() {
     try {
       setIsToggling(prev => ({ ...prev, [habitId]: true }));
 
+      // Find the habit to update optimistically
+      const habitIndex = habits.findIndex(h => h._id === habitId);
+      if (habitIndex === -1) {
+        throw new Error('Habit not found');
+      }
+
+      const habit = habits[habitIndex];
+      let result;
+
       if (currentStatus) {
         // If completed, skip it (mark as not completed)
-        const result = await skipHabit(habitId, userTimezone);
+        result = await skipHabit(habitId, userTimezone);
         if (!result.success) {
           throw new Error(result.error);
         }
+
+        // Update local state optimistically
+        setHabits(prevHabits => {
+          const updatedHabits = [...prevHabits];
+          updatedHabits[habitIndex] = {
+            ...updatedHabits[habitIndex],
+            completedToday: false,
+            streak: result.newStreak || 0
+          };
+          return updatedHabits;
+        });
+
         toast({
           title: "Habit unmarked",
           description: "Habit marked as not completed for today.",
         });
       } else {
         // If not completed, complete it
-        const result = await completeHabit(habitId, userTimezone);
+        result = await completeHabit(habitId, userTimezone);
         if (!result.success) {
           throw new Error(result.error);
         }
 
-        const habit = habits.find(h => h._id === habitId);
+        // Update local state optimistically
+        setHabits(prevHabits => {
+          const updatedHabits = [...prevHabits];
+          updatedHabits[habitIndex] = {
+            ...updatedHabits[habitIndex],
+            completedToday: true,
+            streak: result.newStreak || 0
+          };
+          return updatedHabits;
+        });
+
         toast({
           title: "Habit completed! 🎉",
           description: `You've completed "${habit?.name}". Great job!`,
@@ -222,7 +255,7 @@ export function HabitOverview() {
                     size="sm"
                     variant="outline"
                     className="flex items-center gap-1"
-                    onClick={() => toggleHabit(waterHabit._id, false)}
+                    onClick={() => toggleHabit(waterHabit._id!, false)}
                   >
                     <Zap className="h-3 w-3" />
                     Do it now
@@ -234,10 +267,15 @@ export function HabitOverview() {
         }
       }
 
-      // Reload habits to get updated data
-      await loadHabits();
+      // Reload habits to ensure consistency (but don't wait for it)
+      setTimeout(() => loadHabits(), 100);
+
     } catch (error) {
       console.error('Error toggling habit:', error);
+
+      // Revert optimistic update on error
+      await loadHabits();
+
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update habit. Please try again.",
@@ -342,9 +380,9 @@ export function HabitOverview() {
                       className={`h-10 w-10 rounded-full transition-all duration-200 ${habit.completedToday
                         ? "bg-primary hover:bg-primary/90"
                         : "hover:bg-primary/10 hover:border-primary/50"
-                        } ${isToggling[habit._id] ? "animate-pulse" : ""}`}
-                      onClick={() => toggleHabit(habit._id, habit.completedToday)}
-                      disabled={isToggling[habit._id]}
+                        } ${isToggling[habit._id!] ? "animate-pulse" : ""}`}
+                      onClick={() => toggleHabit(habit._id!, habit.completedToday)}
+                      disabled={isToggling[habit._id!]}
                     >
                       {habit.completedToday ? (
                         <Check className="h-5 w-5 text-primary-foreground" />
@@ -386,9 +424,9 @@ export function HabitOverview() {
                         <DropdownMenuLabel>Options</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          onClick={() => toggleHabit(habit._id, habit.completedToday)}
+                          onClick={() => toggleHabit(habit._id!, habit.completedToday)}
                           className="cursor-pointer"
-                          disabled={isToggling[habit._id]}
+                          disabled={isToggling[habit._id!]}
                         >
                           {habit.completedToday ? (
                             <>
