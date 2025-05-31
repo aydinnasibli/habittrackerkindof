@@ -12,11 +12,12 @@ import { Types, FlattenMaps } from 'mongoose';
 type LeanHabit = FlattenMaps<IHabit> & { _id: Types.ObjectId };
 type LeanHabitChain = FlattenMaps<IHabitChain> & { _id: Types.ObjectId };
 
-// Helper function to get user's date in their timezone
+// Helper function to get user's date in their timezone (consistent formatting)
 function getUserDateInTimezone(timezone: string = 'UTC'): Date {
     try {
         const now = new Date();
-        const userDateString = now.toLocaleDateString('sv-SE', { timeZone: timezone }); // YYYY-MM-DD format
+        // Use consistent ISO date format (YYYY-MM-DD)
+        const userDateString = now.toLocaleDateString('sv-SE', { timeZone: timezone });
         const userDate = new Date(userDateString + 'T00:00:00.000Z');
         return userDate;
     } catch (error) {
@@ -38,6 +39,7 @@ function formatDateForStorage(date: Date): Date {
 // Helper function to check if two dates are the same day in a specific timezone
 function isSameDayInTimezone(date1: Date, date2: Date, timezone: string): boolean {
     try {
+        // Use consistent formatting for both frontend and backend
         const date1String = date1.toLocaleDateString('sv-SE', { timeZone: timezone });
         const date2String = date2.toLocaleDateString('sv-SE', { timeZone: timezone });
         return date1String === date2String;
@@ -488,8 +490,14 @@ export async function completeHabit(habitId: string, timezone: string = 'UTC') {
             throw new Error('Habit already completed today');
         }
 
-        // Calculate new streak with timezone awareness
-        const newStreak = calculateStreakFromCompletions(completions, userDate, timezone, false);
+        // Add today's completion to the completions array for streak calculation
+        const updatedCompletions = [...completions, {
+            date: todayForStorage,
+            completed: true
+        }];
+
+        // Calculate new streak with today's completion included
+        const newStreak = calculateStreakFromCompletions(updatedCompletions, userDate, timezone, habit.frequency);
 
         const result = await Habit.updateOne(
             { _id: new Types.ObjectId(habitId), clerkUserId: userId },
@@ -556,28 +564,20 @@ export async function skipHabit(habitId: string, timezone: string = 'UTC') {
             throw new Error('Habit was not completed today');
         }
 
+        // Remove today's completion
+        const updatedCompletions = completions.filter((completion: IHabitCompletion) => {
+            return !(completion.completed && isSameDayInTimezone(new Date(completion.date), userDate, timezone));
+        });
+
         // Calculate new streak after removing today's completion
-        const newStreak = calculateStreakFromCompletions(completions, userDate, timezone, true);
+        const newStreak = calculateStreakFromCompletions(updatedCompletions, userDate, timezone, habit.frequency);
 
-        // Create date range for filtering (to handle timezone edge cases)
-        const startOfDay = new Date(userDate);
-        startOfDay.setUTCDate(startOfDay.getUTCDate() - 1);
-        const endOfDay = new Date(userDate);
-        endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
-
-        // Remove today's completion using timezone-aware filtering
+        // Update habit with filtered completions and new streak
         const result = await Habit.updateOne(
             { _id: new Types.ObjectId(habitId), clerkUserId: userId },
             {
-                $pull: {
-                    completions: {
-                        date: {
-                            $gte: startOfDay,
-                            $lte: endOfDay
-                        }
-                    }
-                },
                 $set: {
+                    completions: updatedCompletions,
                     streak: newStreak,
                     updatedAt: new Date()
                 }
@@ -601,40 +601,63 @@ function calculateStreakFromCompletions(
     completions: IHabitCompletion[],
     currentUserDate: Date,
     timezone: string,
-    excludeToday: boolean = false
+    frequency: string
 ): number {
-    if (!completions || completions.length === 0) return excludeToday ? 0 : 1;
+    if (!completions || completions.length === 0) {
+        return 0;
+    }
 
     // Filter completed habits and sort by date descending
     const validCompletions = completions
         .filter((completion: IHabitCompletion) => completion.completed)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    if (validCompletions.length === 0) return excludeToday ? 0 : 1;
+    if (validCompletions.length === 0) {
+        return 0;
+    }
 
-    let streak = excludeToday ? 0 : 1; // If we're completing today, start with 1
+    let streak = 0;
     let checkDate = new Date(currentUserDate);
 
-    if (excludeToday) {
-        // Start checking from yesterday
-        checkDate.setDate(checkDate.getDate() - 1);
-    } else {
-        // Start checking from yesterday (since today is already being added)
+    // Check if today is completed first
+    const todayCompleted = validCompletions.some(completion =>
+        isSameDayInTimezone(new Date(completion.date), checkDate, timezone)
+    );
+
+    if (todayCompleted) {
+        const todayDayOfWeek = getDayOfWeekInTimezone(checkDate, timezone);
+        if (shouldDoHabitOnDay(frequency, todayDayOfWeek)) {
+            streak = 1;
+        }
+    }
+
+    // Start checking from yesterday if today is completed, or from today if not
+    if (todayCompleted) {
         checkDate.setDate(checkDate.getDate() - 1);
     }
 
-    // Check backwards day by day
-    for (let i = 0; i < validCompletions.length && i < 365; i++) { // Max 365 days to prevent infinite loops
-        const hasCompletionForDate = validCompletions.some(completion =>
-            isSameDayInTimezone(new Date(completion.date), checkDate, timezone)
-        );
+    // Check backwards day by day, but only count days when habit should be done
+    for (let daysBack = 0; daysBack < 365; daysBack++) { // Max 365 days to prevent infinite loops
+        const dayOfWeek = getDayOfWeekInTimezone(checkDate, timezone);
+        const shouldDoOnThisDay = shouldDoHabitOnDay(frequency, dayOfWeek);
 
-        if (hasCompletionForDate) {
-            streak++;
-            checkDate.setDate(checkDate.getDate() - 1); // Move to previous day
-        } else {
-            break; // Streak is broken
+        if (shouldDoOnThisDay) {
+            // Check if there's a completion for this day
+            const hasCompletionForDate = validCompletions.some(completion =>
+                isSameDayInTimezone(new Date(completion.date), checkDate, timezone)
+            );
+
+            if (hasCompletionForDate) {
+                if (!todayCompleted || daysBack > 0) { // Don't double count today
+                    streak++;
+                }
+            } else {
+                break; // Streak is broken - habit should have been done but wasn't
+            }
         }
+        // If habit shouldn't be done on this day, continue checking previous days
+
+        checkDate.setDate(checkDate.getDate() - 1); // Move to previous day
     }
 
     return streak;
