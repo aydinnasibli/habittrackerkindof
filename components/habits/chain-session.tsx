@@ -110,38 +110,49 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
 
     // Calculate elapsed time with better precision
     useEffect(() => {
-        const interval = setInterval(() => {
-            if (session.status === 'active' && !session.pausedAt && !session.onBreak) {
+        let interval: NodeJS.Timeout;
+
+        if (session.status === 'active' && !session.pausedAt && !session.onBreak) {
+            interval = setInterval(() => {
                 const now = new Date();
                 const started = new Date(session.startedAt);
                 const elapsed = Math.floor((now.getTime() - started.getTime()) / 1000);
                 setElapsedTime(Math.max(0, elapsed - (session.pauseDuration * 60)));
-            }
-        }, 1000);
+            }, 1000);
+        } else {
+            setElapsedTime(0);
+        }
 
-        return () => clearInterval(interval);
+        return () => {
+            if (interval) clearInterval(interval);
+        };
     }, [session.startedAt, session.pauseDuration, session.status, session.pausedAt, session.onBreak]);
 
     // Enhanced break countdown with auto-end
     useEffect(() => {
+        let interval: NodeJS.Timeout;
+
         if (session.onBreak && session.breakStartedAt) {
-            const interval = setInterval(() => {
+            interval = setInterval(() => {
                 const now = new Date();
                 const breakStart = new Date(session.breakStartedAt!);
                 const elapsed = Math.floor((now.getTime() - breakStart.getTime()) / 1000);
                 const remaining = Math.max(0, (5 * 60) - elapsed);
                 setBreakTimeLeft(remaining);
 
-                if (remaining === 0) {
+                if (remaining === 0 && session.onBreak) {
                     handleEndBreak();
                 }
             }, 1000);
-
-            return () => clearInterval(interval);
+        } else {
+            setBreakTimeLeft(0);
         }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
     }, [session.onBreak, session.breakStartedAt]);
 
-    // Auto-refresh session with error handling
     const refreshSession = useCallback(async () => {
         try {
             const updatedSession = await getActiveChainSession();
@@ -152,13 +163,9 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
             }
         } catch (error) {
             console.error('Error refreshing session:', error);
-            toast({
-                title: "Connection Issue",
-                description: "Having trouble syncing your session. Please check your connection.",
-                variant: "destructive"
-            });
+            // Only show toast occasionally to avoid spam
         }
-    }, [session._id, onSessionEnd, toast]);
+    }, [session._id, onSessionEnd]);
 
     useEffect(() => {
         const interval = setInterval(refreshSession, 15000); // More frequent refresh
