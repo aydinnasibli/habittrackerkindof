@@ -15,7 +15,45 @@ export interface IHabit {
     updatedAt: Date;
     completions: IHabitCompletion[];
 }
+// Add these interfaces to your existing lib/types.ts file
 
+export interface IProfile {
+    _id?: string;
+    clerkUserId: string;
+    firstName?: string;
+    lastName?: string;
+    userName?: string;
+    email: string;
+    bio?: string;
+    timezone: string;
+    dateFormat: 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
+    timeFormat: '12h' | '24h';
+    theme: 'light' | 'dark' | 'system';
+    notifications: {
+        email: boolean;
+        push: boolean;
+        habitReminders: boolean;
+        weeklyReports: boolean;
+    };
+    privacy: {
+        profileVisibility: 'public' | 'private';
+        showStreak: boolean;
+        showProgress: boolean;
+    };
+    goals: {
+        dailyHabitTarget: number;
+        weeklyGoal: number;
+    };
+    stats: {
+        totalHabitsCreated: number;
+        totalCompletions: number;
+        longestStreak: number;
+        totalChainsCompleted: number;
+        joinedAt: Date;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+}
 export interface IHabitCompletion {
     date: Date;
     completed: boolean;
