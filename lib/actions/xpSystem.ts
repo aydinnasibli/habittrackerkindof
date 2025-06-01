@@ -8,17 +8,20 @@ import { Group } from '@/lib/models/Group';
 import { RANK_REQUIREMENTS, XP_REWARDS, IXPEntry } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
-// Calculate level from total XP
 function calculateLevel(totalXP: number): { level: number; currentLevelXP: number; xpToNextLevel: number } {
-    // Level progression: 100, 250, 500, 1000, 2000, 4000, 8000, 16000...
     let level = 1;
     let xpForCurrentLevel = 0;
     let xpForNextLevel = 100;
 
-    while (totalXP >= xpForNextLevel) {
+    // Add safety check to prevent infinite loops
+    const MAX_LEVEL = 100;
+
+    while (totalXP >= xpForNextLevel && level < MAX_LEVEL) {
         xpForCurrentLevel = xpForNextLevel;
         level++;
-        xpForNextLevel = Math.floor(xpForCurrentLevel * (level <= 5 ? 2.5 : 2.0));
+        xpForNextLevel = level <= 5
+            ? Math.floor(xpForCurrentLevel * 2.5)
+            : Math.floor(xpForCurrentLevel * 2.0);
     }
 
     const currentLevelXP = totalXP - xpForCurrentLevel;

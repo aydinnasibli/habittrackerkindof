@@ -230,10 +230,13 @@ export async function updateNotificationSettings(notifications: {
     }
 }
 
+// Should include all privacy fields from IProfile
 export async function updatePrivacySettings(privacy: {
     profileVisibility: 'public' | 'private';
     showStreak: boolean;
     showProgress: boolean;
+    showXP: boolean;      // Missing
+    showRank: boolean;    // Missing
 }) {
     try {
         const { userId } = await auth();
