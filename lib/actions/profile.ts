@@ -26,6 +26,11 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
         // Try to find existing profile
         let profile = await Profile.findOne({ clerkUserId: userId }).lean<LeanProfile>();
 
+        // If profile exists, update stats before returning
+        if (profile) {
+            await updateProfileStats();
+            profile = await Profile.findOne({ clerkUserId: userId }).lean<LeanProfile>();
+        }
         // If no profile exists, create one with Clerk user data
         if (!profile) {
             const newProfile = new Profile({

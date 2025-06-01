@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/mode-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +38,6 @@ export function Header() {
             <Link href="/sign-up">
               <Button>Sign Up</Button>
             </Link>
-            <ModeToggle />
           </nav>
         </div>
       </header>
@@ -107,7 +105,6 @@ export function Header() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <ModeToggle />
         </nav>
       </div>
     </header>

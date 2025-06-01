@@ -22,7 +22,7 @@ const ProfileSchema = new Schema<IProfile>({
     },
     theme: {
         type: String,
-        enum: ['light', 'dark', 'system'],
+        enum: ['light', 'dark', 'system', 'midnight', 'forest', 'ocean', 'sunset', 'lavender'],
         default: 'system'
     },
     notifications: {

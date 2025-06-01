@@ -131,7 +131,13 @@ export default function ProfilePage() {
 
         loadProfile();
     }, [toast]);
-
+    // Apply theme when preferences change
+    useEffect(() => {
+        if (preferences.theme && typeof window !== 'undefined') {
+            document.documentElement.setAttribute('data-theme', preferences.theme);
+            document.documentElement.className = preferences.theme;
+        }
+    }, [preferences.theme]);
     // Save functions
     const savePersonalInfo = async () => {
         setSaving(true);
@@ -161,6 +167,12 @@ export default function ProfilePage() {
         try {
             const result = await updateProfile(preferences);
             if (result.success) {
+                // Apply theme immediately after saving
+                if (typeof window !== 'undefined') {
+                    document.documentElement.setAttribute('data-theme', preferences.theme);
+                    document.documentElement.className = preferences.theme;
+                }
+
                 toast({
                     title: "Success",
                     description: "Preferences updated successfully",
@@ -509,8 +521,8 @@ export default function ProfilePage() {
                                         <div
                                             key={theme.value}
                                             className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${preferences.theme === theme.value
-                                                    ? 'border-primary shadow-md'
-                                                    : 'border-gray-200 dark:border-gray-700'
+                                                ? 'border-primary shadow-md'
+                                                : 'border-gray-200 dark:border-gray-700'
                                                 }`}
                                             onClick={() => setPreferences(prev => ({ ...prev, theme: theme.value }))}
                                         >
