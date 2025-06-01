@@ -44,7 +44,7 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
                 timezone: 'UTC',
                 dateFormat: 'MM/DD/YYYY' as const,
                 timeFormat: '12h' as const,
-                theme: 'system' as const,
+                theme: 'dark' as const,
                 notifications: {
                     email: true,
                     push: true,

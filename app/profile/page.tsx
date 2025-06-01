@@ -95,7 +95,7 @@ export default function ProfilePage() {
         dailyHabitTarget: 3,
         weeklyGoal: 21
     });
-    const [selectedTheme, setSelectedTheme] = useState('light');
+    const [selectedTheme, setSelectedTheme] = useState('dark');
     // Load profile data
     useEffect(() => {
         async function loadProfile() {
@@ -136,8 +136,8 @@ export default function ProfilePage() {
                         setTheme(profileData.theme);
                     } else {
                         // Reset to default theme if no theme in profile
-                        setSelectedTheme('light');
-                        setTheme('light');
+                        setSelectedTheme('dark');
+                        setTheme('dark');
                     }
                     setNotifications(profileData.notifications);
                     setPrivacy(profileData.privacy);
