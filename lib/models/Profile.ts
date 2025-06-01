@@ -3,7 +3,7 @@ import mongoose, { Schema, model, models } from 'mongoose';
 import { IProfile } from '@/lib/types';
 
 const ProfileSchema = new Schema<IProfile>({
-    clerkUserId: { type: String, required: true, unique: true, index: true },
+    clerkUserId: { type: String, required: true, unique: true, },
     firstName: { type: String, trim: true },
     lastName: { type: String, trim: true },
     userName: { type: String },

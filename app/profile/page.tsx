@@ -35,7 +35,34 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getOrCreateProfile, updateProfile, updateNotificationSettings, updatePrivacySettings, updateGoals, fixMissingXP } from '@/lib/actions/profile';
 import { IProfile, RANK_REQUIREMENTS } from '@/lib/types';
+// Helper function to serialize data for client components
+const serializeForClient = (obj: any): any => {
+    if (obj === null || obj === undefined) return obj;
 
+    if (obj instanceof Date) return obj.toISOString();
+
+    if (typeof obj === 'object' && obj._id) {
+        const serialized = { ...obj };
+        if (serialized._id && typeof serialized._id === 'object') {
+            serialized._id = serialized._id.toString();
+        }
+        return serialized;
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map(serializeForClient);
+    }
+
+    if (typeof obj === 'object') {
+        const serialized: any = {};
+        for (const key in obj) {
+            serialized[key] = serializeForClient(obj[key]);
+        }
+        return serialized;
+    }
+
+    return obj;
+};
 // Enhanced theme options
 const THEME_OPTIONS = [
     { value: 'light', label: 'Light', description: 'Clean and bright', color: 'bg-white border-gray-200' },
@@ -103,15 +130,19 @@ export default function ProfilePage() {
             try {
                 const profileData = await getOrCreateProfile();
                 if (profileData) {
+                    // Serialize the profile data to remove ObjectId references
+                    const serializedProfile = serializeForClient(profileData);
+
                     // Check if XP field is missing or undefined and fix it
-                    if (!profileData.xp || profileData.xp.total === undefined || profileData.xp.total === null) {
+                    if (!serializedProfile.xp || serializedProfile.xp.total === undefined || serializedProfile.xp.total === null) {
                         console.log('XP field missing, attempting to fix...');
                         const fixResult = await fixMissingXP();
                         if (fixResult.success) {
                             // Reload profile after fixing
                             const updatedProfile = await getOrCreateProfile();
                             if (updatedProfile) {
-                                profileData.xp = updatedProfile.xp || { total: 0 };
+                                const serializedUpdated = serializeForClient(updatedProfile);
+                                serializedProfile.xp = serializedUpdated.xp || { total: 0 };
                             }
                             toast({
                                 title: "Profile Fixed",
@@ -120,20 +151,20 @@ export default function ProfilePage() {
                         }
                     }
 
-                    setProfile(profileData);
+                    setProfile(serializedProfile);
                     setPersonalInfo({
-                        firstName: profileData.firstName || '',
-                        lastName: profileData.lastName || '',
-                        userName: profileData.userName || '',
-                        bio: profileData.bio || ''
+                        firstName: serializedProfile.firstName || '',
+                        lastName: serializedProfile.lastName || '',
+                        userName: serializedProfile.userName || '',
+                        bio: serializedProfile.bio || ''
                     });
                     setPreferences({
-                        timeFormat: profileData.timeFormat,
-                        theme: profileData.theme
+                        timeFormat: serializedProfile.timeFormat,
+                        theme: serializedProfile.theme
                     });
-                    setNotifications(profileData.notifications);
-                    setPrivacy(profileData.privacy);
-                    setGoals(profileData.goals);
+                    setNotifications(serializedProfile.notifications);
+                    setPrivacy(serializedProfile.privacy);
+                    setGoals(serializedProfile.goals);
                 }
             } catch (error) {
                 console.error('Error loading profile:', error);
