@@ -40,10 +40,7 @@ const ProfileSchema = new Schema<IProfile>({
         showStreak: { type: Boolean, default: true },
         showProgress: { type: Boolean, default: true }
     },
-    goals: {
-        dailyHabitTarget: { type: Number, default: 3, min: 1, max: 20 },
-        weeklyGoal: { type: Number, default: 21, min: 1, max: 140 }
-    },
+
     stats: {
         totalHabitsCreated: { type: Number, default: 0 },
         totalCompletions: { type: Number, default: 0 },
