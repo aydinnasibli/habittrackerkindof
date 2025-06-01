@@ -26,41 +26,79 @@ const ProfileSchema = new Schema<IProfile>({
         default: 'system'
     },
     notifications: {
-        email: { type: Boolean, default: true },
-        push: { type: Boolean, default: true },
-        habitReminders: { type: Boolean, default: true },
-        weeklyReports: { type: Boolean, default: true }
+        type: {
+            email: { type: Boolean, default: true },
+            push: { type: Boolean, default: true },
+            habitReminders: { type: Boolean, default: true },
+            weeklyReports: { type: Boolean, default: true }
+        },
+        default: () => ({
+            email: true,
+            push: true,
+            habitReminders: true,
+            weeklyReports: true
+        })
     },
     privacy: {
-        profileVisibility: {
-            type: String,
-            enum: ['public', 'private'],
-            default: 'private'
+        type: {
+            profileVisibility: {
+                type: String,
+                enum: ['public', 'private'],
+                default: 'private'
+            },
+            showStreak: { type: Boolean, default: true },
+            showProgress: { type: Boolean, default: true },
+            showXP: { type: Boolean, default: true },
+            showRank: { type: Boolean, default: true }
         },
-        showStreak: { type: Boolean, default: true },
-        showProgress: { type: Boolean, default: true },
-        showXP: { type: Boolean, default: true },
-        showRank: { type: Boolean, default: true }
+        default: () => ({
+            profileVisibility: 'private',
+            showStreak: true,
+            showProgress: true,
+            showXP: true,
+            showRank: true
+        })
     },
     goals: {
-        dailyHabitTarget: { type: Number, default: 3 },
-        weeklyGoal: { type: Number, default: 21 }
+        type: {
+            dailyHabitTarget: { type: Number, default: 3 },
+            weeklyGoal: { type: Number, default: 21 }
+        },
+        default: () => ({
+            dailyHabitTarget: 3,
+            weeklyGoal: 21
+        })
     },
-    // XP and Ranking System
+    // XP and Ranking System - Fixed with proper default initialization
     xp: {
-        total: { type: Number, default: 0 },
-        currentLevel: { type: Number, default: 1 },
-        currentLevelXP: { type: Number, default: 0 }, // XP in current level
-        xpToNextLevel: { type: Number, default: 100 }, // XP needed for next level
+        type: {
+            total: { type: Number, default: 0 },
+            currentLevel: { type: Number, default: 1 },
+            currentLevelXP: { type: Number, default: 0 },
+            xpToNextLevel: { type: Number, default: 100 }
+        },
+        default: () => ({
+            total: 0,
+            currentLevel: 1,
+            currentLevelXP: 0,
+            xpToNextLevel: 100
+        })
     },
     rank: {
-        title: {
-            type: String,
-            enum: ['Novice', 'Beginner', 'Apprentice', 'Practitioner', 'Expert', 'Master', 'Grandmaster', 'Legend'],
-            default: 'Novice'
+        type: {
+            title: {
+                type: String,
+                enum: ['Novice', 'Beginner', 'Apprentice', 'Practitioner', 'Expert', 'Master', 'Grandmaster', 'Legend'],
+                default: 'Novice'
+            },
+            level: { type: Number, default: 1 },
+            progress: { type: Number, default: 0 }
         },
-        level: { type: Number, default: 1 }, // 1-8 corresponding to rank titles
-        progress: { type: Number, default: 0 }, // 0-100% progress to next rank
+        default: () => ({
+            title: 'Novice',
+            level: 1,
+            progress: 0
+        })
     },
     // XP History for analytics
     xpHistory: [{
@@ -84,16 +122,89 @@ const ProfileSchema = new Schema<IProfile>({
         }
     }],
     stats: {
-        totalHabitsCreated: { type: Number, default: 0 },
-        totalCompletions: { type: Number, default: 0 },
-        longestStreak: { type: Number, default: 0 },
-        totalChainsCompleted: { type: Number, default: 0 },
-        dailyBonusesEarned: { type: Number, default: 0 },
-        totalGroupsJoined: { type: Number, default: 0 },
-        joinedAt: { type: Date, default: Date.now }
+        type: {
+            totalHabitsCreated: { type: Number, default: 0 },
+            totalCompletions: { type: Number, default: 0 },
+            longestStreak: { type: Number, default: 0 },
+            totalChainsCompleted: { type: Number, default: 0 },
+            dailyBonusesEarned: { type: Number, default: 0 },
+            totalGroupsJoined: { type: Number, default: 0 },
+            joinedAt: { type: Date, default: Date.now }
+        },
+        default: () => ({
+            totalHabitsCreated: 0,
+            totalCompletions: 0,
+            longestStreak: 0,
+            totalChainsCompleted: 0,
+            dailyBonusesEarned: 0,
+            totalGroupsJoined: 0,
+            joinedAt: new Date()
+        })
     }
 }, {
     timestamps: true
+});
+
+// Pre-save middleware to ensure XP object is always initialized
+ProfileSchema.pre('save', function (next) {
+    // Initialize XP if it doesn't exist
+    if (!this.xp) {
+        this.xp = {
+            total: 0,
+            currentLevel: 1,
+            currentLevelXP: 0,
+            xpToNextLevel: 100
+        };
+    }
+
+    // Initialize other nested objects if they don't exist
+    if (!this.rank) {
+        this.rank = {
+            title: 'Novice',
+            level: 1,
+            progress: 0
+        };
+    }
+
+    if (!this.stats) {
+        this.stats = {
+            totalHabitsCreated: 0,
+            totalCompletions: 0,
+            longestStreak: 0,
+            totalChainsCompleted: 0,
+            dailyBonusesEarned: 0,
+            totalGroupsJoined: 0,
+            joinedAt: new Date()
+        };
+    }
+
+    if (!this.notifications) {
+        this.notifications = {
+            email: true,
+            push: true,
+            habitReminders: true,
+            weeklyReports: true
+        };
+    }
+
+    if (!this.privacy) {
+        this.privacy = {
+            profileVisibility: 'private',
+            showStreak: true,
+            showProgress: true,
+            showXP: true,
+            showRank: true
+        };
+    }
+
+    if (!this.goals) {
+        this.goals = {
+            dailyHabitTarget: 3,
+            weeklyGoal: 21
+        };
+    }
+
+    next();
 });
 
 // Create indexes
