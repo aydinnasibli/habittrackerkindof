@@ -8,7 +8,9 @@ import { Habit } from '@/lib/models/Habit';
 import { HabitChain } from '@/lib/models/HabitChain';
 import { IHabit, IHabitChain, IHabitCompletion } from '@/lib/types';
 import { Types, FlattenMaps } from 'mongoose';
-
+// Add this import at the top
+import { awardXP, checkStreakMilestone, checkDailyBonus } from './xpSystem';
+import { updateProfileStats } from './profile';
 type LeanHabit = FlattenMaps<IHabit> & { _id: Types.ObjectId };
 type LeanHabitChain = FlattenMaps<IHabitChain> & { _id: Types.ObjectId };
 
@@ -175,6 +177,8 @@ export async function getUserHabits(timezone: string = 'UTC'): Promise<IHabit[]>
     }
 }
 
+
+// Replace the completeHabit function with this updated version:
 export async function completeHabit(habitId: string, timezone: string = 'UTC') {
     try {
         const { userId } = await auth();
@@ -221,6 +225,32 @@ export async function completeHabit(habitId: string, timezone: string = 'UTC') {
                 }
             }
         );
+
+        // Award XP for habit completion
+        await awardXP(
+            userId,
+            25, // Base XP for habit completion
+            'habit_completion',
+            `Completed habit: ${habit.name}`
+        );
+
+        // Check for streak milestone
+        if (newStreak > (habit.streak || 0)) {
+            await checkStreakMilestone(userId, newStreak);
+        }
+
+        // Check for daily bonus
+        const allHabits = await Habit.find({ clerkUserId: userId, status: 'active' }).lean();
+        const todayCompletions = allHabits.filter(h =>
+            h.completions?.some(c =>
+                c.completed && getDateString(new Date(c.date), timezone) === today
+            )
+        ).length;
+
+        await checkDailyBonus(userId, todayCompletions, allHabits.length);
+
+        // Update profile stats
+        await updateProfileStats();
 
         revalidatePath('/habits');
         return { success: true, newStreak };

@@ -1,5 +1,7 @@
 // lib/actions/chainSessions.ts
 'use server';
+import { awardXP } from './xpSystem';
+import { updateProfileStats } from './profile';
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
@@ -204,6 +206,13 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
                 });
                 habit.streak = (habit.streak || 0) + 1;
                 await habit.save();
+                await awardXP(
+                    userId,
+                    30, // Slightly higher XP for chain habits
+                    'habit_completion',
+                    `Completed habit in chain: ${currentHabit.habitName}`
+                );
+
             }
         }
 
@@ -213,7 +222,8 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
             const nextHabit = session.habits[session.currentHabitIndex];
             nextHabit.status = 'active';
             nextHabit.startedAt = new Date();
-        } else {
+        }
+        else {
             // Chain completed
             session.status = 'completed';
             session.completedAt = new Date();
@@ -221,9 +231,20 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
             // Calculate actual duration
             const totalMinutes = Math.floor((session.completedAt.getTime() - session.startedAt.getTime()) / (1000 * 60));
             session.actualDuration = totalMinutes - session.pauseDuration;
+
+            // Award XP for chain completion
+            await awardXP(
+                userId,
+                100, // Bonus XP for completing entire chain
+                'chain_completion',
+                `Completed chain: ${session.chainName}`
+            );
         }
 
         await session.save();
+
+        // Update profile stats
+        await updateProfileStats();
 
         revalidatePath('/habits');
         return {
