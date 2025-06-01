@@ -330,6 +330,7 @@ export async function updateProfileStats() {
         const totalChainsCompleted = chainSessions.length;
 
         // Only update the stats fields, NOT the XP fields
+        // Only update the stats fields, NOT touching XP at all
         const result = await Profile.updateOne(
             { clerkUserId: userId },
             {
@@ -340,7 +341,6 @@ export async function updateProfileStats() {
                     'stats.totalChainsCompleted': totalChainsCompleted,
                     updatedAt: new Date()
                 }
-                // Removed the XP fields that were being overwritten
             }
         );
 
