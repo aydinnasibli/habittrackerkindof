@@ -72,7 +72,6 @@ export interface IChainSessionHabit {
     notes?: string;
 }
 
-// Updated Profile interface with XP and Ranking
 export interface IProfile {
     _id?: string;
     clerkUserId: string;
@@ -84,7 +83,7 @@ export interface IProfile {
     timezone: string;
     dateFormat: 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
     timeFormat: '12h' | '24h';
-    theme: 'light' | 'dark' | 'system';
+    theme: 'light' | 'dark' | 'system' | 'midnight' | 'forest' | 'ocean' | 'sunset' | 'lavender';
     notifications: {
         email: boolean;
         push: boolean;
@@ -126,6 +125,7 @@ export interface IProfile {
     };
     createdAt: Date;
     updatedAt: Date;
+
 }
 
 export interface IXPEntry {
