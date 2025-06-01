@@ -35,7 +35,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getOrCreateProfile, updateProfile, updateNotificationSettings, updatePrivacySettings, updateGoals, fixMissingXP } from '@/lib/actions/profile';
 import { IProfile, RANK_REQUIREMENTS } from '@/lib/types';
-
+import { useTheme } from 'next-themes';
 // Enhanced theme options
 const THEME_OPTIONS = [
     { value: 'light', label: 'Light', description: 'Clean and bright', color: 'bg-white border-gray-200' },
@@ -62,6 +62,7 @@ const DATE_FORMATS = [
 export default function ProfilePage() {
     const { user } = useUser();
     const { toast } = useToast();
+    const { theme, setTheme } = useTheme(); // Add this line
     const [profile, setProfile] = useState<IProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -76,7 +77,6 @@ export default function ProfilePage() {
 
     const [preferences, setPreferences] = useState({
         timeFormat: '12h' as '12h' | '24h',
-        theme: 'system' as string
     });
 
     const [notifications, setNotifications] = useState({
@@ -129,7 +129,6 @@ export default function ProfilePage() {
                     });
                     setPreferences({
                         timeFormat: profileData.timeFormat,
-                        theme: profileData.theme
                     });
                     setNotifications(profileData.notifications);
                     setPrivacy(profileData.privacy);
@@ -150,13 +149,6 @@ export default function ProfilePage() {
         loadProfile();
     }, [toast]);
 
-    // Apply theme when preferences change
-    useEffect(() => {
-        if (preferences.theme && typeof window !== 'undefined') {
-            document.documentElement.setAttribute('data-theme', preferences.theme);
-            document.documentElement.className = preferences.theme;
-        }
-    }, [preferences.theme]);
 
     // Save functions
     const savePersonalInfo = async () => {
@@ -185,13 +177,12 @@ export default function ProfilePage() {
     const savePreferences = async () => {
         setSaving(true);
         try {
+            if (theme) {
+                setTheme(theme);
+            }
             const result = await updateProfile(preferences);
             if (result.success) {
-                // Apply theme immediately after saving
-                if (typeof window !== 'undefined') {
-                    document.documentElement.setAttribute('data-theme', preferences.theme);
-                    document.documentElement.className = preferences.theme;
-                }
+
 
                 toast({
                     title: "Success",
@@ -544,11 +535,11 @@ export default function ProfilePage() {
                                     {THEME_OPTIONS.map(theme => (
                                         <div
                                             key={theme.value}
-                                            className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${preferences.theme === theme.value
+                                            className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${theme === theme.value
                                                 ? 'border-primary shadow-md'
                                                 : 'border-gray-200 dark:border-gray-700'
                                                 }`}
-                                            onClick={() => setPreferences(prev => ({ ...prev, theme: theme.value }))}
+                                            onClick={() => setTheme(theme.value)}
                                         >
                                             <div className="flex items-center space-x-3">
                                                 <div className={`w-6 h-6 rounded-full ${theme.color} border-2 border-gray-300`} />
@@ -560,7 +551,7 @@ export default function ProfilePage() {
                                                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                                                 </div>
                                             </div>
-                                            {preferences.theme === theme.value && (
+                                            {theme === theme.value && (
                                                 <div className="absolute top-2 right-2">
                                                     <div className="w-2 h-2 bg-primary rounded-full" />
                                                 </div>
