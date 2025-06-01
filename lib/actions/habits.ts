@@ -6,11 +6,11 @@ import { revalidatePath } from 'next/cache';
 import { connectToDatabase } from '@/lib/mongoose';
 import { Habit } from '@/lib/models/Habit';
 import { HabitChain } from '@/lib/models/HabitChain';
-import { IHabit, IHabitChain, IHabitCompletion } from '@/lib/types';
+import { IHabit, IHabitChain, IHabitCompletion, XP_REWARDS } from '@/lib/types';
 import { Types, FlattenMaps } from 'mongoose';
-// Add this import at the top
-import { awardXP, checkStreakMilestone, checkDailyBonus } from './xpSystem';
+import { awardXP, checkStreakMilestone, checkDailyBonus, removeXP } from './xpSystem';
 import { updateProfileStats } from './profile';
+
 type LeanHabit = FlattenMaps<IHabit> & { _id: Types.ObjectId };
 type LeanHabitChain = FlattenMaps<IHabitChain> & { _id: Types.ObjectId };
 
@@ -55,6 +55,20 @@ function shouldDoHabitOnDay(frequency: string, dayOfWeek: number): boolean {
         default:
             const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
             return frequency.toLowerCase().includes(dayNames[dayOfWeek]);
+    }
+}
+
+// Calculate XP amount based on habit priority
+function getHabitXP(priority: string): number {
+    switch (priority.toLowerCase()) {
+        case 'high':
+            return XP_REWARDS.HABIT_COMPLETION.HIGH;
+        case 'medium':
+            return XP_REWARDS.HABIT_COMPLETION.MEDIUM;
+        case 'low':
+            return XP_REWARDS.HABIT_COMPLETION.LOW;
+        default:
+            return XP_REWARDS.HABIT_COMPLETION.MEDIUM;
     }
 }
 
@@ -177,8 +191,6 @@ export async function getUserHabits(timezone: string = 'UTC'): Promise<IHabit[]>
     }
 }
 
-
-// Replace the completeHabit function with this updated version:
 export async function completeHabit(habitId: string, timezone: string = 'UTC') {
     try {
         const { userId } = await auth();
@@ -206,6 +218,9 @@ export async function completeHabit(habitId: string, timezone: string = 'UTC') {
             throw new Error('Habit already completed today');
         }
 
+        // Store previous streak for comparison
+        const previousStreak = calculateStreak(habit.completions || [], habit.frequency, timezone);
+
         // Add completion for today
         const newCompletion = {
             date: todayDate,
@@ -226,16 +241,17 @@ export async function completeHabit(habitId: string, timezone: string = 'UTC') {
             }
         );
 
-        // Award XP for habit completion
+        // Award XP based on habit priority
+        const xpAmount = getHabitXP(habit.priority);
         await awardXP(
             userId,
-            25, // Base XP for habit completion
+            xpAmount,
             'habit_completion',
             `Completed habit: ${habit.name}`
         );
 
-        // Check for streak milestone
-        if (newStreak > (habit.streak || 0)) {
+        // Check for streak milestone only if streak increased
+        if (newStreak > previousStreak) {
             await checkStreakMilestone(userId, newStreak);
         }
 
@@ -253,7 +269,7 @@ export async function completeHabit(habitId: string, timezone: string = 'UTC') {
         await updateProfileStats();
 
         revalidatePath('/habits');
-        return { success: true, newStreak };
+        return { success: true, newStreak, xpAwarded: xpAmount };
     } catch (error) {
         console.error('Error completing habit:', error);
         return { success: false, error: error instanceof Error ? error.message : 'Failed to complete habit' };
@@ -278,13 +294,16 @@ export async function skipHabit(habitId: string, timezone: string = 'UTC') {
         const today = getTodayString(timezone);
 
         // Check if completed today
-        const completedToday = habit.completions?.some(c =>
+        const todayCompletion = habit.completions?.find(c =>
             c.completed && getDateString(new Date(c.date), timezone) === today
         );
 
-        if (!completedToday) {
+        if (!todayCompletion) {
             throw new Error('Habit was not completed today');
         }
+
+        // Store previous streak for comparison
+        const previousStreak = calculateStreak(habit.completions || [], habit.frequency, timezone);
 
         // Remove today's completion
         const updatedCompletions = habit.completions?.filter(c =>
@@ -304,8 +323,28 @@ export async function skipHabit(habitId: string, timezone: string = 'UTC') {
             }
         );
 
+        // Remove XP that was awarded for this habit completion
+        const xpAmount = getHabitXP(habit.priority);
+        await removeXP(
+            userId,
+            xpAmount,
+            'habit_completion',
+            `Removed completion for habit: ${habit.name}`
+        );
+
+        // If streak decreased, we might need to handle streak milestone reversals
+        // This is complex as we'd need to track which milestones were awarded
+        // For now, we'll leave milestone XP as is since it's hard to track retroactively
+
+        // Check if we need to remove daily bonus
+        // This is also complex as we'd need to check if this was the completion that triggered the bonus
+        // For now, we'll leave daily bonus XP as is
+
+        // Update profile stats
+        await updateProfileStats();
+
         revalidatePath('/habits');
-        return { success: true, newStreak };
+        return { success: true, newStreak, xpRemoved: xpAmount };
     } catch (error) {
         console.error('Error skipping habit:', error);
         return { success: false, error: error instanceof Error ? error.message : 'Failed to skip habit' };
