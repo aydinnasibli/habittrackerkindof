@@ -35,7 +35,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getOrCreateProfile, updateProfile, updateNotificationSettings, updatePrivacySettings, updateGoals, fixMissingXP } from '@/lib/actions/profile';
 import { IProfile, RANK_REQUIREMENTS } from '@/lib/types';
-
+import { useTheme } from '@/components/theme-provider';
 // Enhanced theme options
 const THEME_OPTIONS = [
     { value: 'light', label: 'Light', description: 'Clean and bright', color: 'bg-white border-gray-200' },
@@ -95,7 +95,8 @@ export default function ProfilePage() {
         dailyHabitTarget: 3,
         weeklyGoal: 21
     });
-    const [selectedTheme, setSelectedTheme] = useState(theme || 'system');
+    const { theme, setTheme } = useTheme();
+    const [selectedTheme, setSelectedTheme] = useState('system');
     // Load profile data
     useEffect(() => {
         async function loadProfile() {
@@ -129,10 +130,14 @@ export default function ProfilePage() {
                     setPreferences({
                         timeFormat: profileData.timeFormat,
                     });
-                    // Also set the selected theme from profile data
+                    // Set theme from profile data
                     if (profileData.theme) {
                         setSelectedTheme(profileData.theme);
                         setTheme(profileData.theme);
+                    } else {
+                        // Reset to default theme if no theme in profile
+                        setSelectedTheme('system');
+                        setTheme('system');
                     }
                     setNotifications(profileData.notifications);
                     setPrivacy(profileData.privacy);
@@ -153,11 +158,7 @@ export default function ProfilePage() {
         loadProfile();
     }, [toast]);
 
-    useEffect(() => {
-        if (theme) {
-            setSelectedTheme(theme);
-        }
-    }, [theme]);
+
     // Save functions
     const savePersonalInfo = async () => {
         setSaving(true);
