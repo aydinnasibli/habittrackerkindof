@@ -33,7 +33,7 @@ import {
     TrendingUp
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getOrCreateProfile, updateProfile, updateNotificationSettings, updatePrivacySettings, updateGoals } from '@/lib/actions/profile';
+import { getOrCreateProfile, updateProfile, updateNotificationSettings, updatePrivacySettings, updateGoals, fixMissingXP } from '@/lib/actions/profile';
 import { IProfile, RANK_REQUIREMENTS } from '@/lib/types';
 
 // Enhanced theme options
@@ -103,6 +103,23 @@ export default function ProfilePage() {
             try {
                 const profileData = await getOrCreateProfile();
                 if (profileData) {
+                    // Check if XP field is missing or undefined and fix it
+                    if (!profileData.xp || profileData.xp.total === undefined || profileData.xp.total === null) {
+                        console.log('XP field missing, attempting to fix...');
+                        const fixResult = await fixMissingXP();
+                        if (fixResult.success) {
+                            // Reload profile after fixing
+                            const updatedProfile = await getOrCreateProfile();
+                            if (updatedProfile) {
+                                profileData.xp = updatedProfile.xp || { total: 0 };
+                            }
+                            toast({
+                                title: "Profile Fixed",
+                                description: "Your profile has been updated with missing fields",
+                            });
+                        }
+                    }
+
                     setProfile(profileData);
                     setPersonalInfo({
                         firstName: profileData.firstName || '',
@@ -117,9 +134,9 @@ export default function ProfilePage() {
                     setNotifications(profileData.notifications);
                     setPrivacy(profileData.privacy);
                     setGoals(profileData.goals);
-
                 }
             } catch (error) {
+                console.error('Error loading profile:', error);
                 toast({
                     title: "Error",
                     description: "Failed to load profile data",
@@ -132,6 +149,7 @@ export default function ProfilePage() {
 
         loadProfile();
     }, [toast]);
+
     // Apply theme when preferences change
     useEffect(() => {
         if (preferences.theme && typeof window !== 'undefined') {
@@ -139,6 +157,7 @@ export default function ProfilePage() {
             document.documentElement.className = preferences.theme;
         }
     }, [preferences.theme]);
+
     // Save functions
     const savePersonalInfo = async () => {
         setSaving(true);
@@ -261,11 +280,15 @@ export default function ProfilePage() {
         }
     };
 
-    // Get rank progress
+    // Get rank progress with safe XP handling
     const getRankProgress = () => {
-        if (!profile?.xp) return { current: 'Novice', progress: 0, nextXP: 500 };
+        // Safely get XP total with fallback to 0
+        const totalXP = profile?.xp?.total ?? 0;
 
-        const totalXP = profile.xp.total;
+        if (totalXP === 0) {
+            return { current: 'Novice', progress: 0, nextXP: 500 };
+        }
+
         const currentRank = Object.values(RANK_REQUIREMENTS).find(
             rank => totalXP >= rank.minXP && totalXP <= rank.maxXP
         );
@@ -315,7 +338,7 @@ export default function ProfilePage() {
                                 </Badge>
                                 <div className="flex items-center space-x-2">
                                     <Star className="h-4 w-4 text-yellow-500" />
-                                    <span className="text-sm font-medium">{profile?.xp?.total || 0} XP</span>
+                                    <span className="text-sm font-medium">{profile?.xp?.total ?? 0} XP</span>
                                 </div>
                             </div>
                             {rankInfo.nextXP > 0 && (

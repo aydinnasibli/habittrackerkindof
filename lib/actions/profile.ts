@@ -31,18 +31,20 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
             await updateProfileStats();
             profile = await Profile.findOne({ clerkUserId: userId }).lean<LeanProfile>();
         }
+
         // If no profile exists, create one with Clerk user data
         if (!profile) {
-            const newProfile = new Profile({
+            const newProfileData = {
                 clerkUserId: userId,
                 firstName: user.firstName || '',
                 lastName: user.lastName || '',
                 userName: user.username || '',
                 email: user.emailAddresses[0]?.emailAddress || '',
+                bio: '',
                 timezone: 'UTC',
-                dateFormat: 'MM/DD/YYYY',
-                timeFormat: '12h',
-                theme: 'system',
+                dateFormat: 'MM/DD/YYYY' as const,
+                timeFormat: '12h' as const,
+                theme: 'system' as const,
                 notifications: {
                     email: true,
                     push: true,
@@ -50,7 +52,7 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
                     weeklyReports: true
                 },
                 privacy: {
-                    profileVisibility: 'private',
+                    profileVisibility: 'private' as const,
                     showStreak: true,
                     showProgress: true,
                     showXP: true,
@@ -64,7 +66,7 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
                     total: 0
                 },
                 rank: {
-                    title: 'Novice',
+                    title: 'Novice' as const,
                     level: 1,
                     progress: 0
                 },
@@ -79,9 +81,12 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
                     totalGroupsJoined: 0,
                     joinedAt: new Date()
                 }
-            });
+            };
 
+            const newProfile = new Profile(newProfileData);
             await newProfile.save();
+
+            // Fetch the newly created profile to ensure all fields are properly set
             profile = await Profile.findOne({ clerkUserId: userId }).lean<LeanProfile>();
         }
 
@@ -89,6 +94,10 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
             return null;
         }
 
+        // Ensure XP field exists and has a default value
+        const xpField = profile.xp || { total: 0 };
+
+        // Ensure all required fields have default values
         return {
             _id: profile._id?.toString() || '',
             clerkUserId: profile.clerkUserId,
@@ -118,9 +127,7 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
                 dailyHabitTarget: 3,
                 weeklyGoal: 21
             },
-            xp: profile.xp || {
-                total: 0
-            },
+            xp: xpField, // Ensure this is always defined
             rank: profile.rank || {
                 title: 'Novice',
                 level: 1,
@@ -143,6 +150,49 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
     } catch (error) {
         console.error('Error getting or creating profile:', error);
         return null;
+    }
+}
+
+// Add a function to fix existing profiles that might be missing XP
+export async function fixMissingXP(): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        await connectToDatabase();
+
+        // Update any profile that doesn't have XP field or has null/undefined XP
+        const result = await Profile.updateOne(
+            {
+                clerkUserId: userId,
+                $or: [
+                    { 'xp': { $exists: false } },
+                    { 'xp': null },
+                    { 'xp.total': { $exists: false } },
+                    { 'xp.total': null }
+                ]
+            },
+            {
+                $set: {
+                    'xp.total': 0,
+                    'rank.title': 'Novice',
+                    'rank.level': 1,
+                    'rank.progress': 0,
+                    updatedAt: new Date()
+                }
+            }
+        );
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error fixing missing XP:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to fix XP field'
+        };
     }
 }
 
@@ -228,8 +278,8 @@ export async function updatePrivacySettings(privacy: {
     profileVisibility: 'public' | 'private';
     showStreak: boolean;
     showProgress: boolean;
-    showXP: boolean;
-    showRank: boolean;
+    showXP?: boolean;
+    showRank?: boolean;
 }) {
     try {
         const { userId } = await auth();
@@ -240,10 +290,17 @@ export async function updatePrivacySettings(privacy: {
 
         await connectToDatabase();
 
+        // Ensure showXP and showRank have default values if not provided
+        const privacyData = {
+            ...privacy,
+            showXP: privacy.showXP ?? true,
+            showRank: privacy.showRank ?? true
+        };
+
         const result = await Profile.updateOne(
             { clerkUserId: userId },
             {
-                privacy,
+                privacy: privacyData,
                 updatedAt: new Date()
             }
         );
