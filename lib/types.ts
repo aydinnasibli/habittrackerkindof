@@ -94,7 +94,6 @@ export interface IProfile {
         profileVisibility: 'public' | 'private';
         showStreak: boolean;
         showProgress: boolean;
-        showXP: boolean;
         showRank: boolean;
     };
     goals: {
@@ -227,21 +226,48 @@ export const RANK_REQUIREMENTS = {
     8: { title: 'Legend', minXP: 30000, maxXP: Infinity }
 } as const;
 
-// XP Rewards for different actions
 export const XP_REWARDS = {
+    // Individual habit completion (both standalone and in chains)
     HABIT_COMPLETION: {
-        LOW: 10,      // Low priority habits
-        MEDIUM: 15,   // Medium priority habits  
-        HIGH: 25      // High priority habits
+        LOW: 15,      // Low priority habits
+        MEDIUM: 20,   // Medium priority habits  
+        HIGH: 30      // High priority habits
     },
+
+    // Chain habit completion (slightly lower than standalone to balance with chain bonus)
+    CHAIN_HABIT_COMPLETION: {
+        LOW: 20,      // Low priority habits in chains
+        MEDIUM: 25,   // Medium priority habits in chains
+        HIGH: 30      // High priority habits in chains
+    },
+
+    // Daily bonus for completing all scheduled habits
     DAILY_BONUS: {
         BASE: 50,           // Base daily bonus for completing all habits
         STREAK_MULTIPLIER: 1.5  // Multiplier bonus for maintaining streaks
     },
+
+    // Chain completion bonuses based on completion rate
     CHAIN_COMPLETION: {
-        BASE: 100,      // Base XP for completing a habit chain
-        PER_HABIT: 20   // Additional XP per habit in the chain
+        // Perfect completion (100% habits completed)
+        PERFECT: {
+            BASE: 100,      // Base XP for perfect chain completion
+            PER_HABIT: 15   // Additional XP per habit in the chain
+        },
+        // Good completion (80-99% habits completed)
+        GOOD: {
+            BASE: 60,       // Base XP for good chain completion
+            PER_HABIT: 10   // Additional XP per completed habit
+        },
+        // Partial completion (50-79% habits completed)
+        PARTIAL: {
+            BASE: 30,       // Base XP for partial chain completion
+            PER_HABIT: 5    // Additional XP per completed habit
+        }
+        // Below 50% completion = no chain bonus (only individual habit XP)
     },
+
+    // Streak milestone rewards
     STREAK_MILESTONES: {
         7: 100,     // 1 week streak
         30: 500,    // 1 month streak  

@@ -55,7 +55,6 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
                     profileVisibility: 'private' as const,
                     showStreak: true,
                     showProgress: true,
-                    showXP: true,
                     showRank: true
                 },
                 goals: {
@@ -121,7 +120,6 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
                 profileVisibility: profile.privacy?.profileVisibility || 'private',
                 showStreak: profile.privacy?.showStreak ?? true,
                 showProgress: profile.privacy?.showProgress ?? true,
-                showXP: profile.privacy?.showXP ?? true,
                 showRank: profile.privacy?.showRank ?? true
             },
             goals: {
@@ -286,7 +284,6 @@ export async function updatePrivacySettings(privacy: {
     profileVisibility: 'public' | 'private';
     showStreak: boolean;
     showProgress: boolean;
-    showXP?: boolean;
     showRank?: boolean;
 }) {
     try {
@@ -298,10 +295,9 @@ export async function updatePrivacySettings(privacy: {
 
         await connectToDatabase();
 
-        // Ensure showXP and showRank have default values if not provided
+        // Ensure  and showRank have default values if not provided
         const privacyData = {
             ...privacy,
-            showXP: privacy.showXP ?? true,
             showRank: privacy.showRank ?? true
         };
 

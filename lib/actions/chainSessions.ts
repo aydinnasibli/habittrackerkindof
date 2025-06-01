@@ -206,13 +206,23 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
                 });
                 habit.streak = (habit.streak || 0) + 1;
                 await habit.save();
+
+                // Award XP for individual habit completion based on priority
+                let habitXP = 20; // Default chain habit XP
+                if (habit.priority === 'high') {
+                    habitXP = 30;
+                } else if (habit.priority === 'medium') {
+                    habitXP = 25;
+                } else {
+                    habitXP = 20;
+                }
+
                 await awardXP(
                     userId,
-                    30, // Slightly higher XP for chain habits
+                    habitXP,
                     'habit_completion',
                     `Completed habit in chain: ${currentHabit.habitName}`
                 );
-
             }
         }
 
@@ -222,9 +232,12 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
             const nextHabit = session.habits[session.currentHabitIndex];
             nextHabit.status = 'active';
             nextHabit.startedAt = new Date();
-        }
-        else {
-            // Chain completed
+        } else {
+            // Chain completed - calculate completion rate and award XP accordingly
+            const completedHabits = session.habits.filter(h => h.status === 'completed').length;
+            const skippedHabits = session.habits.filter(h => h.status === 'skipped').length;
+            const completionRate = completedHabits / session.habits.length;
+
             session.status = 'completed';
             session.completedAt = new Date();
 
@@ -232,13 +245,28 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
             const totalMinutes = Math.floor((session.completedAt.getTime() - session.startedAt.getTime()) / (1000 * 60));
             session.actualDuration = totalMinutes - session.pauseDuration;
 
-            // Award XP for chain completion
-            await awardXP(
-                userId,
-                100, // Bonus XP for completing entire chain
-                'chain_completion',
-                `Completed chain: ${session.chainName}`
-            );
+            // Award chain completion XP based on completion rate
+            let chainCompletionXP = 0;
+            if (completionRate === 1.0) {
+                // Perfect completion - full bonus
+                chainCompletionXP = 100 + (completedHabits * 15);
+            } else if (completionRate >= 0.8) {
+                // Good completion (80%+) - reduced bonus
+                chainCompletionXP = 60 + (completedHabits * 10);
+            } else if (completionRate >= 0.5) {
+                // Partial completion (50%+) - minimal bonus
+                chainCompletionXP = 30 + (completedHabits * 5);
+            }
+            // No bonus for less than 50% completion
+
+            if (chainCompletionXP > 0) {
+                await awardXP(
+                    userId,
+                    chainCompletionXP,
+                    'chain_completion',
+                    `Completed chain: ${session.chainName} (${completedHabits}/${session.habits.length} habits)`
+                );
+            }
         }
 
         await session.save();
@@ -306,13 +334,37 @@ export async function skipCurrentHabit(sessionId: string, reason?: string) {
             nextHabit.status = 'active';
             nextHabit.startedAt = new Date();
         } else {
-            // Chain completed (with some skipped)
+            // Chain completed - calculate completion rate and award XP accordingly
+            const completedHabits = session.habits.filter(h => h.status === 'completed').length;
+            const skippedHabits = session.habits.filter(h => h.status === 'skipped').length;
+            const completionRate = completedHabits / session.habits.length;
+
             session.status = 'completed';
             session.completedAt = new Date();
 
             // Calculate actual duration
             const totalMinutes = Math.floor((session.completedAt.getTime() - session.startedAt.getTime()) / (1000 * 60));
             session.actualDuration = totalMinutes - session.pauseDuration;
+
+            // Award chain completion XP based on completion rate (same logic as complete)
+            let chainCompletionXP = 0;
+            if (completionRate === 1.0) {
+                // This shouldn't happen when skipping, but just in case
+                chainCompletionXP = 100 + (completedHabits * 15);
+            } else if (completionRate >= 0.8) {
+                chainCompletionXP = 60 + (completedHabits * 10);
+            } else if (completionRate >= 0.5) {
+                chainCompletionXP = 30 + (completedHabits * 5);
+            }
+
+            if (chainCompletionXP > 0) {
+                await awardXP(
+                    userId,
+                    chainCompletionXP,
+                    'chain_completion',
+                    `Partially completed chain: ${session.chainName} (${completedHabits}/${session.habits.length} habits)`
+                );
+            }
         }
 
         await session.save();
@@ -322,7 +374,7 @@ export async function skipCurrentHabit(sessionId: string, reason?: string) {
             success: true,
             isChainCompleted: session.status === 'completed',
             message: session.status === 'completed'
-                ? 'Chain completed! Some habits were skipped.'
+                ? `Chain completed! ${session.habits.filter(h => h.status === 'completed').length}/${session.habits.length} habits completed.`
                 : 'Habit skipped. Moving to next habit.'
         };
     } catch (error) {
@@ -434,6 +486,7 @@ export async function abandonChainSession(sessionId: string) {
             throw new Error('Active session not found');
         }
 
+        // No XP awarded for abandoned chains
         revalidatePath('/habits');
         return { success: true, message: 'Chain session abandoned' };
     } catch (error) {
@@ -520,8 +573,6 @@ export async function endBreak(sessionId: string) {
         };
     }
 }
-
-// Add this function to your existing lib/actions/chainSessions.ts file
 
 export async function getPastChainSessions(): Promise<IChainSession[]> {
     try {

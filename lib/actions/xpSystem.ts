@@ -368,3 +368,124 @@ export async function getUserRankInfo(clerkUserId: string) {
         return { success: false, error: 'Failed to get rank info' };
     }
 }
+
+
+// Add this function to your lib/actions/xpSystem.ts file
+
+// Remove XP from user (for habit unmarking, etc.)
+export async function removeXP(
+    clerkUserId: string,
+    amount: number,
+    source: IXPEntry['source'],
+    description: string,
+    groupId?: string
+) {
+    try {
+        await connectToDatabase();
+
+        const profile = await Profile.findOne({ clerkUserId });
+        if (!profile) {
+            throw new Error('Profile not found');
+        }
+
+        // Store previous rank for comparison
+        const previousRank = profile.rank;
+
+        // Apply group multiplier if in a group (same as when awarding)
+        let finalAmount = amount;
+        if (groupId) {
+            const group = await Group.findById(groupId);
+            if (group && group.members.some(m => m.clerkUserId === clerkUserId)) {
+                finalAmount = Math.floor(amount * group.settings.xpMultiplier);
+            }
+        }
+
+        // Calculate new total XP (ensure it doesn't go below 0)
+        const newTotalXP = Math.max(0, profile.xp.total - finalAmount);
+
+        // Calculate new rank based on total XP
+        const rankInfo = calculateRank(newTotalXP);
+
+        // Check for rank down
+        const rankedDown = rankInfo.level < previousRank.level;
+
+        // Add negative XP entry to history
+        const xpEntry: IXPEntry = {
+            date: new Date(),
+            amount: -finalAmount, // Negative amount to show XP removal
+            source,
+            description
+        };
+
+        // Update profile with new XP and rank
+        await Profile.updateOne(
+            { clerkUserId },
+            {
+                $set: {
+                    'xp.total': newTotalXP,
+                    'rank.title': rankInfo.title,
+                    'rank.level': rankInfo.level,
+                    'rank.progress': rankInfo.progress,
+                    updatedAt: new Date()
+                },
+                $push: {
+                    xpHistory: {
+                        $each: [xpEntry],
+                        $slice: -100 // Keep only last 100 entries
+                    }
+                }
+            }
+        );
+
+        // Update group stats if applicable
+        if (groupId) {
+            await Group.updateOne(
+                { _id: groupId, 'members.clerkUserId': clerkUserId },
+                {
+                    $inc: { 'stats.totalXPEarned': -finalAmount }, // Decrease group XP
+                    $set: {
+                        'members.$.totalXP': newTotalXP,
+                        'members.$.rank': rankInfo.title
+                    }
+                }
+            );
+
+            // Add group activity for XP removal
+            await Group.updateOne(
+                { _id: groupId },
+                {
+                    $push: {
+                        recentActivity: {
+                            $each: [{
+                                type: source === 'habit_completion' ? 'habit_completed' : 'daily_goal_achieved',
+                                clerkUserId,
+                                userName: profile.userName || `${profile.firstName} ${profile.lastName}`.trim(),
+                                description,
+                                xpEarned: -finalAmount, // Negative to show removal
+                                timestamp: new Date()
+                            }],
+                            $slice: -50 // Keep only last 50 activities
+                        }
+                    }
+                }
+            );
+        }
+
+        return {
+            success: true,
+            xpRemoved: finalAmount,
+            newTotalXP,
+            rankedDown,
+            newRank: rankInfo.title,
+            rankLevel: rankInfo.level,
+            rankProgress: rankInfo.progress,
+            previousRank: previousRank.title
+        };
+    } catch (error) {
+        console.error('Error removing XP:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to remove XP'
+        };
+    }
+}

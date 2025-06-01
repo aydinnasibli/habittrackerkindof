@@ -48,14 +48,12 @@ const ProfileSchema = new Schema<IProfile>({
             },
             showStreak: { type: Boolean, default: true },
             showProgress: { type: Boolean, default: true },
-            showXP: { type: Boolean, default: true },
             showRank: { type: Boolean, default: true }
         },
         default: () => ({
             profileVisibility: 'private',
             showStreak: true,
             showProgress: true,
-            showXP: true,
             showRank: true
         })
     },
@@ -183,7 +181,6 @@ ProfileSchema.pre('save', function (next) {
             profileVisibility: 'private',
             showStreak: true,
             showProgress: true,
-            showXP: true,
             showRank: true
         };
     }
