@@ -8,39 +8,30 @@ import { Group } from '@/lib/models/Group';
 import { RANK_REQUIREMENTS, XP_REWARDS, IXPEntry } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
-function calculateLevel(totalXP: number): { level: number; currentLevelXP: number; xpToNextLevel: number } {
-    let level = 1;
-    let xpForCurrentLevel = 0;
-    let xpForNextLevel = 100;
-
-    // Add safety check to prevent infinite loops
-    const MAX_LEVEL = 100;
-
-    while (totalXP >= xpForNextLevel && level < MAX_LEVEL) {
-        xpForCurrentLevel = xpForNextLevel;
-        level++;
-        xpForNextLevel = level <= 5
-            ? Math.floor(xpForCurrentLevel * 2.5)
-            : Math.floor(xpForCurrentLevel * 2.0);
-    }
-
-    const currentLevelXP = totalXP - xpForCurrentLevel;
-    const xpToNextLevel = xpForNextLevel - totalXP;
-
-    return { level, currentLevelXP, xpToNextLevel };
-}
-
-// Calculate rank from total XP
+// Calculate rank from total XP using RANK_REQUIREMENTS
 function calculateRank(totalXP: number): { title: string; level: number; progress: number } {
+    // Find the appropriate rank based on total XP
     for (let i = 8; i >= 1; i--) {
         const rank = RANK_REQUIREMENTS[i as keyof typeof RANK_REQUIREMENTS];
         if (totalXP >= rank.minXP) {
+            // Calculate progress within current rank
             const progress = rank.maxXP === Infinity ? 100 :
-                Math.floor(((totalXP - rank.minXP) / (rank.maxXP - rank.minXP)) * 100);
-            return { title: rank.title, level: i, progress };
+                Math.min(100, Math.floor(((totalXP - rank.minXP) / (rank.maxXP - rank.minXP)) * 100));
+
+            return {
+                title: rank.title,
+                level: i,
+                progress
+            };
         }
     }
-    return { title: 'Novice', level: 1, progress: 0 };
+
+    // Default to lowest rank if somehow no match
+    return {
+        title: RANK_REQUIREMENTS[1].title,
+        level: 1,
+        progress: Math.min(100, Math.floor((totalXP / RANK_REQUIREMENTS[1].maxXP) * 100))
+    };
 }
 
 // Award XP to user
@@ -59,6 +50,9 @@ export async function awardXP(
             throw new Error('Profile not found');
         }
 
+        // Store previous rank for comparison
+        const previousRank = profile.rank;
+
         // Apply group multiplier if in a group
         let finalAmount = amount;
         if (groupId) {
@@ -68,14 +62,14 @@ export async function awardXP(
             }
         }
 
-        // Update XP
+        // Calculate new total XP
         const newTotalXP = profile.xp.total + finalAmount;
-        const levelInfo = calculateLevel(newTotalXP);
+
+        // Calculate new rank based on total XP
         const rankInfo = calculateRank(newTotalXP);
 
-        // Check for level up
-        const leveledUp = levelInfo.level > profile.xp.currentLevel;
-        const rankedUp = rankInfo.level > profile.rank.level;
+        // Check for rank up
+        const rankedUp = rankInfo.level > previousRank.level;
 
         // Add XP entry to history
         const xpEntry: IXPEntry = {
@@ -85,15 +79,12 @@ export async function awardXP(
             description
         };
 
-        // Update profile
+        // Update profile with new XP and rank
         await Profile.updateOne(
             { clerkUserId },
             {
                 $set: {
                     'xp.total': newTotalXP,
-                    'xp.currentLevel': levelInfo.level,
-                    'xp.currentLevelXP': levelInfo.currentLevelXP,
-                    'xp.xpToNextLevel': levelInfo.xpToNextLevel,
                     'rank.title': rankInfo.title,
                     'rank.level': rankInfo.level,
                     'rank.progress': rankInfo.progress,
@@ -114,7 +105,10 @@ export async function awardXP(
                 { _id: groupId, 'members.clerkUserId': clerkUserId },
                 {
                     $inc: { 'stats.totalXPEarned': finalAmount },
-                    $set: { 'members.$.totalXP': newTotalXP, 'members.$.rank': rankInfo.title }
+                    $set: {
+                        'members.$.totalXP': newTotalXP,
+                        'members.$.rank': rankInfo.title
+                    }
                 }
             );
 
@@ -144,10 +138,11 @@ export async function awardXP(
             success: true,
             xpAwarded: finalAmount,
             newTotalXP,
-            leveledUp,
             rankedUp,
-            newLevel: levelInfo.level,
-            newRank: rankInfo.title
+            newRank: rankInfo.title,
+            rankLevel: rankInfo.level,
+            rankProgress: rankInfo.progress,
+            previousRank: previousRank.title
         };
     } catch (error) {
         console.error('Error awarding XP:', error);
@@ -180,9 +175,11 @@ export async function checkDailyBonus(clerkUserId: string, completedHabitsToday:
             return { success: false, message: 'Daily bonus already awarded' };
         }
 
-        // Calculate bonus XP
+        // Calculate bonus XP based on XP_REWARDS
         const baseBonus = XP_REWARDS.DAILY_BONUS.BASE;
-        const streakBonus = Math.floor(baseBonus * (profile.stats.longestStreak * 0.1)); // 10% per streak day
+        const streakMultiplier = XP_REWARDS.DAILY_BONUS.STREAK_MULTIPLIER;
+        const streakBonus = profile.stats.longestStreak > 0 ?
+            Math.floor(baseBonus * ((profile.stats.longestStreak / 10) * (streakMultiplier - 1))) : 0;
         const totalBonus = baseBonus + streakBonus;
 
         // Award XP
@@ -190,7 +187,7 @@ export async function checkDailyBonus(clerkUserId: string, completedHabitsToday:
             clerkUserId,
             totalBonus,
             'daily_bonus',
-            `Daily bonus: ${completedHabitsToday}/${totalHabitsToday} habits completed`
+            `Daily bonus: ${completedHabitsToday}/${totalHabitsToday} habits completed${streakBonus > 0 ? ` (${profile.stats.longestStreak} day streak bonus)` : ''}`
         );
 
         if (result.success) {
@@ -211,6 +208,7 @@ export async function checkDailyBonus(clerkUserId: string, completedHabitsToday:
 // Award streak milestone XP
 export async function checkStreakMilestone(clerkUserId: string, newStreak: number) {
     try {
+        // Get milestone keys and check if current streak matches any milestone
         const milestones = Object.keys(XP_REWARDS.STREAK_MILESTONES).map(Number);
         const milestone = milestones.find(m => m === newStreak);
 
@@ -224,7 +222,7 @@ export async function checkStreakMilestone(clerkUserId: string, newStreak: numbe
             clerkUserId,
             xpReward,
             'streak_milestone',
-            `${milestone}-day streak milestone reached!`
+            `${milestone}-day streak milestone achieved!`
         );
     } catch (error) {
         console.error('Error checking streak milestone:', error);
@@ -246,10 +244,14 @@ export async function getGlobalLeaderboard(limit: number = 10) {
             .limit(limit)
             .lean();
 
-        // Get current user's rank
+        // Get current user's profile to find their rank
+        const currentUserProfile = await Profile.findOne({ clerkUserId: userId }).select('xp');
+        const userTotalXP = currentUserProfile?.xp?.total || 0;
+
+        // Calculate user's rank among public profiles
         const userRank = await Profile.countDocuments({
             'privacy.profileVisibility': 'public',
-            'xp.total': { $gt: (await Profile.findOne({ clerkUserId: userId }))?.xp.total || 0 }
+            'xp.total': { $gt: userTotalXP }
         }) + 1;
 
         return {
@@ -259,6 +261,7 @@ export async function getGlobalLeaderboard(limit: number = 10) {
                 name: profile.userName || `${profile.firstName} ${profile.lastName}`.trim(),
                 totalXP: profile.xp.total,
                 rankTitle: profile.rank.title,
+                rankLevel: profile.rank.level,
                 totalCompletions: profile.stats.totalCompletions
             })),
             userRank
@@ -291,7 +294,7 @@ export async function getGroupLeaderboard(groupId: string) {
             return { success: false, error: 'Not a member of this group' };
         }
 
-        // Sort members by XP
+        // Sort members by XP and create leaderboard
         const leaderboard = group.members
             .filter(m => m.isActive)
             .sort((a, b) => b.totalXP - a.totalXP)
@@ -307,5 +310,32 @@ export async function getGroupLeaderboard(groupId: string) {
     } catch (error) {
         console.error('Error getting group leaderboard:', error);
         return { success: false, error: 'Failed to get group leaderboard' };
+    }
+}
+
+// Utility function to get user's current rank info
+export async function getUserRankInfo(clerkUserId: string) {
+    try {
+        await connectToDatabase();
+
+        const profile = await Profile.findOne({ clerkUserId })
+            .select('xp rank')
+            .lean();
+
+        if (!profile) {
+            return { success: false, error: 'Profile not found' };
+        }
+
+        // Recalculate rank to ensure consistency
+        const rankInfo = calculateRank(profile.xp.total);
+
+        return {
+            success: true,
+            totalXP: profile.xp.total,
+            rank: rankInfo
+        };
+    } catch (error) {
+        console.error('Error getting user rank info:', error);
+        return { success: false, error: 'Failed to get rank info' };
     }
 }

@@ -69,21 +69,16 @@ const ProfileSchema = new Schema<IProfile>({
             weeklyGoal: 21
         })
     },
-    // XP and Ranking System - Fixed with proper default initialization
+    // Simplified XP System - only total XP matters
     xp: {
         type: {
-            total: { type: Number, default: 0 },
-            currentLevel: { type: Number, default: 1 },
-            currentLevelXP: { type: Number, default: 0 },
-            xpToNextLevel: { type: Number, default: 100 }
+            total: { type: Number, default: 0 }
         },
         default: () => ({
-            total: 0,
-            currentLevel: 1,
-            currentLevelXP: 0,
-            xpToNextLevel: 100
+            total: 0
         })
     },
+    // Rank based on total XP using RANK_REQUIREMENTS
     rank: {
         type: {
             title: {
@@ -91,8 +86,8 @@ const ProfileSchema = new Schema<IProfile>({
                 enum: ['Novice', 'Beginner', 'Apprentice', 'Practitioner', 'Expert', 'Master', 'Grandmaster', 'Legend'],
                 default: 'Novice'
             },
-            level: { type: Number, default: 1 },
-            progress: { type: Number, default: 0 }
+            level: { type: Number, default: 1 }, // 1-8 corresponding to rank titles
+            progress: { type: Number, default: 0 } // 0-100% progress within current rank
         },
         default: () => ({
             title: 'Novice',
@@ -145,19 +140,14 @@ const ProfileSchema = new Schema<IProfile>({
     timestamps: true
 });
 
-// Pre-save middleware to ensure XP object is always initialized
+// Pre-save middleware to ensure proper initialization and rank calculation
 ProfileSchema.pre('save', function (next) {
     // Initialize XP if it doesn't exist
     if (!this.xp) {
-        this.xp = {
-            total: 0,
-            currentLevel: 1,
-            currentLevelXP: 0,
-            xpToNextLevel: 100
-        };
+        this.xp = { total: 0 };
     }
 
-    // Initialize other nested objects if they don't exist
+    // Initialize rank if it doesn't exist
     if (!this.rank) {
         this.rank = {
             title: 'Novice',
@@ -166,6 +156,7 @@ ProfileSchema.pre('save', function (next) {
         };
     }
 
+    // Initialize other nested objects if they don't exist
     if (!this.stats) {
         this.stats = {
             totalHabitsCreated: 0,
@@ -207,7 +198,7 @@ ProfileSchema.pre('save', function (next) {
     next();
 });
 
-// Create indexes
+// Create indexes for efficient queries
 ProfileSchema.index({ clerkUserId: 1 });
 ProfileSchema.index({ email: 1 });
 ProfileSchema.index({ 'xp.total': -1 }); // For leaderboard queries

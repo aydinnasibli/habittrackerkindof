@@ -101,16 +101,15 @@ export interface IProfile {
         dailyHabitTarget: number;
         weeklyGoal: number;
     };
+    // Simplified XP system - only total XP matters, rank is calculated from this
     xp: {
         total: number;
-        currentLevel: number;
-        currentLevelXP: number;
-        xpToNextLevel: number;
     };
+    // Rank is determined by total XP using RANK_REQUIREMENTS
     rank: {
         title: 'Novice' | 'Beginner' | 'Apprentice' | 'Practitioner' | 'Expert' | 'Master' | 'Grandmaster' | 'Legend';
-        level: number; // 1-8
-        progress: number; // 0-100%
+        level: number; // 1-8 corresponding to rank titles
+        progress: number; // 0-100% progress within current rank
     };
     xpHistory: IXPEntry[];
     groups: IGroupMembership[];
@@ -125,7 +124,6 @@ export interface IProfile {
     };
     createdAt: Date;
     updatedAt: Date;
-
 }
 
 export interface IXPEntry {
@@ -217,7 +215,7 @@ export interface IGroupChallenge {
     isActive: boolean;
 }
 
-// XP and Ranking constants
+// XP and Ranking System - Clear rank requirements based on total XP
 export const RANK_REQUIREMENTS = {
     1: { title: 'Novice', minXP: 0, maxXP: 499 },
     2: { title: 'Beginner', minXP: 500, maxXP: 1499 },
@@ -229,24 +227,25 @@ export const RANK_REQUIREMENTS = {
     8: { title: 'Legend', minXP: 30000, maxXP: Infinity }
 } as const;
 
+// XP Rewards for different actions
 export const XP_REWARDS = {
     HABIT_COMPLETION: {
-        LOW: 10,
-        MEDIUM: 15,
-        HIGH: 25
+        LOW: 10,      // Low priority habits
+        MEDIUM: 15,   // Medium priority habits  
+        HIGH: 25      // High priority habits
     },
     DAILY_BONUS: {
-        BASE: 50,
-        STREAK_MULTIPLIER: 1.5 // Additional XP for streaks
+        BASE: 50,           // Base daily bonus for completing all habits
+        STREAK_MULTIPLIER: 1.5  // Multiplier bonus for maintaining streaks
     },
     CHAIN_COMPLETION: {
-        BASE: 100,
-        PER_HABIT: 20
+        BASE: 100,      // Base XP for completing a habit chain
+        PER_HABIT: 20   // Additional XP per habit in the chain
     },
     STREAK_MILESTONES: {
-        7: 100,
-        30: 500,
-        100: 1500,
-        365: 5000
+        7: 100,     // 1 week streak
+        30: 500,    // 1 month streak  
+        100: 1500,  // 100 day streak
+        365: 5000   // 1 year streak
     }
 } as const;
