@@ -35,7 +35,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getOrCreateProfile, updateProfile, updateNotificationSettings, updatePrivacySettings, updateGoals, fixMissingXP } from '@/lib/actions/profile';
 import { IProfile, RANK_REQUIREMENTS } from '@/lib/types';
-import { useTheme } from 'next-themes';
+
 // Enhanced theme options
 const THEME_OPTIONS = [
     { value: 'light', label: 'Light', description: 'Clean and bright', color: 'bg-white border-gray-200' },
@@ -62,7 +62,6 @@ const DATE_FORMATS = [
 export default function ProfilePage() {
     const { user } = useUser();
     const { toast } = useToast();
-    const { theme, setTheme } = useTheme(); // Add this line
     const [profile, setProfile] = useState<IProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -130,6 +129,11 @@ export default function ProfilePage() {
                     setPreferences({
                         timeFormat: profileData.timeFormat,
                     });
+                    // Also set the selected theme from profile data
+                    if (profileData.theme) {
+                        setSelectedTheme(profileData.theme);
+                        setTheme(profileData.theme);
+                    }
                     setNotifications(profileData.notifications);
                     setPrivacy(profileData.privacy);
                     setGoals(profileData.goals);
@@ -181,10 +185,14 @@ export default function ProfilePage() {
     const savePreferences = async () => {
         setSaving(true);
         try {
-            const result = await updateProfile(preferences);
+            // Include theme in the preferences update
+            const preferencesData = {
+                ...preferences,
+                theme: selectedTheme as 'light' | 'dark' | 'system' | 'midnight' | 'forest' | 'ocean' | 'sunset' | 'lavender'
+            };
+
+            const result = await updateProfile(preferencesData);
             if (result.success) {
-
-
                 toast({
                     title: "Success",
                     description: "Preferences updated successfully",
@@ -536,11 +544,14 @@ export default function ProfilePage() {
                                     {THEME_OPTIONS.map(themeOption => (
                                         <div
                                             key={themeOption.value}
-                                            className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${theme === themeOption.value
+                                            className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${selectedTheme === themeOption.value
                                                 ? 'border-primary shadow-md'
                                                 : 'border-gray-200 dark:border-gray-700'
                                                 }`}
-                                            onClick={() => setTheme(themeOption.value)}
+                                            onClick={() => {
+                                                setSelectedTheme(themeOption.value);
+                                                setTheme(themeOption.value);
+                                            }}
                                         >
                                             <div className="flex items-center space-x-3">
                                                 <div className={`w-6 h-6 rounded-full ${themeOption.color} border-2 border-gray-300`} />
@@ -552,7 +563,7 @@ export default function ProfilePage() {
                                                     <p className="text-sm text-muted-foreground">{themeOption.description}</p>
                                                 </div>
                                             </div>
-                                            {theme === themeOption.value && (
+                                            {selectedTheme === themeOption.value && (
                                                 <div className="absolute top-2 right-2">
                                                     <div className="w-2 h-2 bg-primary rounded-full" />
                                                 </div>
