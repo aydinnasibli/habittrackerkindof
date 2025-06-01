@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { type ThemeProviderProps } from "next-themes/dist/types";
+import { useEffect } from "react";
 
 // Enhanced theme CSS variables
 const THEME_STYLES = `
@@ -163,10 +164,10 @@ const THEME_STYLES = `
 `;
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  React.useEffect(() => {
+  useEffect(() => {
     // Add theme styles to document head
     const styleId = 'enhanced-theme-styles';
-    let styleElement = document.getElementById(styleId);
+    let styleElement = document.getElementById(styleId) as HTMLStyleElement;
 
     if (!styleElement) {
       styleElement = document.createElement('style');
@@ -174,6 +175,14 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       styleElement.textContent = THEME_STYLES;
       document.head.appendChild(styleElement);
     }
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      const element = document.getElementById(styleId);
+      if (element && element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+    };
   }, []);
 
   return (

@@ -35,6 +35,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getOrCreateProfile, updateProfile, updateNotificationSettings, updatePrivacySettings, updateGoals, fixMissingXP } from '@/lib/actions/profile';
 import { IProfile, RANK_REQUIREMENTS } from '@/lib/types';
+import { useTheme } from 'next-themes';
 // Enhanced theme options
 const THEME_OPTIONS = [
     { value: 'light', label: 'Light', description: 'Clean and bright', color: 'bg-white border-gray-200' },
@@ -64,7 +65,7 @@ export default function ProfilePage() {
     const [profile, setProfile] = useState<IProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-
+    const { setTheme } = useTheme();
     // Form states
     const [personalInfo, setPersonalInfo] = useState({
         firstName: '',
@@ -94,7 +95,7 @@ export default function ProfilePage() {
         dailyHabitTarget: 3,
         weeklyGoal: 21
     });
-    const [selectedTheme, setSelectedTheme] = useState('sunset');
+    const [selectedTheme, setSelectedTheme] = useState('light');
     // Load profile data
     useEffect(() => {
         async function loadProfile() {
@@ -132,9 +133,11 @@ export default function ProfilePage() {
                     // Set theme from profile data
                     if (profileData.theme) {
                         setSelectedTheme(profileData.theme);
+                        setTheme(profileData.theme);
                     } else {
                         // Reset to default theme if no theme in profile
-                        setSelectedTheme('sunset');
+                        setSelectedTheme('light');
+                        setTheme('light');
                     }
                     setNotifications(profileData.notifications);
                     setPrivacy(profileData.privacy);
@@ -188,6 +191,9 @@ export default function ProfilePage() {
                 ...preferences,
                 theme: selectedTheme as 'light' | 'dark' | 'system' | 'midnight' | 'forest' | 'ocean' | 'sunset' | 'lavender'
             };
+
+            // Apply theme immediately
+            setTheme(selectedTheme);
 
             const result = await updateProfile(preferencesData);
             if (result.success) {
