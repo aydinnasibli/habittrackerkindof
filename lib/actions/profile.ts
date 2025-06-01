@@ -329,14 +329,18 @@ export async function updateProfileStats() {
         const longestStreak = Math.max(...habits.map(habit => habit.streak || 0), 0);
         const totalChainsCompleted = chainSessions.length;
 
+        // Only update the stats fields, NOT the XP fields
         const result = await Profile.updateOne(
             { clerkUserId: userId },
             {
-                'stats.totalHabitsCreated': totalHabitsCreated,
-                'stats.totalCompletions': totalCompletions,
-                'stats.longestStreak': longestStreak,
-                'stats.totalChainsCompleted': totalChainsCompleted,
-                updatedAt: new Date()
+                $set: {
+                    'stats.totalHabitsCreated': totalHabitsCreated,
+                    'stats.totalCompletions': totalCompletions,
+                    'stats.longestStreak': longestStreak,
+                    'stats.totalChainsCompleted': totalChainsCompleted,
+                    updatedAt: new Date()
+                }
+                // Removed the XP fields that were being overwritten
             }
         );
 

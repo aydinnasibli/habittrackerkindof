@@ -117,6 +117,7 @@ export default function ProfilePage() {
                     setNotifications(profileData.notifications);
                     setPrivacy(profileData.privacy);
                     setGoals(profileData.goals);
+
                 }
             } catch (error) {
                 toast({
