@@ -23,10 +23,6 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <body className={inter.className}>
           <ThemeProvider
-            attribute="class"
-            defaultTheme="system" // Changed from "system" to "sunset"
-            enableSystem
-            disableTransitionOnChange
           >
             <div className="relative flex min-h-screen flex-col">
               <Header />

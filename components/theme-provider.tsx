@@ -1,8 +1,8 @@
-
-
 "use client";
 
 import * as React from "react";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { type ThemeProviderProps } from "next-themes/dist/types";
 
 // Enhanced theme CSS variables
 const THEME_STYLES = `
@@ -162,25 +162,7 @@ const THEME_STYLES = `
   }
 `;
 
-
-interface ThemeContextType {
-  theme: string;
-  setTheme: (theme: string) => void;
-}
-
-const ThemeContext = React.createContext<ThemeContextType>({
-  theme: 'system',
-  setTheme: () => { },
-});
-
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = React.useState('system');
-
-  const setTheme = React.useCallback((newTheme: string) => {
-    setThemeState(newTheme);
-    document.documentElement.className = newTheme === 'system' ? '' : newTheme;
-  }, []);
-
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   React.useEffect(() => {
     // Add theme styles to document head
     const styleId = 'enhanced-theme-styles';
@@ -192,22 +174,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       styleElement.textContent = THEME_STYLES;
       document.head.appendChild(styleElement);
     }
-
-    // Set initial theme
-    document.documentElement.className = theme === 'system' ? '' : theme;
-  }, [theme]);
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <NextThemesProvider
+      {...props}
+      themes={['light', 'dark', 'system', 'midnight', 'forest', 'ocean', 'sunset', 'lavender']}
+      enableSystem
+      disableTransitionOnChange
+      attribute="class"
+    >
       {children}
-    </ThemeContext.Provider>
+    </NextThemesProvider>
   );
 }
-
-export const useTheme = () => {
-  const context = React.useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
-  }
-  return context;
-};
