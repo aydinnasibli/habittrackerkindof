@@ -96,7 +96,7 @@ export default function ProfilePage() {
         dailyHabitTarget: 3,
         weeklyGoal: 21
     });
-
+    const [selectedTheme, setSelectedTheme] = useState(theme || 'system');
     // Load profile data
     useEffect(() => {
         async function loadProfile() {
@@ -149,7 +149,11 @@ export default function ProfilePage() {
         loadProfile();
     }, [toast]);
 
-
+    useEffect(() => {
+        if (theme) {
+            setSelectedTheme(theme);
+        }
+    }, [theme]);
     // Save functions
     const savePersonalInfo = async () => {
         setSaving(true);
@@ -177,9 +181,6 @@ export default function ProfilePage() {
     const savePreferences = async () => {
         setSaving(true);
         try {
-            if (theme) {
-                setTheme(theme);
-            }
             const result = await updateProfile(preferences);
             if (result.success) {
 
@@ -532,26 +533,26 @@ export default function ProfilePage() {
                             <div className="space-y-4">
                                 <Label>Theme</Label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {THEME_OPTIONS.map(theme => (
+                                    {THEME_OPTIONS.map(themeOption => (
                                         <div
-                                            key={theme.value}
-                                            className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${theme === theme.value
+                                            key={themeOption.value}
+                                            className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${theme === themeOption.value
                                                 ? 'border-primary shadow-md'
                                                 : 'border-gray-200 dark:border-gray-700'
                                                 }`}
-                                            onClick={() => setTheme(theme.value)}
+                                            onClick={() => setTheme(themeOption.value)}
                                         >
                                             <div className="flex items-center space-x-3">
-                                                <div className={`w-6 h-6 rounded-full ${theme.color} border-2 border-gray-300`} />
+                                                <div className={`w-6 h-6 rounded-full ${themeOption.color} border-2 border-gray-300`} />
                                                 <div className="flex-1">
                                                     <div className="flex items-center space-x-2">
                                                         <Palette className="h-4 w-4" />
-                                                        <span className="font-medium">{theme.label}</span>
+                                                        <span className="font-medium">{themeOption.label}</span>
                                                     </div>
-                                                    <p className="text-sm text-muted-foreground">{theme.description}</p>
+                                                    <p className="text-sm text-muted-foreground">{themeOption.description}</p>
                                                 </div>
                                             </div>
-                                            {theme === theme.value && (
+                                            {theme === themeOption.value && (
                                                 <div className="absolute top-2 right-2">
                                                     <div className="w-2 h-2 bg-primary rounded-full" />
                                                 </div>

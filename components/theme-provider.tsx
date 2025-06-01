@@ -182,7 +182,9 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       themes={['light', 'dark', 'system', 'midnight', 'forest', 'ocean', 'sunset', 'lavender']}
       enableSystem
       disableTransitionOnChange
-      storageKey="necmettinyo-theme" // Add a custom storage key
+      storageKey="necmettinyo-theme"
+      attribute="class"
+      defaultTheme="system"
     >
       {children}
     </NextThemesProvider>
