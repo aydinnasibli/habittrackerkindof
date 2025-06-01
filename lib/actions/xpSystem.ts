@@ -7,7 +7,36 @@ import { Profile } from '@/lib/models/Profile';
 import { Group } from '@/lib/models/Group';
 import { RANK_REQUIREMENTS, XP_REWARDS, IXPEntry } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
+// Recalculate and sync XP/rank for a profile
+export async function recalculateProfileXP(clerkUserId: string) {
+    try {
+        await connectToDatabase();
 
+        const profile = await Profile.findOne({ clerkUserId });
+        if (!profile) return { success: false, error: 'Profile not found' };
+
+        // Recalculate rank based on current total XP
+        const rankInfo = calculateRank(profile.xp.total);
+
+        // Update the profile with correct rank info
+        await Profile.updateOne(
+            { clerkUserId },
+            {
+                $set: {
+                    'rank.title': rankInfo.title,
+                    'rank.level': rankInfo.level,
+                    'rank.progress': rankInfo.progress,
+                    updatedAt: new Date()
+                }
+            }
+        );
+
+        return { success: true, rankInfo };
+    } catch (error) {
+        console.error('Error recalculating XP:', error);
+        return { success: false, error: 'Failed to recalculate XP' };
+    }
+}
 // Calculate rank from total XP using RANK_REQUIREMENTS
 function calculateRank(totalXP: number): { title: string; level: number; progress: number } {
     // Find the appropriate rank based on total XP

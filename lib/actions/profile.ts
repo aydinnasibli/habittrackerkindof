@@ -61,10 +61,7 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
                     weeklyGoal: 21
                 },
                 xp: {
-                    total: 0,
-                    currentLevel: 1,
-                    currentLevelXP: 0,
-                    xpToNextLevel: 100
+                    total: 0
                 },
                 rank: {
                     title: 'Novice',
@@ -122,10 +119,7 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
                 weeklyGoal: 21
             },
             xp: profile.xp || {
-                total: 0,
-                currentLevel: 1,
-                currentLevelXP: 0,
-                xpToNextLevel: 100
+                total: 0
             },
             rank: profile.rank || {
                 title: 'Novice',
@@ -230,13 +224,12 @@ export async function updateNotificationSettings(notifications: {
     }
 }
 
-// Should include all privacy fields from IProfile
 export async function updatePrivacySettings(privacy: {
     profileVisibility: 'public' | 'private';
     showStreak: boolean;
     showProgress: boolean;
-    showXP: boolean;      // Missing
-    showRank: boolean;    // Missing
+    showXP: boolean;
+    showRank: boolean;
 }) {
     try {
         const { userId } = await auth();
