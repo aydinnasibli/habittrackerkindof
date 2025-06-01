@@ -47,17 +47,34 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
                 privacy: {
                     profileVisibility: 'private',
                     showStreak: true,
-                    showProgress: true
+                    showProgress: true,
+                    showXP: true,
+                    showRank: true
                 },
                 goals: {
                     dailyHabitTarget: 3,
                     weeklyGoal: 21
                 },
+                xp: {
+                    total: 0,
+                    currentLevel: 1,
+                    currentLevelXP: 0,
+                    xpToNextLevel: 100
+                },
+                rank: {
+                    title: 'Novice',
+                    level: 1,
+                    progress: 0
+                },
+                xpHistory: [],
+                groups: [],
                 stats: {
                     totalHabitsCreated: 0,
                     totalCompletions: 0,
                     longestStreak: 0,
                     totalChainsCompleted: 0,
+                    dailyBonusesEarned: 0,
+                    totalGroupsJoined: 0,
                     joinedAt: new Date()
                 }
             });
@@ -91,17 +108,34 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
             privacy: profile.privacy || {
                 profileVisibility: 'private',
                 showStreak: true,
-                showProgress: true
+                showProgress: true,
+                showXP: true,
+                showRank: true
             },
             goals: profile.goals || {
                 dailyHabitTarget: 3,
                 weeklyGoal: 21
             },
+            xp: profile.xp || {
+                total: 0,
+                currentLevel: 1,
+                currentLevelXP: 0,
+                xpToNextLevel: 100
+            },
+            rank: profile.rank || {
+                title: 'Novice',
+                level: 1,
+                progress: 0
+            },
+            xpHistory: profile.xpHistory || [],
+            groups: profile.groups || [],
             stats: profile.stats || {
                 totalHabitsCreated: 0,
                 totalCompletions: 0,
                 longestStreak: 0,
                 totalChainsCompleted: 0,
+                dailyBonusesEarned: 0,
+                totalGroupsJoined: 0,
                 joinedAt: new Date()
             },
             createdAt: profile.createdAt || new Date(),
@@ -118,10 +152,8 @@ export async function updateProfile(updateData: {
     lastName?: string;
     userName?: string;
     bio?: string;
-    timezone?: string;
-    dateFormat?: 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
     timeFormat?: '12h' | '24h';
-    theme?: 'light' | 'dark' | 'system';
+    theme?: 'light' | 'dark' | 'system' | 'midnight' | 'forest' | 'ocean' | 'sunset' | 'lavender';
 }) {
     try {
         const { userId } = await auth();
