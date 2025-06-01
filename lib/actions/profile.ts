@@ -95,10 +95,11 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
         }
 
         // Ensure XP field exists and has a default value
+        // Ensure XP field exists and has a default value
         const xpField = profile.xp || { total: 0 };
 
-        // Ensure all required fields have default values
-        return {
+        // Convert to plain objects and ensure all required fields have default values
+        return JSON.parse(JSON.stringify({
             _id: profile._id?.toString() || '',
             clerkUserId: profile.clerkUserId,
             firstName: profile.firstName || '',
@@ -110,43 +111,50 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
             dateFormat: profile.dateFormat,
             timeFormat: profile.timeFormat,
             theme: profile.theme,
-            notifications: profile.notifications || {
-                email: true,
-                push: true,
-                habitReminders: true,
-                weeklyReports: true
+            notifications: {
+                email: profile.notifications?.email ?? true,
+                push: profile.notifications?.push ?? true,
+                habitReminders: profile.notifications?.habitReminders ?? true,
+                weeklyReports: profile.notifications?.weeklyReports ?? true
             },
-            privacy: profile.privacy || {
-                profileVisibility: 'private',
-                showStreak: true,
-                showProgress: true,
-                showXP: true,
-                showRank: true
+            privacy: {
+                profileVisibility: profile.privacy?.profileVisibility || 'private',
+                showStreak: profile.privacy?.showStreak ?? true,
+                showProgress: profile.privacy?.showProgress ?? true,
+                showXP: profile.privacy?.showXP ?? true,
+                showRank: profile.privacy?.showRank ?? true
             },
-            goals: profile.goals || {
-                dailyHabitTarget: 3,
-                weeklyGoal: 21
+            goals: {
+                dailyHabitTarget: profile.goals?.dailyHabitTarget || 3,
+                weeklyGoal: profile.goals?.weeklyGoal || 21
             },
-            xp: xpField, // Ensure this is always defined
-            rank: profile.rank || {
-                title: 'Novice',
-                level: 1,
-                progress: 0
+            xp: {
+                total: xpField.total || 0
             },
-            xpHistory: profile.xpHistory || [],
+            rank: {
+                title: profile.rank?.title || 'Novice',
+                level: profile.rank?.level || 1,
+                progress: profile.rank?.progress || 0
+            },
+            xpHistory: (profile.xpHistory || []).map((entry: any) => ({
+                date: entry.date?.toISOString() || new Date().toISOString(),
+                amount: entry.amount || 0,
+                source: entry.source || '',
+                description: entry.description || ''
+            })),
             groups: profile.groups || [],
-            stats: profile.stats || {
-                totalHabitsCreated: 0,
-                totalCompletions: 0,
-                longestStreak: 0,
-                totalChainsCompleted: 0,
-                dailyBonusesEarned: 0,
-                totalGroupsJoined: 0,
-                joinedAt: new Date()
+            stats: {
+                totalHabitsCreated: profile.stats?.totalHabitsCreated || 0,
+                totalCompletions: profile.stats?.totalCompletions || 0,
+                longestStreak: profile.stats?.longestStreak || 0,
+                totalChainsCompleted: profile.stats?.totalChainsCompleted || 0,
+                dailyBonusesEarned: profile.stats?.dailyBonusesEarned || 0,
+                totalGroupsJoined: profile.stats?.totalGroupsJoined || 0,
+                joinedAt: profile.stats?.joinedAt?.toISOString() || new Date().toISOString()
             },
-            createdAt: profile.createdAt || new Date(),
-            updatedAt: profile.updatedAt || new Date()
-        };
+            createdAt: profile.createdAt?.toISOString() || new Date().toISOString(),
+            updatedAt: profile.updatedAt?.toISOString() || new Date().toISOString()
+        }));
     } catch (error) {
         console.error('Error getting or creating profile:', error);
         return null;
