@@ -89,9 +89,7 @@ export default function ProfilePage() {
     const [privacy, setPrivacy] = useState({
         profileVisibility: 'private' as 'public' | 'private',
         showStreak: true,
-        showProgress: true,
-        showXP: true,
-        showRank: true
+        showProgress: true
     });
 
     const [goals, setGoals] = useState({
@@ -117,13 +115,7 @@ export default function ProfilePage() {
                         theme: profileData.theme
                     });
                     setNotifications(profileData.notifications);
-                    setPrivacy({
-                        profileVisibility: profileData.privacy.profileVisibility,
-                        showStreak: profileData.privacy.showStreak,
-                        showProgress: profileData.privacy.showProgress,
-                        showXP: profileData.privacy.showXP ?? true,
-                        showRank: profileData.privacy.showRank ?? true
-                    });
+                    setPrivacy(profileData.privacy);
                     setGoals(profileData.goals);
 
                 }
@@ -636,12 +628,7 @@ export default function ProfilePage() {
 
                             {[
                                 { key: 'showStreak', label: 'Show Streak', description: 'Display your current streak' },
-                                { key: 'showProgress', label: 'Show Progress', description: 'Display your habit progress' },
-                                { key: 'showStreak', label: 'Show Streak', description: 'Display your current streak' },
-                                { key: 'showProgress', label: 'Show Progress', description: 'Display your habit progress' },
-                                { key: 'showXP', label: 'Show XP', description: 'Display your experience points' },
-                                { key: 'showRank', label: 'Show Rank', description: 'Display your current rank' }
-
+                                { key: 'showProgress', label: 'Show Progress', description: 'Display your habit progress' }
                             ].map(setting => (
                                 <div key={setting.key} className="flex items-center justify-between">
                                     <div className="space-y-0.5">
