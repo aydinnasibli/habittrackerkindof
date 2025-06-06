@@ -1,11 +1,11 @@
-// components/theme/enhanced-theme-provider.tsx
 "use client";
 
+import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import type { ThemeProviderProps } from "next-themes/dist/types";
+import { type ThemeProviderProps } from "next-themes/dist/types";
 import { useEffect } from "react";
-import { VisualElements } from "./visual-elements";
 
+// Enhanced theme CSS variables
 const THEME_STYLES = `
   :root {
     --background: 0 0% 100%;
@@ -31,26 +31,26 @@ const THEME_STYLES = `
   }
 
   .dark {
-    --background: 0 0% 3%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 97%;
-    --primary: 0 0% 90%;
-    --primary-foreground: 0 0% 8%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 92%;
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 90%;
-    --destructive: 0 70% 25%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 18%;
-    --input: 0 0% 14%;
-    --ring: 0 0% 85%;
-  }
+  --background: 0 0% 3%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 4%;
+  --popover-foreground: 0 0% 97%;
+  --primary: 0 0% 90%;
+  --primary-foreground: 0 0% 8%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 92%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 0 0% 15%;
+  --accent-foreground: 0 0% 90%;
+  --destructive: 0 70% 25%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 18%;
+  --input: 0 0% 14%;
+  --ring: 0 0% 85%;
+}
 
   .midnight {
     --background: 0 0% 0%;
@@ -161,19 +161,11 @@ const THEME_STYLES = `
     --input: 270 15% 20%;
     --ring: 262 83% 70%;
   }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-10px) rotate(5deg); }
-  }
-
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
 `;
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   useEffect(() => {
+    // Add theme styles to document head
     const styleId = 'enhanced-theme-styles';
     let styleElement = document.getElementById(styleId) as HTMLStyleElement;
 
@@ -184,9 +176,10 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       document.head.appendChild(styleElement);
     }
 
+    // Cleanup function to prevent memory leaks
     return () => {
       const element = document.getElementById(styleId);
-      if (element?.parentNode) {
+      if (element && element.parentNode) {
         element.parentNode.removeChild(element);
       }
     };
@@ -200,9 +193,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       disableTransitionOnChange
       attribute="class"
     >
-      <VisualElements>
-        {children}
-      </VisualElements>
+      {children}
     </NextThemesProvider>
   );
 }
