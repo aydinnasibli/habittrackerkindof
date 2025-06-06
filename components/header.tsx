@@ -98,6 +98,14 @@ export function Header() {
               My Habits
             </Button>
           </Link>
+          <Link href="/leaderboard">
+            <Button
+              variant={pathname === "/habits" ? "default" : "ghost"}
+              className="hidden sm:flex"
+            >
+              Leaderboard
+            </Button>
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
