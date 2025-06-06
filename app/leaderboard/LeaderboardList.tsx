@@ -30,55 +30,56 @@ interface RankPosition {
 interface CardStyle {
     border: string;
     bg: string;
+    shadow: string;
 }
 
 // Memoized helper functions for better performance
 const getRankBadgeStyle = (rankLevel: number): RankBadgeStyle => {
     const styles: Record<number, RankBadgeStyle> = {
         1: {
-            bg: 'bg-gray-100 dark:bg-gray-800',
-            text: 'text-gray-800 dark:text-gray-200',
+            bg: 'bg-secondary/80',
+            text: 'text-secondary-foreground',
             icon: <Star className="w-3 h-3" aria-hidden="true" />
         },
         2: {
-            bg: 'bg-green-100 dark:bg-green-900/30',
-            text: 'text-green-800 dark:text-green-300',
+            bg: 'bg-green-500/20 dark:bg-green-500/30',
+            text: 'text-green-700 dark:text-green-300',
             icon: <Zap className="w-3 h-3" aria-hidden="true" />
         },
         3: {
-            bg: 'bg-blue-100 dark:bg-blue-900/30',
-            text: 'text-blue-800 dark:text-blue-300',
+            bg: 'bg-blue-500/20 dark:bg-blue-500/30',
+            text: 'text-blue-700 dark:text-blue-300',
             icon: <TrendingUp className="w-3 h-3" aria-hidden="true" />
         },
         4: {
-            bg: 'bg-purple-100 dark:bg-purple-900/30',
-            text: 'text-purple-800 dark:text-purple-300',
+            bg: 'bg-purple-500/20 dark:bg-purple-500/30',
+            text: 'text-purple-700 dark:text-purple-300',
             icon: <Crown className="w-3 h-3" aria-hidden="true" />
         },
         5: {
-            bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-            text: 'text-yellow-800 dark:text-yellow-300',
+            bg: 'bg-yellow-500/20 dark:bg-yellow-500/30',
+            text: 'text-yellow-700 dark:text-yellow-300',
             icon: <Flame className="w-3 h-3" aria-hidden="true" />
         },
         6: {
-            bg: 'bg-red-100 dark:bg-red-900/30',
-            text: 'text-red-800 dark:text-red-300',
+            bg: 'bg-red-500/20 dark:bg-red-500/30',
+            text: 'text-red-700 dark:text-red-300',
             icon: <Target className="w-3 h-3" aria-hidden="true" />
         },
         7: {
-            bg: 'bg-pink-100 dark:bg-pink-900/30',
-            text: 'text-pink-800 dark:text-pink-300',
+            bg: 'bg-pink-500/20 dark:bg-pink-500/30',
+            text: 'text-pink-700 dark:text-pink-300',
             icon: <Gem className="w-3 h-3" aria-hidden="true" />
         },
         8: {
-            bg: 'bg-orange-100 dark:bg-orange-900/30',
-            text: 'text-orange-800 dark:text-orange-300',
+            bg: 'bg-orange-500/20 dark:bg-orange-500/30',
+            text: 'text-orange-700 dark:text-orange-300',
             icon: <Sword className="w-3 h-3" aria-hidden="true" />
         }
     };
 
     return styles[rankLevel] || {
-        bg: 'bg-muted',
+        bg: 'bg-muted/50',
         text: 'text-muted-foreground',
         icon: <Shield className="w-3 h-3" aria-hidden="true" />
     };
@@ -97,7 +98,7 @@ const getRankPosition = (index: number): RankPosition => {
                     </div>
                 </div>
             ),
-            bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+            bgColor: 'bg-yellow-500/20 dark:bg-yellow-500/30',
             borderColor: 'border-yellow-500/50'
         };
     }
@@ -105,22 +106,22 @@ const getRankPosition = (index: number): RankPosition => {
     if (position === 2) {
         return {
             display: <span className="text-2xl" role="img" aria-label="Second place">🥈</span>,
-            bgColor: 'bg-gray-100 dark:bg-gray-800',
-            borderColor: 'border-gray-500/50'
+            bgColor: 'bg-muted/50',
+            borderColor: 'border-muted-foreground/30'
         };
     }
 
     if (position === 3) {
         return {
             display: <span className="text-2xl" role="img" aria-label="Third place">🥉</span>,
-            bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+            bgColor: 'bg-orange-500/20 dark:bg-orange-500/30',
             borderColor: 'border-orange-500/50'
         };
     }
 
     return {
         display: `#${position}`,
-        bgColor: 'bg-muted',
+        bgColor: 'bg-muted/30',
         borderColor: 'border-border'
     };
 };
@@ -128,29 +129,33 @@ const getRankPosition = (index: number): RankPosition => {
 const getCardStyle = (index: number): CardStyle => {
     const styles: Record<number, CardStyle> = {
         0: {
-            border: 'border-2 border-yellow-500/30',
-            bg: 'bg-yellow-50/50 dark:bg-yellow-900/10'
+            border: 'border-2 border-yellow-500/40',
+            bg: 'bg-card/90 backdrop-blur-sm',
+            shadow: 'shadow-lg shadow-yellow-500/20'
         },
         1: {
-            border: 'border-2 border-gray-500/30',
-            bg: 'bg-gray-50/50 dark:bg-gray-800/20'
+            border: 'border-2 border-muted-foreground/30',
+            bg: 'bg-card/90 backdrop-blur-sm',
+            shadow: 'shadow-lg shadow-muted/20'
         },
         2: {
-            border: 'border-2 border-orange-500/30',
-            bg: 'bg-orange-50/50 dark:bg-orange-900/10'
+            border: 'border-2 border-orange-500/40',
+            bg: 'bg-card/90 backdrop-blur-sm',
+            shadow: 'shadow-lg shadow-orange-500/20'
         }
     };
 
     return styles[index] || {
-        border: 'border border-border',
-        bg: 'bg-card'
+        border: 'border border-border/50',
+        bg: 'bg-card/80 backdrop-blur-sm',
+        shadow: 'shadow-md'
     };
 };
 
 const getAchievementBadge = (index: number) => {
     const badges = {
         0: { label: '🏆 CHAMPION', bg: 'bg-yellow-500' },
-        1: { label: '🥈 ELITE', bg: 'bg-gray-500' },
+        1: { label: '🥈 ELITE', bg: 'bg-muted-foreground' },
         2: { label: '🥉 LEGEND', bg: 'bg-orange-500' }
     };
 
@@ -163,7 +168,7 @@ const LoadingSkeleton = () => (
         {Array.from({ length: 5 }, (_, i) => (
             <div
                 key={i}
-                className="h-28 bg-muted rounded-2xl animate-pulse"
+                className="h-28 bg-muted/50 rounded-2xl animate-pulse"
                 aria-hidden="true"
             />
         ))}
@@ -226,14 +231,14 @@ const UserCard = ({ user, index, maxCompletions }: {
         >
             <Link
                 href={`/leaderboard/profile/${user._id}`}
-                className={`group block ${cardStyle.bg} ${cardStyle.border} rounded-2xl p-6 hover:bg-accent transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
+                className={`group block ${cardStyle.bg} ${cardStyle.border} ${cardStyle.shadow} rounded-2xl p-6 hover:bg-accent/50 transition-all duration-200 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background`}
                 aria-label={`View ${displayName}'s profile - Rank ${index + 1}`}
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1 min-w-0">
                         {/* Rank Position */}
                         <div
-                            className={`flex-shrink-0 w-12 h-12 rounded-xl ${rankPosition.bgColor} ${rankPosition.borderColor} border flex items-center justify-center`}
+                            className={`flex-shrink-0 w-12 h-12 rounded-xl ${rankPosition.bgColor} ${rankPosition.borderColor} border flex items-center justify-center backdrop-blur-sm`}
                             aria-label={`Rank ${index + 1}`}
                         >
                             <span className="text-sm font-bold text-foreground">
@@ -243,7 +248,7 @@ const UserCard = ({ user, index, maxCompletions }: {
 
                         {/* Avatar */}
                         <div
-                            className="w-12 h-12 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center"
+                            className="w-12 h-12 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center backdrop-blur-sm"
                             role="img"
                             aria-label={`${displayName}'s avatar`}
                         >
@@ -259,7 +264,7 @@ const UserCard = ({ user, index, maxCompletions }: {
                                     {displayName}
                                 </h3>
                                 <span
-                                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${rankBadge.bg} ${rankBadge.text}`}
+                                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${rankBadge.bg} ${rankBadge.text} backdrop-blur-sm`}
                                     aria-label={`Rank: ${user.rankTitle}`}
                                 >
                                     {rankBadge.icon}
@@ -274,7 +279,7 @@ const UserCard = ({ user, index, maxCompletions }: {
                                     <span className="font-semibold text-foreground">
                                         {user.totalCompletions.toLocaleString()}
                                     </span>
-                                    <span className="text-muted-foreground">wins</span>
+                                    <span className="text-muted-foreground">habit completions</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Flame className="w-4 h-4 text-orange-600 dark:text-orange-400" aria-hidden="true" />
@@ -310,7 +315,7 @@ const UserCard = ({ user, index, maxCompletions }: {
 
                 {/* Progress bar for top 5 */}
                 {index < 5 && (
-                    <div className="mt-4 pt-4 border-t border-border">
+                    <div className="mt-4 pt-4 border-t border-border/50">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-sm text-muted-foreground flex items-center gap-1">
                                 <Sparkles className="w-3 h-3 text-primary" aria-hidden="true" />
@@ -321,7 +326,7 @@ const UserCard = ({ user, index, maxCompletions }: {
                             </span>
                         </div>
                         <div
-                            className="w-full bg-muted rounded-full h-2"
+                            className="w-full bg-muted/50 rounded-full h-2 backdrop-blur-sm"
                             role="progressbar"
                             aria-valuenow={dominancePercentage}
                             aria-valuemin={0}
@@ -341,7 +346,7 @@ const UserCard = ({ user, index, maxCompletions }: {
                 {/* Achievement badges for top 3 */}
                 {achievementBadge && (
                     <div
-                        className={`absolute -top-2 -right-2 ${achievementBadge.bg} text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg`}
+                        className={`absolute -top-2 -right-2 ${achievementBadge.bg} text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg backdrop-blur-sm`}
                         aria-label={achievementBadge.label}
                     >
                         {achievementBadge.label}
@@ -358,7 +363,7 @@ const CallToAction = ({ userCount }: { userCount: number }) => (
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: userCount * 0.05 + 0.3 }}
-        className="text-center mt-12 p-6 bg-card border border-border rounded-2xl"
+        className="text-center mt-12 p-6 bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl shadow-lg"
     >
         <div className="flex items-center justify-center gap-2 mb-3">
             <Sparkles className="w-5 h-5 text-primary" aria-hidden="true" />
