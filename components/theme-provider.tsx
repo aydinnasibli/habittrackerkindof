@@ -1,11 +1,13 @@
+// components/enhanced-theme-provider.tsx
 "use client";
 
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { type ThemeProviderProps } from "next-themes/dist/types";
 import { useEffect } from "react";
+import { useThemeSync } from "@/hooks/useThemeSync";
 
-// Enhanced theme CSS variables
+// Enhanced theme CSS variables (same as your existing theme styles)
 const THEME_STYLES = `
   :root {
     --background: 0 0% 100%;
@@ -31,26 +33,26 @@ const THEME_STYLES = `
   }
 
   .dark {
-  --background: 0 0% 3%;
-  --foreground: 0 0% 98%;
-  --card: 0 0% 5%;
-  --card-foreground: 0 0% 95%;
-  --popover: 0 0% 4%;
-  --popover-foreground: 0 0% 97%;
-  --primary: 0 0% 90%;
-  --primary-foreground: 0 0% 8%;
-  --secondary: 0 0% 12%;
-  --secondary-foreground: 0 0% 92%;
-  --muted: 0 0% 10%;
-  --muted-foreground: 0 0% 60%;
-  --accent: 0 0% 15%;
-  --accent-foreground: 0 0% 90%;
-  --destructive: 0 70% 25%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 18%;
-  --input: 0 0% 14%;
-  --ring: 0 0% 85%;
-}
+    --background: 0 0% 3%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 97%;
+    --primary: 0 0% 90%;
+    --primary-foreground: 0 0% 8%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 92%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 90%;
+    --destructive: 0 70% 25%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 18%;
+    --input: 0 0% 14%;
+    --ring: 0 0% 85%;
+  }
 
   .midnight {
     --background: 0 0% 0%;
@@ -163,7 +165,14 @@ const THEME_STYLES = `
   }
 `;
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+interface EnhancedThemeProviderProps extends ThemeProviderProps {
+  children: React.ReactNode;
+}
+
+export function ThemeProvider({ children, ...props }: EnhancedThemeProviderProps) {
+  // Use the theme sync hook to automatically sync user's saved theme
+  const { isLoading, error } = useThemeSync();
+
   useEffect(() => {
     // Add theme styles to document head
     const styleId = 'enhanced-theme-styles';
@@ -185,6 +194,13 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     };
   }, []);
 
+  // Log theme sync errors in development
+  useEffect(() => {
+    if (error && process.env.NODE_ENV === 'development') {
+      console.warn('Theme sync error:', error);
+    }
+  }, [error]);
+
   return (
     <NextThemesProvider
       {...props}
@@ -192,8 +208,17 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       enableSystem
       disableTransitionOnChange
       attribute="class"
+      // Suppress hydration warnings during theme sync
+      suppressCollectionWarnings
     >
       {children}
+      {/* Optional: Show loading indicator during theme sync */}
+      {isLoading && (
+        <div
+          className="fixed top-0 left-0 w-full h-1 bg-primary opacity-50 animate-pulse z-50"
+          style={{ transition: 'opacity 0.3s ease' }}
+        />
+      )}
     </NextThemesProvider>
   );
 }
