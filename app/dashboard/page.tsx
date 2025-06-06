@@ -7,13 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { getHabitAnalytics } from "@/lib/actions/habits";
 import { TrendingUp, Target, Calendar, Award } from "lucide-react";
+import { UserNav } from "@/components/auth/user-nav";
 export default async function DashboardPage() {
   const analytics = await getHabitAnalytics(7);
 
   return (
     <div className="container py-8">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Welcome Back</h1>
+        <UserNav />
         <p className="text-muted-foreground text-lg">
           Track your progress and build lasting habits
         </p>

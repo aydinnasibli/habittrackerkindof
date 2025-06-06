@@ -134,10 +134,6 @@ export default function ProfilePage() {
                     if (profileData.theme) {
                         setSelectedTheme(profileData.theme);
                         setTheme(profileData.theme);
-                    } else {
-                        // Reset to default theme if no theme in profile
-                        setSelectedTheme('dark');
-                        setTheme('dark');
                     }
                     setNotifications(profileData.notifications);
                     setPrivacy(profileData.privacy);

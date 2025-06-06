@@ -13,14 +13,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Activity, User, Settings, LogOut } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+import { getOrCreateProfile } from "@/lib/actions/profile";
+import { set } from "mongoose";
 
 export function Header() {
   const pathname = usePathname();
   const { isSignedIn, user } = useUser();
   const { signOut } = useClerk();
-
+  const { setTheme } = useTheme();
   // Routes where header should show sign-in/sign-up buttons
   const isPublicRoute = ['/', '/sign-in', '/sign-up'].includes(pathname);
+  // Move useEffect to top level - always called, but conditionally executed
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (isSignedIn && user?.id) {
+        try {
+          const data = await getOrCreateProfile();
+          if (data?.theme) {
+            setTheme(data.theme);
+          }
+        } catch (error) {
+          console.error('Failed to fetch profile:', error);
+          setTheme("ocean"); // Fallback on error
+        }
+      } else if (!isSignedIn) {
+        // Set ocean theme for non-signed-in users
+        setTheme("system");
+      }
+    };
+
+    fetchProfile();
+  }, [isSignedIn, user?.id, setTheme]);
 
   // Show public header on public routes when user is not signed in
   if (isPublicRoute && !isSignedIn) {
@@ -46,6 +71,7 @@ export function Header() {
 
   // Don't show header if user is not signed in on protected routes
   if (!isSignedIn) return null;
+
 
   // Show authenticated header
   return (
