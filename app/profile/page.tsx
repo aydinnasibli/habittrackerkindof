@@ -37,16 +37,7 @@ import { getOrCreateProfile, updateProfile, updateNotificationSettings, updatePr
 import { IProfile, RANK_REQUIREMENTS } from '@/lib/types';
 import { useTheme } from 'next-themes';
 // Enhanced theme options
-const THEME_OPTIONS = [
-    { value: 'light', label: 'Light', description: 'Clean and bright', color: 'bg-white border-gray-200' },
-    { value: 'dark', label: 'Dark', description: 'Easy on the eyes', color: 'bg-gray-900 border-gray-700' },
-    { value: 'system', label: 'System', description: 'Follows your device', color: 'bg-gradient-to-r from-gray-100 to-gray-200' },
-    { value: 'midnight', label: 'Midnight', description: 'Deep black theme', color: 'bg-black border-gray-800' },
-    { value: 'forest', label: 'Forest', description: 'Nature inspired', color: 'bg-gradient-to-r from-green-900 to-emerald-800' },
-    { value: 'ocean', label: 'Ocean', description: 'Calm blue tones', color: 'bg-gradient-to-r from-blue-900 to-indigo-800' },
-    { value: 'sunset', label: 'Sunset', description: 'Warm orange hues', color: 'bg-gradient-to-r from-orange-800 to-red-700' },
-    { value: 'lavender', label: 'Lavender', description: 'Soft purple theme', color: 'bg-gradient-to-r from-purple-800 to-violet-700' }
-];
+import { ENHANCED_THEME_OPTIONS as THEME_OPTIONS } from '@/lib/types/theme';
 
 const TIME_FORMATS = [
     { value: '12h', label: '12-hour (AM/PM)' },
