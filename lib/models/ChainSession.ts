@@ -47,26 +47,7 @@ ChainSessionSchema.index({ clerkUserId: 1, createdAt: -1 });
 export const ChainSession = models.ChainSession || model<IChainSession>('ChainSession', ChainSessionSchema);
 
 // Additional types for the chain session system
-export interface IChainSession {
-    _id?: string;
-    clerkUserId: string;
-    chainId: string;
-    chainName: string;
-    status: 'active' | 'completed' | 'abandoned';
-    startedAt: Date;
-    completedAt?: Date;
-    currentHabitIndex: number;
-    totalHabits: number;
-    habits: IChainSessionHabit[];
-    totalDuration: string;
-    actualDuration?: number;
-    pausedAt?: Date;
-    pauseDuration: number;
-    breakStartedAt?: Date;
-    onBreak: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-}
+
 
 export interface IChainSessionHabit {
     habitId: string;

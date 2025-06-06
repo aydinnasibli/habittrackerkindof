@@ -39,7 +39,6 @@ export interface IHabitChain {
     updatedAt: Date;
 }
 
-// Chain Session Types
 export interface IChainSession {
     _id?: string;
     clerkUserId: string;
