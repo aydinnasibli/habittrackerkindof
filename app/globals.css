@@ -139,3 +139,352 @@
     margin-right: -50vw;
   }
 }
+
+
+
+
+
+/* Add this to your global CSS file or create a new leaderboard.css */
+
+/* Advanced animations and effects */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --primary-purple: #8b5cf6;
+  --primary-pink: #ec4899;
+  --primary-blue: #3b82f6;
+  --primary-green: #10b981;
+  --primary-yellow: #f59e0b;
+  --primary-red: #ef4444;
+  --primary-orange: #f97316;
+}
+
+/* Custom scrollbar for leaderboard */
+.leaderboard-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.leaderboard-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.leaderboard-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, var(--primary-purple), var(--primary-pink));
+  border-radius: 10px;
+}
+
+.leaderboard-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, var(--primary-pink), var(--primary-purple));
+}
+
+/* Advanced gradient animations */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float-up-down {
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  25% {
+    transform: translateY(-5px) rotate(1deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(0deg);
+  }
+
+  75% {
+    transform: translateY(-5px) rotate(-1deg);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.6), 0 0 60px rgba(236, 72, 153, 0.3);
+  }
+}
+
+@keyframes sparkle {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(180deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0) rotate(360deg);
+  }
+}
+
+@keyframes slide-shine {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+  }
+
+  100% {
+    transform: translateX(200%) skewX(-15deg);
+  }
+}
+
+@keyframes morph {
+
+  0%,
+  100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+
+  50% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+}
+
+@keyframes neon-flicker {
+
+  0%,
+  100% {
+    text-shadow:
+      0 0 5px currentColor,
+      0 0 10px currentColor,
+      0 0 15px currentColor,
+      0 0 20px var(--primary-purple);
+  }
+
+  50% {
+    text-shadow:
+      0 0 2px currentColor,
+      0 0 5px currentColor,
+      0 0 8px currentColor,
+      0 0 12px var(--primary-purple);
+  }
+}
+
+/* Utility classes for leaderboard */
+.gradient-text {
+  background: linear-gradient(45deg, var(--primary-purple), var(--primary-pink), var(--primary-blue));
+  background-size: 200% 200%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 3s ease infinite;
+}
+
+.floating-element {
+  animation: float-up-down 4s ease-in-out infinite;
+}
+
+.pulsing-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.sparkle-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.sparkle-effect::before {
+  content: '✨';
+  position: absolute;
+  top: 10%;
+  left: 20%;
+  animation: sparkle 2s ease-in-out infinite;
+  animation-delay: 0s;
+}
+
+.sparkle-effect::after {
+  content: '⭐';
+  position: absolute;
+  top: 60%;
+  right: 20%;
+  animation: sparkle 2s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.slide-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.slide-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 100%);
+  animation: slide-shine 3s ease-in-out infinite;
+}
+
+.morphing-bg {
+  animation: morph 8s ease-in-out infinite;
+}
+
+.neon-text {
+  animation: neon-flicker 2s ease-in-out infinite alternate;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .leaderboard-card {
+    padding: 1rem;
+  }
+
+  .rank-position {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .user-avatar {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .stats-card {
+    padding: 1rem;
+  }
+}
+
+/* Glass morphism effects */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card-strong {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Performance optimizations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.reduce-motion {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Dark mode specific enhancements */
+@media (prefers-color-scheme: dark) {
+  .leaderboard-bg {
+    background:
+      radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+      linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+}
+
+/* Loading states */
+.skeleton-loader {
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.1) 25%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.1) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 2s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Accessibility improvements */
+.focus-visible:focus-visible {
+  outline: 2px solid var(--primary-purple);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Print styles */
+@media print {
+  .leaderboard-container {
+    background: white !important;
+    color: black !important;
+  }
+
+  .glass-card {
+    background: white !important;
+    border: 1px solid #ccc !important;
+  }
+
+  .gradient-text {
+    -webkit-text-fill-color: black !important;
+    color: black !important;
+  }
+}
