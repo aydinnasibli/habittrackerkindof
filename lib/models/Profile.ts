@@ -46,15 +46,9 @@ const ProfileSchema = new Schema<IProfile>({
                 enum: ['public', 'private'],
                 default: 'private'
             },
-            showStreak: { type: Boolean, default: true },
-            showProgress: { type: Boolean, default: true },
-            showRank: { type: Boolean, default: true }
         },
         default: () => ({
             profileVisibility: 'private',
-            showStreak: true,
-            showProgress: true,
-            showRank: true
         })
     },
     goals: {

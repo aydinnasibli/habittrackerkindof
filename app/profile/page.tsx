@@ -16,7 +16,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import {
     User,
-    Settings,
     Bell,
     Shield,
     Target,
@@ -374,7 +373,7 @@ export default function ProfilePage() {
                             <Award className="h-5 w-5 text-green-500" />
                             <div>
                                 <p className="text-2xl font-bold">{profile?.stats?.totalCompletions || 0}</p>
-                                <p className="text-sm text-muted-foreground">Completions</p>
+                                <p className="text-sm text-muted-foreground">Habit Completions</p>
                             </div>
                         </div>
                     </CardContent>
@@ -385,7 +384,7 @@ export default function ProfilePage() {
                             <TrendingUp className="h-5 w-5 text-orange-500" />
                             <div>
                                 <p className="text-2xl font-bold">{profile?.stats?.longestStreak || 0}</p>
-                                <p className="text-sm text-muted-foreground">Longest Streak</p>
+                                <p className="text-sm text-muted-foreground">Longest Streak<span className='line-clamp-1'>(days)</span></p>
                             </div>
                         </div>
                     </CardContent>
@@ -411,8 +410,8 @@ export default function ProfilePage() {
                         <span className="hidden sm:inline">Personal</span>
                     </TabsTrigger>
                     <TabsTrigger value="preferences" className="flex items-center space-x-2">
-                        <Settings className="h-4 w-4" />
-                        <span className="hidden sm:inline">Preferences</span>
+                        <Palette className="h-4 w-4" />
+                        <span className="hidden sm:inline">Themes</span>
                     </TabsTrigger>
                     <TabsTrigger value="notifications" className="flex items-center space-x-2">
                         <Bell className="h-4 w-4" />
@@ -510,36 +509,12 @@ export default function ProfilePage() {
                 <TabsContent value="preferences">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Preferences</CardTitle>
+                            <CardTitle>Themes</CardTitle>
                             <CardDescription>Customize your app experience</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="timeFormat">Time Format</Label>
-                                <Select
-                                    value={preferences.timeFormat}
-                                    onValueChange={(value: '12h' | '24h') =>
-                                        setPreferences(prev => ({ ...prev, timeFormat: value }))
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {TIME_FORMATS.map(format => (
-                                            <SelectItem key={format.value} value={format.value}>
-                                                <div className="flex items-center space-x-2">
-                                                    <Clock className="h-4 w-4" />
-                                                    <span>{format.label}</span>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
 
                             <div className="space-y-4">
-                                <Label>Theme</Label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {THEME_OPTIONS.map(themeOption => (
                                         <div
@@ -575,7 +550,7 @@ export default function ProfilePage() {
 
                             <Button onClick={savePreferences} disabled={saving} className="w-full md:w-auto">
                                 <Save className="h-4 w-4 mr-2" />
-                                {saving ? 'Saving...' : 'Save Preferences'}
+                                {saving ? 'Saving...' : 'Save Theme'}
                             </Button>
                         </CardContent>
                     </Card>
@@ -652,23 +627,6 @@ export default function ProfilePage() {
                                 </Select>
                             </div>
 
-                            {[
-                                { key: 'showStreak', label: 'Show Streak', description: 'Display your current streak' },
-                                { key: 'showProgress', label: 'Show Progress', description: 'Display your habit progress' }
-                            ].map(setting => (
-                                <div key={setting.key} className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                        <Label className="text-base">{setting.label}</Label>
-                                        <p className="text-sm text-muted-foreground">{setting.description}</p>
-                                    </div>
-                                    <Switch
-                                        checked={privacy[setting.key as keyof typeof privacy]}
-                                        onCheckedChange={(checked) =>
-                                            setPrivacy(prev => ({ ...prev, [setting.key]: checked }))
-                                        }
-                                    />
-                                </div>
-                            ))}
 
                             <Button onClick={savePrivacy} disabled={saving} className="w-full md:w-auto">
                                 <Save className="h-4 w-4 mr-2" />
@@ -728,7 +686,6 @@ export default function ProfilePage() {
                                 <div className="text-sm space-y-1">
                                     <p>• Complete <strong>{goals.dailyHabitTarget}</strong> habits daily</p>
                                     <p>• Reach <strong>{goals.weeklyGoal}</strong> total completions weekly</p>
-                                    <p>• Average <strong>{(goals.weeklyGoal / 7).toFixed(1)}</strong> habits per day</p>
                                 </div>
                             </div>
 
