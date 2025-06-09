@@ -41,9 +41,24 @@ const ChainSessionSchema = new Schema<IChainSession>({
     timestamps: true
 });
 
+// Replace the index section in lib/models/ChainSession.ts
+
+// Add these indexes for better query performance
 ChainSessionSchema.index({ clerkUserId: 1, status: 1 });
 ChainSessionSchema.index({ clerkUserId: 1, createdAt: -1 });
+ChainSessionSchema.index({ clerkUserId: 1, status: 1, startedAt: -1 }); // For active sessions
+ChainSessionSchema.index({ chainId: 1, status: 1 }); // For chain statistics
+ChainSessionSchema.index({ status: 1, completedAt: -1 }); // For completed sessions
 
+// Add compound index for the most common query pattern
+ChainSessionSchema.index({
+    clerkUserId: 1,
+    status: 1,
+    currentHabitIndex: 1
+}, {
+    name: 'user_active_session_idx',
+    background: true
+});
 export const ChainSession = models.ChainSession || model<IChainSession>('ChainSession', ChainSessionSchema);
 
 // Additional types for the chain session system

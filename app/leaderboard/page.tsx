@@ -156,7 +156,7 @@ const LeaderboardContent = async () => {
         const result = await getLeaderboard();
 
         if (!result.success || !result.users) {
-            return notFound();
+            <div>Hi</div>
         }
 
         // Calculate stats with error handling
@@ -194,7 +194,7 @@ const LeaderboardContent = async () => {
         );
     } catch (error) {
         console.error('Leaderboard page error:', error);
-        return notFound();
+        <div>HI</div>
     }
 };
 

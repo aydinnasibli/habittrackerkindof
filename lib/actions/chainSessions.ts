@@ -10,7 +10,7 @@ import { ChainSession } from '@/lib/models/ChainSession';
 import { HabitChain } from '@/lib/models/HabitChain';
 import { Habit } from '@/lib/models/Habit';
 import { IChainSession } from '@/lib/types';
-import { Types, FlattenMaps } from 'mongoose';
+import mongoose, { Types, FlattenMaps } from 'mongoose';
 
 type LeanChainSession = FlattenMaps<IChainSession> & { _id: Types.ObjectId };
 
@@ -163,10 +163,11 @@ export async function getActiveChainSession(): Promise<IChainSession | null> {
     }
 }
 
+// Replace the completeCurrentHabit function in lib/actions/chainSessions.ts
+
 export async function completeCurrentHabit(sessionId: string, notes?: string) {
     try {
         const { userId } = await auth();
-
         if (!userId) {
             throw new Error('User not authenticated');
         }
@@ -177,130 +178,147 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
 
         await ensureConnection();
 
-        const session = await ChainSession.findOne({
-            _id: new Types.ObjectId(sessionId),
-            clerkUserId: userId,
-            status: 'active'
-        });
+        // Use transaction for data consistency
+        const mongoSession = await mongoose.startSession();
+        let result: { isChainCompleted: boolean };
 
-        if (!session) {
-            throw new Error('Active session not found');
-        }
+        try {
+            result = await mongoSession.withTransaction(async () => {
+                const chainSession = await ChainSession.findOne({
+                    _id: new Types.ObjectId(sessionId),
+                    clerkUserId: userId,
+                    status: 'active'
+                }).session(mongoSession);
 
-        const currentHabit = session.habits[session.currentHabitIndex];
-        if (!currentHabit) {
-            throw new Error('No current habit found');
-        }
-
-        // Mark current habit as completed
-        currentHabit.status = 'completed';
-        currentHabit.completedAt = new Date();
-        if (notes) {
-            currentHabit.notes = notes;
-        }
-
-        // Complete the actual habit (add to habit completions)
-        const habit = await Habit.findOne({
-            _id: new Types.ObjectId(currentHabit.habitId),
-            clerkUserId: userId
-        });
-
-        if (habit) {
-            const today = new Date();
-            today.setUTCHours(0, 0, 0, 0);
-
-            // Check if already completed today
-            const alreadyCompleted = habit.completions?.some((completion: any) => {
-                const completionDate = new Date(completion.date);
-                return completion.completed &&
-                    completionDate.toDateString() === today.toDateString();
-            });
-
-            if (!alreadyCompleted) {
-                habit.completions = habit.completions || [];
-                habit.completions.push({
-                    date: today,
-                    completed: true,
-                    notes: notes || `Completed via chain: ${session.chainName}`
-                });
-                habit.streak = (habit.streak || 0) + 1;
-                await habit.save();
-
-                // Award XP for individual habit completion based on priority
-                let habitXP = 20; // Default chain habit XP
-                if (habit.priority === 'high') {
-                    habitXP = 30;
-                } else if (habit.priority === 'medium') {
-                    habitXP = 25;
-                } else {
-                    habitXP = 20;
+                if (!chainSession) {
+                    throw new Error('Active session not found');
                 }
 
-                await awardXP(
-                    userId,
-                    habitXP,
-                    'habit_completion',
-                    `Completed habit in chain: ${currentHabit.habitName}`
-                );
-            }
+                const currentHabit = chainSession.habits[chainSession.currentHabitIndex];
+                if (!currentHabit) {
+                    throw new Error('No current habit found');
+                }
+
+                // Mark current habit as completed
+                currentHabit.status = 'completed';
+                currentHabit.completedAt = new Date();
+                if (notes) {
+                    currentHabit.notes = notes;
+                }
+
+                // Update habit completion
+                const habit = await Habit.findOne({
+                    _id: new Types.ObjectId(currentHabit.habitId),
+                    clerkUserId: userId
+                }).session(mongoSession);
+
+                let habitXP = 20;
+                if (habit) {
+                    const today = new Date();
+                    today.setUTCHours(0, 0, 0, 0);
+
+                    const alreadyCompleted = habit.completions?.some((completion: any) => {
+                        const completionDate = new Date(completion.date);
+                        return completion.completed &&
+                            completionDate.toDateString() === today.toDateString();
+                    });
+
+                    if (!alreadyCompleted) {
+                        habit.completions = habit.completions || [];
+                        habit.completions.push({
+                            date: today,
+                            completed: true,
+                            notes: notes || `Completed via chain: ${chainSession.chainName}`
+                        });
+                        habit.streak = (habit.streak || 0) + 1;
+
+                        // Calculate XP based on priority
+                        habitXP = habit.priority === 'high' ? 30 :
+                            habit.priority === 'medium' ? 25 : 20;
+
+                        await habit.save({ session: mongoSession });
+                    }
+                }
+
+                // Move to next habit or complete chain
+                let isChainCompleted = false;
+                let chainCompletionXP = 0;
+
+                if (chainSession.currentHabitIndex < chainSession.habits.length - 1) {
+                    chainSession.currentHabitIndex += 1;
+                    const nextHabit = chainSession.habits[chainSession.currentHabitIndex];
+                    nextHabit.status = 'active';
+                    nextHabit.startedAt = new Date();
+                } else {
+                    // Chain completed
+                    const completedHabits = chainSession.habits.filter(h => h.status === 'completed').length;
+                    const completionRate = completedHabits / chainSession.habits.length;
+
+                    chainSession.status = 'completed';
+                    chainSession.completedAt = new Date();
+
+                    const totalMinutes = Math.floor(
+                        (chainSession.completedAt.getTime() - chainSession.startedAt.getTime()) / (1000 * 60)
+                    );
+                    chainSession.actualDuration = totalMinutes - chainSession.pauseDuration;
+
+                    // Calculate chain XP
+                    if (completionRate === 1.0) {
+                        chainCompletionXP = 100 + (completedHabits * 15);
+                    } else if (completionRate >= 0.8) {
+                        chainCompletionXP = 60 + (completedHabits * 10);
+                    } else if (completionRate >= 0.5) {
+                        chainCompletionXP = 30 + (completedHabits * 5);
+                    }
+
+                    isChainCompleted = true;
+                }
+
+                await chainSession.save({ session: mongoSession });
+
+                // Award XP outside transaction to avoid blocking
+                setImmediate(async () => {
+                    try {
+                        if (habitXP > 0) {
+                            await awardXP(
+                                userId,
+                                habitXP,
+                                'habit_completion',
+                                `Completed habit in chain: ${currentHabit.habitName}`
+                            );
+                        }
+
+                        if (chainCompletionXP > 0) {
+                            await awardXP(
+                                userId,
+                                chainCompletionXP,
+                                'chain_completion',
+                                `Completed chain: ${chainSession.chainName} (${chainSession.habits.filter(h => h.status === 'completed').length}/${chainSession.habits.length} habits)`
+                            );
+                        }
+
+                        await updateProfileStats();
+                    } catch (error) {
+                        console.error('Error awarding XP:', error);
+                    }
+                });
+
+                return { isChainCompleted };
+            });
+
+        } finally {
+            await mongoSession.endSession();
         }
-
-        // Move to next habit or complete chain
-        if (session.currentHabitIndex < session.habits.length - 1) {
-            session.currentHabitIndex += 1;
-            const nextHabit = session.habits[session.currentHabitIndex];
-            nextHabit.status = 'active';
-            nextHabit.startedAt = new Date();
-        } else {
-            // Chain completed - calculate completion rate and award XP accordingly
-            const completedHabits = session.habits.filter((h: HabitSessionItem) => h.status === 'completed').length;
-            const skippedHabits = session.habits.filter((h: HabitSessionItem) => h.status === 'skipped').length;
-            const completionRate = completedHabits / session.habits.length;
-
-            session.status = 'completed';
-            session.completedAt = new Date();
-
-            // Calculate actual duration
-            const totalMinutes = Math.floor((session.completedAt.getTime() - session.startedAt.getTime()) / (1000 * 60));
-            session.actualDuration = totalMinutes - session.pauseDuration;
-
-            // Award chain completion XP based on completion rate
-            let chainCompletionXP = 0;
-            if (completionRate === 1.0) {
-                // Perfect completion - full bonus
-                chainCompletionXP = 100 + (completedHabits * 15);
-            } else if (completionRate >= 0.8) {
-                // Good completion (80%+) - reduced bonus
-                chainCompletionXP = 60 + (completedHabits * 10);
-            } else if (completionRate >= 0.5) {
-                // Partial completion (50%+) - minimal bonus
-                chainCompletionXP = 30 + (completedHabits * 5);
-            }
-            // No bonus for less than 50% completion
-
-            if (chainCompletionXP > 0) {
-                await awardXP(
-                    userId,
-                    chainCompletionXP,
-                    'chain_completion',
-                    `Completed chain: ${session.chainName} (${completedHabits}/${session.habits.length} habits)`
-                );
-            }
-        }
-
-        await session.save();
-
-        // Update profile stats
-        await updateProfileStats();
 
         revalidatePath('/habits');
         return {
             success: true,
-            isChainCompleted: session.status === 'completed',
-            message: session.status === 'completed'
+            isChainCompleted: result.isChainCompleted,
+            message: result.isChainCompleted
                 ? 'Congratulations! Chain completed successfully!'
                 : 'Habit completed! Moving to next habit.'
         };
+
     } catch (error) {
         console.error('Error completing current habit:', error);
         return {
@@ -309,7 +327,6 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
         };
     }
 }
-
 export async function skipCurrentHabit(sessionId: string, reason?: string) {
     try {
         const { userId } = await auth();
