@@ -4,6 +4,7 @@ import LeaderboardList from './LeaderboardList';
 import { Metadata } from 'next';
 import { Trophy, TrendingUp, Users, Zap, Crown, Star, Sparkles, AlertTriangle } from 'lucide-react';
 import { Suspense } from 'react';
+import { notFound } from 'next/navigation';
 
 export const metadata: Metadata = {
     title: 'Hall of Legends - Leaderboard | Necmettinyo',
@@ -30,26 +31,7 @@ const LeaderboardSkeleton = () => (
     </div>
 );
 
-// Error component
-const ErrorState = ({ error }: { error: string }) => (
-    <div className="min-h-[50vh] flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto px-4">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-destructive/20 border-2 border-destructive/30 flex items-center justify-center">
-                <AlertTriangle className="w-10 h-10 text-destructive" aria-hidden="true" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-foreground">Championship Unavailable</h2>
-            <p className="text-muted-foreground mb-6">
-                {error || 'Failed to load leaderboard data. Please try again later.'}
-            </p>
-            <button
-                onClick={() => window.location.reload()}
-                className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-            >
-                Try Again
-            </button>
-        </div>
-    </div>
-);
+
 
 // Stats card component for better organization
 const StatCard = ({
@@ -174,7 +156,7 @@ const LeaderboardContent = async () => {
         const result = await getLeaderboard();
 
         if (!result.success || !result.users) {
-            return <ErrorState error={result.error || 'Failed to load leaderboard data'} />;
+            return notFound();
         }
 
         // Calculate stats with error handling
@@ -212,7 +194,7 @@ const LeaderboardContent = async () => {
         );
     } catch (error) {
         console.error('Leaderboard page error:', error);
-        return <ErrorState error="An unexpected error occurred while loading the leaderboard" />;
+        return notFound();
     }
 };
 
