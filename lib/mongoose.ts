@@ -20,10 +20,10 @@ export async function connectToDatabase() {
     if (!cached.promise) {
         const opts = {
             bufferCommands: false,
-            maxPoolSize: 10, // Maintain up to 10 socket connections
-            serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-            socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-            family: 4, // Use IPv4, skip trying IPv6
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+            family: 4,
         };
 
         cached.promise = mongoose.connect(MONGODB_URI, opts);
@@ -31,7 +31,9 @@ export async function connectToDatabase() {
 
     try {
         cached.conn = await cached.promise;
-        console.log('✅ MongoDB connected successfully');
+        if (process.env.NODE_ENV === 'development') {
+            console.log('✅ MongoDB connected successfully');
+        }
     } catch (e) {
         cached.promise = null;
         console.error('❌ MongoDB connection failed:', e);
@@ -41,13 +43,17 @@ export async function connectToDatabase() {
     return cached.conn;
 }
 
-// Alternative: Check if already connected before attempting connection
+// Optimized connection check
 export async function ensureConnection() {
     if (mongoose.connection.readyState === 1) {
+        if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Already connected to MongoDB');
+        }
         return mongoose.connection;
-        console.log('✅ Already connected to MongoDB');
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Attempting to connect to MongoDB');
     }
     return await connectToDatabase();
-    console.log('🔄 Attempting to connect to MongoDB via ensure');
-
 }
