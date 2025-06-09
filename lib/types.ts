@@ -1,46 +1,74 @@
 // lib/types.ts
+import { ObjectId } from 'mongodb';
+
 export interface IHabit {
-    _id?: string;
+    _id?: string | ObjectId;
     clerkUserId: string;
     name: string;
     description: string;
-    category: string;
-    frequency: string;
-    timeOfDay: string;
+    category: 'Mindfulness' | 'Health' | 'Learning' | 'Productivity' | 'Digital Wellbeing';
+    frequency: 'Daily' | 'Weekdays' | 'Weekends' | 'Mon, Wed, Fri' | 'Tue, Thu';
+    timeOfDay: 'Morning' | 'Afternoon' | 'Evening' | 'Throughout day';
     timeToComplete: string;
-    priority: string;
+    priority: 'High' | 'Medium' | 'Low';
     streak: number;
     status: 'active' | 'paused' | 'archived';
     createdAt: Date;
     updatedAt: Date;
     completions: IHabitCompletion[];
+    // Cache fields for performance
+    lastCompletedAt?: Date;
+    totalCompletions?: number;
+    averageCompletionTime?: number; // in minutes
+    timeToCompleteMinutes?: number; // cached duration in minutes
 }
 
 export interface IHabitCompletion {
     date: Date;
     completed: boolean;
     notes?: string;
+    completedAt?: Date; // Timestamp when marked complete
+    timeSpent?: number; // in minutes
 }
-
+// Add after IHabitCompletion
+export interface IHabitCompletionDocument {
+    _id?: string | ObjectId;
+    habitId: string | ObjectId;
+    clerkUserId: string;
+    date: Date;
+    completed: boolean;
+    notes?: string;
+    completedAt?: Date;
+    timeSpent?: number;
+}
 export interface IHabitChain {
-    _id?: string;
+    _id?: string | ObjectId;
     clerkUserId: string;
     name: string;
     description: string;
-    habits: {
-        habitId: string;
-        habitName: string;
-        duration: string;
-        order: number;
-    }[];
+    habits: IHabitChainItem[];
     timeOfDay: string;
     totalTime: string;
+    totalTimeMinutes?: number; // Cached total time in minutes for sorting
     createdAt: Date;
     updatedAt: Date;
+    // Performance fields
+    isActive?: boolean;
+    lastUsedAt?: Date;
+    totalSessions?: number;
+    avgCompletionRate?: number; // 0-100
+}
+
+export interface IHabitChainItem {
+    habitId: string;
+    habitName: string;
+    duration: string;
+    durationMinutes?: number; // Cached duration in minutes
+    order: number;
 }
 
 export interface IChainSession {
-    _id?: string;
+    _id?: string | ObjectId;
     clerkUserId: string;
     chainId: string;
     chainName: string;
@@ -51,28 +79,34 @@ export interface IChainSession {
     totalHabits: number;
     habits: IChainSessionHabit[];
     totalDuration: string;
-    actualDuration?: number;
+    totalDurationMinutes?: number; // Cached for performance
+    actualDuration?: number; // in minutes
     pausedAt?: Date;
-    pauseDuration: number;
+    pauseDuration: number; // total pause time in minutes
     breakStartedAt?: Date;
     onBreak: boolean;
     createdAt: Date;
     updatedAt: Date;
+    // Performance optimizations
+    completionRate?: number; // 0-100, calculated on save
+    xpEarned?: number; // Cached XP for this session
 }
 
 export interface IChainSessionHabit {
     habitId: string;
     habitName: string;
     duration: string;
+    durationMinutes?: number; // Cached duration
     order: number;
     startedAt?: Date;
     completedAt?: Date;
     status: 'pending' | 'active' | 'completed' | 'skipped';
     notes?: string;
+    timeSpent?: number; // Actual time spent in minutes
 }
 
 export interface IProfile {
-    _id?: string;
+    _id?: string | ObjectId;
     clerkUserId: string;
     firstName?: string;
     lastName?: string;
@@ -91,9 +125,9 @@ export interface IProfile {
     };
     privacy: {
         profileVisibility: 'public' | 'private';
-        showStreak: boolean;
-        showProgress: boolean;
-        showRank: boolean;
+        showStreak?: boolean;
+        showProgress?: boolean;
+        showRank?: boolean;
     };
     goals: {
         dailyHabitTarget: number;
@@ -102,12 +136,14 @@ export interface IProfile {
     // Simplified XP system - only total XP matters, rank is calculated from this
     xp: {
         total: number;
+        lastUpdated?: Date; // Track when XP was last updated
     };
     // Rank is determined by total XP using RANK_REQUIREMENTS
     rank: {
         title: 'Novice' | 'Beginner' | 'Apprentice' | 'Practitioner' | 'Expert' | 'Master' | 'Grandmaster' | 'Legend';
         level: number; // 1-8 corresponding to rank titles
         progress: number; // 0-100% progress within current rank
+        lastCalculated?: Date; // Track when rank was last calculated
     };
     xpHistory: IXPEntry[];
     groups: IGroupMembership[];
@@ -119,9 +155,18 @@ export interface IProfile {
         dailyBonusesEarned: number;
         totalGroupsJoined: number;
         joinedAt: Date;
+        // Additional performance stats
+        currentStreak?: number;
+        lastActivityAt?: Date;
+        avgDailyXP?: number;
     };
     createdAt: Date;
     updatedAt: Date;
+    // Cache fields for leaderboard performance
+    rankCache?: {
+        globalPosition?: number;
+        lastUpdated: Date;
+    };
 }
 
 export interface IXPEntry {
@@ -129,17 +174,19 @@ export interface IXPEntry {
     amount: number;
     source: 'habit_completion' | 'daily_bonus' | 'chain_completion' | 'streak_milestone' | 'group_activity';
     description: string;
+    metadata?: Record<string, any>; // Store additional context
 }
 
 export interface IGroupMembership {
-    groupId: string;
+    groupId: string | ObjectId;
     joinedAt: Date;
     role: 'member' | 'admin' | 'owner';
+    isActive?: boolean; // For soft leaving groups
 }
 
 // Group Types
 export interface IGroup {
-    _id?: string;
+    _id?: string | ObjectId;
     name: string;
     description?: string;
     owner: string; // clerkUserId
@@ -160,10 +207,16 @@ export interface IGroup {
         totalXPEarned: number;
         mostActiveDay?: string;
         averageDailyActivity: number;
+        // Additional performance stats
+        lastActivityAt?: Date;
+        peakMemberCount?: number;
     };
     challenges: IGroupChallenge[];
     createdAt: Date;
     updatedAt: Date;
+    // Performance optimizations
+    isActive?: boolean; // Groups with recent activity
+    searchTags?: string[]; // For better search performance
 }
 
 export interface IGroupMember {
@@ -176,6 +229,9 @@ export interface IGroupMember {
     isActive: boolean;
     totalXP: number;
     rank: string;
+    // Performance fields
+    lastActiveAt?: Date;
+    contributionScore?: number; // For member ranking within group
 }
 
 export interface IGroupInvite {
@@ -186,6 +242,8 @@ export interface IGroupInvite {
     maxUses: number;
     usedCount: number;
     isActive: boolean;
+    // Track usage
+    usedBy?: { clerkUserId: string; usedAt: Date }[];
 }
 
 export interface IGroupActivity {
@@ -195,9 +253,11 @@ export interface IGroupActivity {
     description: string;
     xpEarned: number;
     timestamp: Date;
+    metadata?: Record<string, any>; // Store additional context
 }
 
 export interface IGroupChallenge {
+    _id?: string | ObjectId;
     title: string;
     description?: string;
     startDate: Date;
@@ -209,8 +269,13 @@ export interface IGroupChallenge {
         clerkUserId: string;
         progress: number;
         completed: boolean;
+        joinedAt: Date;
+        completedAt?: Date;
     }[];
     isActive: boolean;
+    // Performance fields
+    participantCount?: number;
+    completionRate?: number; // 0-100
 }
 
 // XP and Ranking System - Clear rank requirements based on total XP
@@ -274,3 +339,39 @@ export const XP_REWARDS = {
         365: 5000   // 1 year streak
     }
 } as const;
+
+// Utility types for better type safety
+export type RankTitle = keyof typeof RANK_REQUIREMENTS extends number ? never :
+    typeof RANK_REQUIREMENTS[keyof typeof RANK_REQUIREMENTS]['title'];
+
+export type HabitCategory = IHabit['category'];
+export type HabitFrequency = IHabit['frequency'];
+export type HabitTimeOfDay = IHabit['timeOfDay'];
+export type HabitPriority = IHabit['priority'];
+export type HabitStatus = IHabit['status'];
+
+// Database query optimization types
+export interface PaginationOptions {
+    page: number;
+    limit: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+}
+
+export interface HabitQueryFilters {
+    clerkUserId: string;
+    status?: HabitStatus;
+    category?: HabitCategory;
+    priority?: HabitPriority;
+    timeOfDay?: HabitTimeOfDay;
+    createdAfter?: Date;
+    createdBefore?: Date;
+}
+
+export interface GroupQueryFilters {
+    isPrivate?: boolean;
+    memberCount?: { min?: number; max?: number };
+    isActive?: boolean;
+    createdAfter?: Date;
+    searchTerm?: string;
+}
