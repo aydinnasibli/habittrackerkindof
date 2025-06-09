@@ -60,7 +60,7 @@ export function TestimonialsSection() {
                       />
                     ))}
                 </div>
-                <p className="text-card-foreground leading-relaxed">&quot{testimonial.content}&quot</p>
+                <p className="text-card-foreground leading-relaxed">"{testimonial.content}"</p>
               </CardContent>
               <CardFooter className="border-t border-border pt-4 mt-auto">
                 <div className="flex items-center gap-4">

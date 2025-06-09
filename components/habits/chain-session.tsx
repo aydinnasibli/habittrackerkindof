@@ -427,7 +427,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                             ) : (
                                 <Zap className="mr-2 h-4 w-4" />
                             )}
-                            I&aposm Ready - End Break Early
+                            I'm Ready - End Break Early
                         </Button>
                     </CardContent>
                 </Card>
@@ -501,14 +501,14 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                             <Alert className="border-border bg-muted">
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>
-                                    Session is paused. Click Resume when you&aposre ready to continue!
+                                    Session is paused. Click Resume when you're ready to continue!
                                 </AlertDescription>
                             </Alert>
                         ) : (
                             <div className="space-y-6">
                                 <div className="bg-muted rounded-lg p-4">
                                     <p className="text-sm text-muted-foreground font-medium">
-                                        🎯 <strong>Focus Mode:</strong> Give this habit your full attention. You&aposve got this!
+                                        🎯 <strong>Focus Mode:</strong> Give this habit your full attention. You've got this!
                                     </p>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -656,7 +656,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                             Complete Habit
                         </DialogTitle>
                         <DialogDescription>
-                            Awesome! You&aposre about to complete <strong>&quot{currentHabit?.habitName}&quot</strong>
+                            Awesome! You're about to complete <strong>"{currentHabit?.habitName}"</strong>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -696,7 +696,7 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                     <DialogHeader>
                         <DialogTitle>Skip Habit</DialogTitle>
                         <DialogDescription>
-                            Skip <strong>&quot{currentHabit?.habitName}&quot</strong> and continue to the next habit. That&aposs okay!
+                            Skip <strong>"{currentHabit?.habitName}"</strong> and continue to the next habit. That's okay!
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -732,12 +732,12 @@ export function ChainSession({ initialSession, onSessionEnd }: ChainSessionProps
                     <DialogHeader>
                         <DialogTitle>End Session</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to end this chain session? You&aposve completed {completedHabits} out of {session.totalHabits} habits.
+                            Are you sure you want to end this chain session? You've completed {completedHabits} out of {session.totalHabits} habits.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
                         <div className="bg-muted border rounded-lg p-4 text-sm text-muted-foreground">
-                            💡 <strong>Remember:</strong> Progress isn&apost about perfection. Every step counts, and you can always start again!
+                            💡 <strong>Remember:</strong> Progress isn't about perfection. Every step counts, and you can always start again!
                         </div>
                     </div>
                     <DialogFooter>
