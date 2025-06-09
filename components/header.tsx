@@ -42,7 +42,7 @@ export function Header() {
         }
       } else if (!isSignedIn) {
         // Set ocean theme for non-signed-in users
-        setTheme("sunset");
+        setTheme("system");
       }
     };
 
@@ -56,14 +56,14 @@ export function Header() {
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
             <Activity className="h-6 w-6 text-primary" />
-            <span className="font-bold text-xl">Necmettinyo</span>
+            <span className="font-bold text-xl">Ethos</span>
           </Link>
           <nav className="flex items-center gap-4">
             <Link href="/sign-in">
-              <Button variant="ghost">Sign In</Button>
+              <Button className="cursor-pointer" variant="ghost">Sign In</Button>
             </Link>
             <Link href="/sign-up">
-              <Button>Sign Up</Button>
+              <Button className="cursor-pointer">Sign Up</Button>
             </Link>
           </nav>
         </div>
@@ -81,7 +81,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <Link href="/" className="flex items-center space-x-2">
           <Activity className="h-6 w-6 text-primary" />
-          <span className="font-bold text-xl">Necmettinyo</span>
+          <span className="font-bold text-xl">Ethos</span>
         </Link>
         <nav className="ml-auto flex items-center gap-4">
           <Link href="/dashboard">
