@@ -220,7 +220,7 @@ export async function checkDailyBonus(clerkUserId: string, completedHabitsToday:
 
         // Check if daily bonus already awarded today
         const today = new Date().toDateString();
-        const alreadyAwarded = profile.xpHistory.some(entry =>
+        const alreadyAwarded = profile.xpHistory.some((entry: IXPEntry) =>
             entry.source === 'daily_bonus' &&
             entry.date.toDateString() === today
         );
