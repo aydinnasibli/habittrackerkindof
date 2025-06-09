@@ -161,34 +161,91 @@ export async function getUserHabits(timezone: string = 'UTC'): Promise<IHabit[]>
 
         await ensureConnection();
 
+        // Optimized query with projection to reduce data transfer
         const habits = await Habit
             .find({ clerkUserId: userId })
+            .select('clerkUserId name description category frequency timeOfDay timeToComplete priority status completions createdAt updatedAt')
             .sort({ createdAt: -1 })
             .lean<LeanHabit[]>()
             .exec();
 
         if (!habits?.length) return [];
 
-        return habits.map(habit => ({
-            _id: habit._id?.toString() || '',
-            clerkUserId: habit.clerkUserId || '',
-            name: habit.name || '',
-            description: habit.description || '',
-            category: habit.category || 'Health',
-            frequency: habit.frequency || 'Daily',
-            timeOfDay: habit.timeOfDay || 'Morning',
-            timeToComplete: habit.timeToComplete || '5 minutes',
-            priority: habit.priority || 'Medium',
-            streak: calculateStreak(habit.completions || [], habit.frequency || 'Daily', timezone),
-            status: habit.status || 'active',
-            completions: Array.isArray(habit.completions) ? habit.completions : [],
-            createdAt: habit.createdAt || new Date(),
-            updatedAt: habit.updatedAt || new Date(),
-        })) as IHabit[];
+        // Batch process streak calculations to avoid repeated timezone operations
+        const todayString = getTodayString(timezone);
+        const yesterdayString = getYesterdayString(timezone);
+
+        return habits.map(habit => {
+            // Pre-compute completion dates for faster streak calculation
+            const completionDates = new Set(
+                (habit.completions || [])
+                    .filter(c => c.completed)
+                    .map(c => getDateString(new Date(c.date), timezone))
+            );
+
+            const streak = calculateStreakOptimized(completionDates, habit.frequency || 'Daily', timezone, todayString, yesterdayString);
+
+            return {
+                _id: habit._id?.toString() || '',
+                clerkUserId: habit.clerkUserId || '',
+                name: habit.name || '',
+                description: habit.description || '',
+                category: habit.category || 'Health',
+                frequency: habit.frequency || 'Daily',
+                timeOfDay: habit.timeOfDay || 'Morning',
+                timeToComplete: habit.timeToComplete || '5 minutes',
+                priority: habit.priority || 'Medium',
+                streak,
+                status: habit.status || 'active',
+                completions: Array.isArray(habit.completions) ? habit.completions : [],
+                createdAt: habit.createdAt || new Date(),
+                updatedAt: habit.updatedAt || new Date(),
+            };
+        }) as IHabit[];
     } catch (error) {
         console.error('Error fetching habits:', error);
         return [];
     }
+}
+
+// Optimized streak calculation that reuses pre-computed values
+function calculateStreakOptimized(
+    completionDates: Set<string>,
+    frequency: string,
+    timezone: string,
+    todayString: string,
+    yesterdayString: string
+): number {
+    if (completionDates.size === 0) return 0;
+
+    const hasToday = completionDates.has(todayString);
+    const hasYesterday = completionDates.has(yesterdayString);
+
+    // Quick exit if no recent activity
+    if (!hasToday && !hasYesterday) return 0;
+
+    let checkDate = hasToday ? todayString : yesterdayString;
+    let streak = 0;
+
+    // Limit iterations and cache day-of-week calculations
+    for (let i = 0; i < 365; i++) {
+        const dayOfWeek = getDayOfWeek(checkDate);
+
+        if (shouldDoHabitOnDay(frequency, dayOfWeek)) {
+            if (completionDates.has(checkDate)) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+
+        // Move to previous day
+        const date = new Date(checkDate + 'T12:00:00.000Z');
+        date.setUTCDate(date.getUTCDate() - 1);
+        checkDate = getDateString(date, timezone);
+    }
+
+    return streak;
 }
 
 export async function completeHabit(habitId: string, timezone: string = 'UTC') {
