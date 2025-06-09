@@ -5,7 +5,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { type ThemeProviderProps } from "next-themes";
 import { useEffect } from "react";
 
-// Enhanced theme CSS variables with proper HSL format
+// Enhanced theme CSS variables
 const THEME_STYLES = `
   :root {
     --background: 0 0% 100%;
@@ -27,40 +27,30 @@ const THEME_STYLES = `
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-  }
+  --background: 0 0% 3%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 4%;
+  --popover-foreground: 0 0% 97%;
+  --primary: 0 0% 90%;
+  --primary-foreground: 0 0% 8%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 92%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 0 0% 15%;
+  --accent-foreground: 0 0% 90%;
+  --destructive: 0 70% 25%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 18%;
+  --input: 0 0% 14%;
+  --ring: 0 0% 85%;
+}
 
   .midnight {
     --background: 0 0% 0%;
@@ -82,11 +72,6 @@ const THEME_STYLES = `
     --border: 0 0% 15%;
     --input: 0 0% 15%;
     --ring: 210 100% 70%;
-    --chart-1: 210 100% 70%;
-    --chart-2: 180 100% 50%;
-    --chart-3: 240 100% 80%;
-    --chart-4: 270 100% 60%;
-    --chart-5: 300 100% 70%;
   }
 
   .forest {
@@ -109,11 +94,6 @@ const THEME_STYLES = `
     --border: 120 10% 20%;
     --input: 120 10% 20%;
     --ring: 142 76% 36%;
-    --chart-1: 142 76% 36%;
-    --chart-2: 120 50% 50%;
-    --chart-3: 90 60% 40%;
-    --chart-4: 60 70% 45%;
-    --chart-5: 180 50% 30%;
   }
 
   .ocean {
@@ -136,11 +116,6 @@ const THEME_STYLES = `
     --border: 210 30% 18%;
     --input: 210 30% 18%;
     --ring: 200 90% 60%;
-    --chart-1: 200 90% 60%;
-    --chart-2: 190 80% 50%;
-    --chart-3: 210 70% 45%;
-    --chart-4: 220 60% 55%;
-    --chart-5: 180 85% 40%;
   }
 
   .sunset {
@@ -163,11 +138,6 @@ const THEME_STYLES = `
     --border: 15 25% 18%;
     --input: 15 25% 18%;
     --ring: 25 95% 65%;
-    --chart-1: 25 95% 65%;
-    --chart-2: 35 90% 60%;
-    --chart-3: 45 85% 55%;
-    --chart-4: 15 80% 50%;
-    --chart-5: 5 85% 60%;
   }
 
   .lavender {
@@ -190,11 +160,6 @@ const THEME_STYLES = `
     --border: 270 15% 20%;
     --input: 270 15% 20%;
     --ring: 262 83% 70%;
-    --chart-1: 262 83% 70%;
-    --chart-2: 280 75% 65%;
-    --chart-3: 250 80% 60%;
-    --chart-4: 290 70% 75%;
-    --chart-5: 240 85% 65%;
   }
 `;
 
@@ -227,7 +192,6 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       enableSystem
       disableTransitionOnChange
       attribute="class"
-      defaultTheme="system"
     >
       {children}
     </NextThemesProvider>

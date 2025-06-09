@@ -40,7 +40,7 @@ export function Header() {
         }
       } else if (!isSignedIn) {
         // Set ocean theme for non-signed-in users
-        setTheme("dark");
+        setTheme("sunset");
       }
     };
 
