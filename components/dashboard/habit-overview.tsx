@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, MoreHorizontal, Zap, Edit, Eye, Clock, Sun, Moon, Calendar, Flame, Target, TrendingUp } from "lucide-react";
+import { Check, X, MoreHorizontal, Zap, Edit, Eye, Clock, Sun, Moon, Calendar, Flame, Target, TrendingUp, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -173,13 +172,13 @@ function getTimeOfDayIcon(timeOfDay: string) {
 function getPriorityColor(priority: string) {
   switch (priority.toLowerCase()) {
     case 'high':
-      return 'bg-red-100 text-red-800 border-red-200';
+      return 'bg-destructive/10 text-destructive border-destructive/20';
     case 'medium':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20';
     case 'low':
-      return 'bg-green-100 text-green-800 border-green-200';
+      return 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20';
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-200';
+      return 'bg-muted text-muted-foreground border-border';
   }
 }
 
@@ -376,38 +375,32 @@ export function HabitOverview() {
 
   if (loading) {
     return (
-      <Card className="shadow-sm border-0 bg-gradient-to-br from-slate-50 to-white">
-        <CardHeader className="pb-4">
+      <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
+        <CardHeader className="pb-6">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                Today's Habits
-              </CardTitle>
-              <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Loading your habits...
-              </p>
+            <div className="space-y-2">
+              <div className="h-8 w-48 bg-muted animate-pulse rounded-lg"></div>
+              <div className="h-5 w-32 bg-muted/60 animate-pulse rounded"></div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="space-y-1">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
+                <div className="h-3 w-16 bg-muted/60 animate-pulse rounded"></div>
+              </div>
+              <div className="h-2 w-32 bg-muted animate-pulse rounded-full"></div>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-8">
           {['Morning', 'Afternoon', 'Evening', 'Throughout day'].map((timeOfDay) => (
             <div key={timeOfDay} className="space-y-4">
-              <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-                <div className="h-6 w-6 bg-slate-200 rounded-lg animate-pulse"></div>
-                <div className="h-5 w-20 bg-slate-200 rounded animate-pulse"></div>
+              <div className="flex items-center gap-3 pb-4">
+                <div className="h-8 w-8 bg-muted animate-pulse rounded-xl"></div>
+                <div className="h-6 w-24 bg-muted animate-pulse rounded"></div>
               </div>
-              <div className="space-y-3">
+              <div className="grid gap-3">
                 {[1, 2].map((i) => (
-                  <div key={i} className="p-5 bg-white border border-slate-100 rounded-xl shadow-sm animate-pulse">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 bg-slate-200 rounded-full"></div>
-                      <div className="space-y-2 flex-1">
-                        <div className="h-5 bg-slate-200 rounded w-2/3"></div>
-                        <div className="h-4 bg-slate-200 rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  </div>
+                  <div key={i} className="h-20 bg-muted/30 animate-pulse rounded-xl"></div>
                 ))}
               </div>
             </div>
@@ -426,50 +419,80 @@ export function HabitOverview() {
 
   return (
     <>
-      <Card className="shadow-sm border-0 bg-gradient-to-br from-slate-50 to-white">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+      <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+
+        <CardHeader className="relative pb-6 border-b border-border/50">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <CardTitle className="text-2xl font-bold tracking-tight">
                 Today's Habits
               </CardTitle>
-              <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                {getCurrentDateInTimezone(userTimezone)}
-                <span className="w-1 h-1 rounded-full bg-slate-400"></span>
-                <span>{userTimezone}</span>
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-sm font-medium text-slate-700">
-                  {completedCount} of {habits.length} completed
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" />
+                  {getCurrentDateInTimezone(userTimezone)}
                 </div>
-                <div className="text-xs text-slate-500">
-                  {Math.round(completionPercentage)}% progress
+                <div className="w-1 h-1 rounded-full bg-muted-foreground/50"></div>
+                <span className="font-medium">{userTimezone}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div className="text-right space-y-1">
+                <div className="text-sm font-semibold text-foreground">
+                  {completedCount} of {habits.length}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {Math.round(completionPercentage)}% complete
                 </div>
               </div>
+
               <div className="relative">
-                <Progress
-                  value={completionPercentage}
-                  className="w-32 h-2 bg-slate-100"
-                />
-                <div className="absolute -top-1 -right-1">
-                  <TrendingUp className="h-4 w-4 text-green-500" />
+                <div className="w-16 h-16 relative">
+                  <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeDasharray="100, 100"
+                      className="text-muted/30"
+                    />
+                    <path
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeDasharray={`${completionPercentage}, 100`}
+                      className="text-primary transition-all duration-500 ease-out"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="relative p-6">
           {habits.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Target className="h-8 w-8 text-slate-400" />
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-20 h-20 bg-muted/50 rounded-2xl flex items-center justify-center mb-6">
+                <Activity className="h-10 w-10 text-muted-foreground/50" />
               </div>
-              <p className="text-slate-600 font-medium">No habits scheduled for today</p>
-              <p className="text-sm text-slate-500 mt-1">Check back on your scheduled days!</p>
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg text-foreground">No habits for today</h3>
+                <p className="text-muted-foreground max-w-sm">
+                  Your scheduled habits will appear here on their designated days
+                </p>
+              </div>
             </div>
           ) : (
             <div className="space-y-8">
@@ -482,127 +505,142 @@ export function HabitOverview() {
 
                 return (
                   <div key={timeOfDay} className="space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center justify-between pb-4 border-b border-border/30">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                          <TimeIcon className="h-4 w-4 text-slate-600" />
+                        <div className="w-10 h-10 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl flex items-center justify-center">
+                          <TimeIcon className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-slate-900">{timeOfDay}</h3>
-                          <p className="text-xs text-slate-500">{timeHabits.length} habit{timeHabits.length !== 1 ? 's' : ''}</p>
+                          <h3 className="font-semibold text-lg text-foreground">{timeOfDay}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {timeHabits.length} habit{timeHabits.length !== 1 ? 's' : ''}
+                          </p>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="bg-slate-100 text-slate-600">
-                        {completedInTime}/{timeHabits.length}
-                      </Badge>
+
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className="bg-primary/10 text-primary border-primary/20 font-medium"
+                        >
+                          {completedInTime}/{timeHabits.length}
+                        </Badge>
+                      </div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="grid gap-3">
                       {timeHabits.map((habit) => (
                         <div
                           key={habit._id}
-                          className={`group relative p-5 rounded-xl border transition-all duration-200 ${habit.completedToday
-                            ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-sm"
-                            : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                          className={`group relative overflow-hidden rounded-xl border transition-all duration-200 ${habit.completedToday
+                            ? "bg-gradient-to-r from-green-500/10 via-green-500/5 to-transparent border-green-500/20 shadow-sm"
+                            : "bg-card/80 border-border/50 hover:border-border hover:shadow-md hover:bg-card"
                             }`}
                         >
-                          <div className="flex items-center gap-4">
-                            <Button
-                              size="icon"
-                              variant={habit.completedToday ? "default" : "outline"}
-                              className={`h-12 w-12 rounded-full transition-all duration-200 ${habit.completedToday
-                                ? "bg-green-500 hover:bg-green-600 border-green-500 shadow-sm"
-                                : "border-slate-300 hover:border-green-400 hover:bg-green-50"
-                                } ${isToggling[habit._id!] ? "animate-pulse" : ""}`}
-                              onClick={() => toggleHabit(habit._id!, habit.completedToday)}
-                              disabled={isToggling[habit._id!]}
-                            >
-                              {habit.completedToday ? (
-                                <Check className="h-5 w-5 text-white" />
-                              ) : (
-                                <div className="h-5 w-5" />
-                              )}
-                            </Button>
-
-                            <div className="flex-1 min-w-0">
-                              <div
-                                className={`font-semibold text-lg cursor-pointer hover:text-blue-600 transition-colors truncate ${habit.completedToday ? "line-through text-slate-500" : "text-slate-900"
-                                  }`}
-                                onClick={() => handleHabitNameClick(habit)}
-                                title={habit.name}
+                          <div className="p-5">
+                            <div className="flex items-center gap-4">
+                              <Button
+                                size="icon"
+                                variant={habit.completedToday ? "default" : "outline"}
+                                className={`h-12 w-12 rounded-full transition-all cursor-pointer duration-200 shrink-0 ${habit.completedToday
+                                  ? "bg-green-500 hover:bg-green-600 border-green-500 shadow-sm scale-105"
+                                  : "border-border hover:border-primary/50 hover:bg-primary/5"
+                                  } ${isToggling[habit._id!] ? "animate-pulse" : ""}`}
+                                onClick={() => toggleHabit(habit._id!, habit.completedToday)}
+                                disabled={isToggling[habit._id!]}
                               >
-                                {habit.name}
-                              </div>
+                                {habit.completedToday ? (
+                                  <Check className="h-5 w-5 text-white" />
+                                ) : (
+                                  <div className="h-5 w-5" />
+                                )}
+                              </Button>
 
-                              <div className="flex items-center gap-4 mt-2 flex-wrap">
-                                <Badge variant="outline" className="text-xs">
-                                  {habit.frequency}
-                                </Badge>
-
-                                <div className="flex items-center gap-1 text-sm text-slate-600">
-                                  <Flame className="h-4 w-4 text-orange-500" />
-                                  <span className="font-medium">{habit.streak}</span>
-                                  <span>day{habit.streak !== 1 ? 's' : ''}</span>
+                              <div className="flex-1 min-w-0 space-y-3">
+                                <div
+                                  className={`font-semibold text-lg cursor-pointer hover:text-primary transition-colors truncate ${habit.completedToday ? "line-through text-muted-foreground" : "text-foreground"
+                                    }`}
+                                  onClick={() => handleHabitNameClick(habit)}
+                                  title={habit.name}
+                                >
+                                  {habit.name}
                                 </div>
 
-                                <Badge className={`text-xs font-medium ${getPriorityColor(habit.priority)}`}>
-                                  {habit.priority} Priority
-                                </Badge>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <Badge variant="outline" className="text-xs bg-background/50">
+                                    {habit.frequency}
+                                  </Badge>
 
-                                <div className="hidden md:flex items-center gap-1 text-sm text-slate-600">
-                                  <Target className="h-4 w-4" />
-                                  <span>Impact: {habit.impactScore}/10</span>
+                                  <div className="flex items-center gap-1.5 text-sm">
+                                    <Flame className="h-4 w-4 text-orange-500" />
+                                    <span className="font-medium text-foreground">{habit.streak}</span>
+                                    <span className="text-muted-foreground">day{habit.streak !== 1 ? 's' : ''}</span>
+                                  </div>
+
+                                  <Badge className={`text-xs cursor-default font-medium ${getPriorityColor(habit.priority)}`}>
+                                    {habit.priority}
+                                  </Badge>
+
+                                  <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <Target className="h-4 w-4" />
+                                    <span className="font-medium">{habit.impactScore}/10</span>
+                                  </div>
                                 </div>
                               </div>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="opacity-0 group-hover:opacity-100 transition-all duration-200 h-9 w-9 hover:bg-muted/50"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => toggleHabit(habit._id!, habit.completedToday)}
+                                    className="cursor-pointer"
+                                    disabled={isToggling[habit._id!]}
+                                  >
+                                    {habit.completedToday ? (
+                                      <>
+                                        <X className="mr-2 h-4 w-4" />
+                                        Mark incomplete
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Check className="mr-2 h-4 w-4" />
+                                        Mark complete
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="cursor-pointer"
+                                    onClick={() => handleEditHabit(habit)}
+                                  >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit habit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="cursor-pointer"
+                                    onClick={() => handleViewDetails(habit)}
+                                  >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View details
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => toggleHabit(habit._id!, habit.completedToday)}
-                                  className="cursor-pointer"
-                                  disabled={isToggling[habit._id!]}
-                                >
-                                  {habit.completedToday ? (
-                                    <>
-                                      <X className="mr-2 h-4 w-4" />
-                                      Mark incomplete
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Check className="mr-2 h-4 w-4" />
-                                      Mark complete
-                                    </>
-                                  )}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="cursor-pointer"
-                                  onClick={() => handleEditHabit(habit)}
-                                >
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit habit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="cursor-pointer"
-                                  onClick={() => handleViewDetails(habit)}
-                                >
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View details
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
                           </div>
+
+                          {/* Subtle gradient overlay for completed habits */}
+                          {habit.completedToday && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-transparent pointer-events-none" />
+                          )}
                         </div>
                       ))}
                     </div>
