@@ -542,15 +542,15 @@ export function HabitOverview() {
                               <Button
                                 size="icon"
                                 variant={habit.completedToday ? "default" : "outline"}
-                                className={`h-12 w-12 rounded-full transition-all cursor-pointer duration-200 shrink-0 ${habit.completedToday
-                                  ? "bg-green-500 hover:bg-green-600 border-green-500 shadow-sm scale-105"
-                                  : "border-border hover:border-primary/50 hover:bg-primary/5"
+                                className={`h-12 w-12 rounded-full transition-all cursor-pointer duration-300 shrink-0 ${habit.completedToday
+                                  ? "bg-primary hover:bg-primary/90 border-primary shadow-lg scale-105 ring-2 ring-primary/20"
+                                  : "border-border hover:border-primary/50 hover:bg-primary/5 hover:scale-105"
                                   } ${isToggling[habit._id!] ? "animate-pulse" : ""}`}
                                 onClick={() => toggleHabit(habit._id!, habit.completedToday)}
                                 disabled={isToggling[habit._id!]}
                               >
                                 {habit.completedToday ? (
-                                  <Check className="h-5 w-5 text-white" />
+                                  <Check className="h-5 w-5 scale-125 text-primary-foreground drop-shadow-sm" />
                                 ) : (
                                   <div className="h-5 w-5" />
                                 )}
@@ -593,44 +593,46 @@ export function HabitOverview() {
                                   <Button
                                     size="icon"
                                     variant="ghost"
-                                    className="opacity-0 group-hover:opacity-100 transition-all duration-200 h-9 w-9 hover:bg-muted/50"
+                                    className="transition-all cursor-pointer duration-200 h-10 w-10 hover:bg-muted hover:scale-105 active:scale-95"
                                   >
-                                    <MoreHorizontal className="h-4 w-4" />
+                                    <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-48">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
+                                <DropdownMenuContent align="end" className="w-52 shadow-lg border-border/50 bg-card/95 backdrop-blur-sm">
+                                  <DropdownMenuLabel className="text-sm font-semibold text-foreground">
+                                    Habit Actions
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuSeparator className="bg-border/50" />
                                   <DropdownMenuItem
                                     onClick={() => toggleHabit(habit._id!, habit.completedToday)}
-                                    className="cursor-pointer"
+                                    className="cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors py-2.5"
                                     disabled={isToggling[habit._id!]}
                                   >
                                     {habit.completedToday ? (
                                       <>
-                                        <X className="mr-2 h-4 w-4" />
-                                        Mark incomplete
+                                        <X className="mr-3 h-4 w-4 text-destructive" />
+                                        <span className="text-sm">Mark as incomplete</span>
                                       </>
                                     ) : (
                                       <>
-                                        <Check className="mr-2 h-4 w-4" />
-                                        Mark complete
+                                        <Check className="mr-3 h-4 w-4 text-primary" />
+                                        <span className="text-sm">Mark as complete</span>
                                       </>
                                     )}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    className="cursor-pointer"
+                                    className="cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors py-2.5"
                                     onClick={() => handleEditHabit(habit)}
                                   >
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit habit
+                                    <Edit className="mr-3 h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm">Edit habit</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    className="cursor-pointer"
+                                    className="cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors py-2.5"
                                     onClick={() => handleViewDetails(habit)}
                                   >
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    View details
+                                    <Eye className="mr-3 h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm">View details</span>
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
