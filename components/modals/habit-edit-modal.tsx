@@ -208,7 +208,7 @@ export function HabitEditModal({ habit, isOpen, onClose, onUpdate }: HabitEditMo
                         </div>
                     </div>
 
-                    <DialogFooter className="gap-2">
+                    <DialogFooter className="gap-2 ">
                         <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                             Cancel
                         </Button>
