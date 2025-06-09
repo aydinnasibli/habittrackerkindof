@@ -47,5 +47,7 @@ const HabitSchema = new Schema<IHabit>({
 // Create indexes
 HabitSchema.index({ clerkUserId: 1, status: 1 });
 HabitSchema.index({ clerkUserId: 1, createdAt: -1 });
-
+// Add this at the bottom of your Habit.ts file
+HabitSchema.index({ clerkUserId: 1, status: 1, createdAt: -1 });
+HabitSchema.index({ clerkUserId: 1, 'completions.date': -1 }, { sparse: true });
 export const Habit = models.Habit || model<IHabit>('Habit', HabitSchema);
