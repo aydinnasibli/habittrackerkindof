@@ -31,6 +31,18 @@ interface GroupWithMembers {
     };
 }
 
+// Add interface for profile with XP data
+interface ProfileWithXP {
+    xp: {
+        total: number;
+    };
+    rank: {
+        title: string;
+        level: number;
+        progress: number;
+    };
+}
+
 // Recalculate and sync XP/rank for a profile
 export async function recalculateProfileXP(clerkUserId: string) {
     try {
@@ -373,8 +385,7 @@ export async function getUserRankInfo(clerkUserId: string) {
         await connectToDatabase();
 
         const profile = await Profile.findOne({ clerkUserId })
-            .select('xp rank')
-            .lean();
+            .select('xp rank') as ProfileWithXP | null;
 
         if (!profile) {
             return { success: false, error: 'Profile not found' };
