@@ -61,7 +61,14 @@ export function HabitEditModal({ habit, isOpen, onClose, onUpdate }: HabitEditMo
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!habit) return;
+        if (!habit || !habit._id) {
+            toast({
+                title: "Error",
+                description: "Invalid habit data",
+                variant: "destructive",
+            });
+            return;
+        }
 
         setIsLoading(true);
         try {
