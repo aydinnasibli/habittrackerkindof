@@ -13,12 +13,26 @@ import { IChainSession } from '@/lib/types';
 import { Types, FlattenMaps } from 'mongoose';
 
 type LeanChainSession = FlattenMaps<IChainSession> & { _id: Types.ObjectId };
+
 interface ChainHabit {
     habitId: string;
     habitName: string;
     duration: number;
     order: number;
 }
+
+// Define the habit session type for better type safety
+interface HabitSessionItem {
+    habitId: string;
+    habitName: string;
+    duration: number;
+    order: number;
+    status: 'pending' | 'active' | 'completed' | 'skipped';
+    startedAt?: Date;
+    completedAt?: Date;
+    notes?: string;
+}
+
 export async function startHabitChain(chainId: string) {
     try {
         const { userId } = await auth();
@@ -239,8 +253,8 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
             nextHabit.startedAt = new Date();
         } else {
             // Chain completed - calculate completion rate and award XP accordingly
-            const completedHabits = session.habits.filter(h => h.status === 'completed').length;
-            const skippedHabits = session.habits.filter(h => h.status === 'skipped').length;
+            const completedHabits = session.habits.filter((h: HabitSessionItem) => h.status === 'completed').length;
+            const skippedHabits = session.habits.filter((h: HabitSessionItem) => h.status === 'skipped').length;
             const completionRate = completedHabits / session.habits.length;
 
             session.status = 'completed';
@@ -340,8 +354,8 @@ export async function skipCurrentHabit(sessionId: string, reason?: string) {
             nextHabit.startedAt = new Date();
         } else {
             // Chain completed - calculate completion rate and award XP accordingly
-            const completedHabits = session.habits.filter(h => h.status === 'completed').length;
-            const skippedHabits = session.habits.filter(h => h.status === 'skipped').length;
+            const completedHabits = session.habits.filter((h: HabitSessionItem) => h.status === 'completed').length;
+            const skippedHabits = session.habits.filter((h: HabitSessionItem) => h.status === 'skipped').length;
             const completionRate = completedHabits / session.habits.length;
 
             session.status = 'completed';
@@ -379,7 +393,7 @@ export async function skipCurrentHabit(sessionId: string, reason?: string) {
             success: true,
             isChainCompleted: session.status === 'completed',
             message: session.status === 'completed'
-                ? `Chain completed! ${session.habits.filter(h => h.status === 'completed').length}/${session.habits.length} habits completed.`
+                ? `Chain completed! ${session.habits.filter((h: HabitSessionItem) => h.status === 'completed').length}/${session.habits.length} habits completed.`
                 : 'Habit skipped. Moving to next habit.'
         };
     } catch (error) {
