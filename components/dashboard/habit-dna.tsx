@@ -11,7 +11,7 @@ import { getUserHabits } from "@/lib/actions/habits";
 import { IHabit } from "@/lib/types";
 import * as d3 from "d3";
 
-type HabitNode = {
+type HabitNode = d3.SimulationNodeDatum & {
   id: string;
   name: string;
   value: number;
@@ -21,9 +21,9 @@ type HabitNode = {
   completions: number;
 };
 
-type HabitLink = {
-  source: string;
-  target: string;
+type HabitLink = d3.SimulationLinkDatum<HabitNode> & {
+  source: string | HabitNode;
+  target: string | HabitNode;
   value: number;
 };
 
@@ -175,7 +175,7 @@ export function HabitDNA() {
 
     // Create a force simulation
     const simulation = d3
-      .forceSimulation<HabitNode, HabitLink>(habitData.nodes as HabitNode[])
+      .forceSimulation<HabitNode, HabitLink>(habitData.nodes)
       .force(
         "link",
         d3
@@ -219,7 +219,7 @@ export function HabitDNA() {
           .drag<SVGGElement, HabitNode>()
           .on("start", dragstarted)
           .on("drag", dragged)
-          .on("end", dragended) as any
+          .on("end", dragended)
       );
 
     // Add circles to nodes
@@ -268,17 +268,6 @@ export function HabitDNA() {
       .attr("font-size", "10px")
       .attr("fill", "hsl(var(--muted-foreground))");
 
-    // Update positions on each tick
-    simulation.on("tick", () => {
-      link
-        .attr("x1", (d) => (d.source as unknown as HabitNode).x!)
-        .attr("y1", (d) => (d.source as unknown as HabitNode).y!)
-        .attr("x2", (d) => (d.target as unknown as HabitNode).x!)
-        .attr("y2", (d) => (d.target as unknown as HabitNode).y!);
-
-      node.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
-    });
-
     // Drag functions
     function dragstarted(event: d3.D3DragEvent<SVGGElement, HabitNode, any>) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -297,6 +286,17 @@ export function HabitDNA() {
       event.subject.fy = null;
     }
 
+    // Update positions on each tick
+    simulation.on("tick", () => {
+      link
+        .attr("x1", (d) => (d.source as HabitNode).x!)
+        .attr("y1", (d) => (d.source as HabitNode).y!)
+        .attr("x2", (d) => (d.target as HabitNode).x!)
+        .attr("y2", (d) => (d.target as HabitNode).y!);
+
+      node.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
+    });
+
     return () => {
       simulation.stop();
     };
@@ -313,7 +313,10 @@ export function HabitDNA() {
     // Find most connected habit
     const connectionCounts = nodes.map(node => ({
       ...node,
-      connections: links.filter(link => link.source === node.id || link.target === node.id).length
+      connections: links.filter(link =>
+        (typeof link.source === 'string' ? link.source : link.source.id) === node.id ||
+        (typeof link.target === 'string' ? link.target : link.target.id) === node.id
+      ).length
     }));
     const mostConnected = connectionCounts.reduce((prev, current) =>
       current.connections > prev.connections ? current : prev
@@ -337,7 +340,10 @@ export function HabitDNA() {
 
     // Find low connection habits
     const lowConnectionHabits = nodes.filter(node => {
-      const connections = links.filter(link => link.source === node.id || link.target === node.id).length;
+      const connections = links.filter(link =>
+        (typeof link.source === 'string' ? link.source : link.source.id) === node.id ||
+        (typeof link.target === 'string' ? link.target : link.target.id) === node.id
+      ).length;
       return connections === 0;
     });
 
