@@ -12,7 +12,7 @@ export function CTASection() {
           </h2>
           <p className="text-lg sm:text-xl mb-8 lg:mb-10 text-primary-foreground/90 leading-relaxed max-w-3xl mx-auto">
             Join thousands of people who have already changed their lives with
-            Necmettinyo's unique habit-building system.
+            Ehtos unique habit-building system.
           </p>
           <Button
             size="lg"
