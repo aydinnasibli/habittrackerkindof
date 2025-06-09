@@ -5,7 +5,7 @@ import { updateProfileStats } from './profile';
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { connectToDatabase } from '@/lib/mongoose';
+import { ensureConnection } from '@/lib/mongoose';
 import { ChainSession } from '@/lib/models/ChainSession';
 import { HabitChain } from '@/lib/models/HabitChain';
 import { Habit } from '@/lib/models/Habit';
@@ -45,7 +45,7 @@ export async function startHabitChain(chainId: string) {
             throw new Error('Invalid chain ID');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         // Check if user already has an active chain session
         const activeSession = await ChainSession.findOne({
@@ -123,7 +123,7 @@ export async function getActiveChainSession(): Promise<IChainSession | null> {
             return null;
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const session = await ChainSession
             .findOne({
@@ -175,7 +175,7 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
             throw new Error('Invalid session ID');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const session = await ChainSession.findOne({
             _id: new Types.ObjectId(sessionId),
@@ -322,7 +322,7 @@ export async function skipCurrentHabit(sessionId: string, reason?: string) {
             throw new Error('Invalid session ID');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const session = await ChainSession.findOne({
             _id: new Types.ObjectId(sessionId),
@@ -413,7 +413,7 @@ export async function pauseChainSession(sessionId: string) {
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const result = await ChainSession.updateOne(
             {
@@ -449,7 +449,7 @@ export async function resumeChainSession(sessionId: string) {
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const session = await ChainSession.findOne({
             _id: new Types.ObjectId(sessionId),
@@ -487,7 +487,7 @@ export async function abandonChainSession(sessionId: string) {
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const result = await ChainSession.updateOne(
             {
@@ -525,7 +525,7 @@ export async function startBreak(sessionId: string, duration: number) {
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const result = await ChainSession.updateOne(
             {
@@ -562,7 +562,7 @@ export async function endBreak(sessionId: string) {
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const session = await ChainSession.findOne({
             _id: new Types.ObjectId(sessionId),
@@ -601,7 +601,7 @@ export async function getPastChainSessions(): Promise<IChainSession[]> {
             return [];
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const sessions = await ChainSession
             .find({

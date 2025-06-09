@@ -3,7 +3,7 @@
 
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { connectToDatabase } from '@/lib/mongoose';
+import { ensureConnection } from '@/lib/mongoose';
 import { Profile } from '@/lib/models/Profile';
 import { Habit } from '@/lib/models/Habit';
 import { ChainSession } from '@/lib/models/ChainSession';
@@ -21,7 +21,7 @@ export async function getOrCreateProfile(): Promise<IProfile | null> {
             return null;
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         // Try to find existing profile
         let profile = await Profile.findOne({ clerkUserId: userId }).lean<LeanProfile>();
@@ -168,7 +168,7 @@ export async function fixMissingXP(): Promise<{ success: boolean; error?: string
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         // Update any profile that doesn't have XP field or has null/undefined XP
         const result = await Profile.updateOne(
@@ -217,7 +217,7 @@ export async function updateProfile(updateData: {
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const result = await Profile.updateOne(
             { clerkUserId: userId },
@@ -255,7 +255,7 @@ export async function updateNotificationSettings(notifications: {
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const result = await Profile.updateOne(
             { clerkUserId: userId },
@@ -293,7 +293,7 @@ export async function updatePrivacySettings(privacy: {
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         // Ensure  and showRank have default values if not provided
         const privacyData = {
@@ -335,7 +335,7 @@ export async function updateGoals(goals: {
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const result = await Profile.updateOne(
             { clerkUserId: userId },
@@ -368,7 +368,7 @@ export async function updateProfileStats() {
             throw new Error('User not authenticated');
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         // Get stats from habits and chain sessions
         const [habits, chainSessions] = await Promise.all([

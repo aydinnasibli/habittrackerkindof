@@ -2,7 +2,7 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { connectToDatabase } from '@/lib/mongoose';
+import { ensureConnection } from '@/lib/mongoose';
 import { Profile } from '@/lib/models/Profile';
 import { Types } from 'mongoose';
 
@@ -64,7 +64,7 @@ export async function getLeaderboard(): Promise<{ success: boolean; users?: Lead
             return { success: false, error: 'Not authenticated' };
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const users = await Profile.find({ 'privacy.profileVisibility': 'public' })
             .select('firstName lastName userName rank stats createdAt')
@@ -98,7 +98,7 @@ export async function getUserProfile(userId: string): Promise<{ success: boolean
             return { success: false, error: 'Not authenticated' };
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const user = await Profile.findOne({
             _id: userId,

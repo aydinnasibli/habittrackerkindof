@@ -2,7 +2,7 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { connectToDatabase } from '@/lib/mongoose';
+import { ensureConnection } from '@/lib/mongoose';
 import { Profile } from '@/lib/models/Profile';
 import { Group } from '@/lib/models/Group';
 import { RANK_REQUIREMENTS, XP_REWARDS, IXPEntry } from '@/lib/types';
@@ -46,7 +46,7 @@ interface ProfileWithXP {
 // Recalculate and sync XP/rank for a profile
 export async function recalculateProfileXP(clerkUserId: string) {
     try {
-        await connectToDatabase();
+        await ensureConnection();
 
         const profile = await Profile.findOne({ clerkUserId });
         if (!profile) return { success: false, error: 'Profile not found' };
@@ -109,7 +109,7 @@ export async function awardXP(
     groupId?: string
 ) {
     try {
-        await connectToDatabase();
+        await ensureConnection();
 
         const profile = await Profile.findOne({ clerkUserId });
         if (!profile) {
@@ -302,7 +302,7 @@ export async function getGlobalLeaderboard(limit: number = 10) {
         const { userId } = await auth();
         if (!userId) return { success: false, error: 'Not authenticated' };
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const leaderboard = await Profile.find({ 'privacy.profileVisibility': 'public' })
             .select('firstName lastName userName xp rank stats')
@@ -344,7 +344,7 @@ export async function getGroupLeaderboard(groupId: string) {
         const { userId } = await auth();
         if (!userId) return { success: false, error: 'Not authenticated' };
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const group = await Group.findById(groupId)
             .select('members')
@@ -382,7 +382,7 @@ export async function getGroupLeaderboard(groupId: string) {
 // Utility function to get user's current rank info
 export async function getUserRankInfo(clerkUserId: string) {
     try {
-        await connectToDatabase();
+        await ensureConnection();
 
         const profile = await Profile.findOne({ clerkUserId })
             .select('xp rank') as ProfileWithXP | null;
@@ -414,7 +414,7 @@ export async function removeXP(
     groupId?: string
 ) {
     try {
-        await connectToDatabase();
+        await ensureConnection();
 
         const profile = await Profile.findOne({ clerkUserId });
         if (!profile) {

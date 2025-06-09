@@ -3,7 +3,7 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { connectToDatabase } from '@/lib/mongoose';
+import { ensureConnection } from '@/lib/mongoose';
 import { Habit } from '@/lib/models/Habit';
 import { HabitChain } from '@/lib/models/HabitChain';
 import { IHabit, IHabitChain, IHabitCompletion, XP_REWARDS } from '@/lib/types';
@@ -127,7 +127,7 @@ export async function createHabit(formData: FormData) {
         const { userId } = await auth();
         if (!userId) throw new Error('User not authenticated');
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const habitData = {
             clerkUserId: userId,
@@ -159,7 +159,7 @@ export async function getUserHabits(timezone: string = 'UTC'): Promise<IHabit[]>
         const { userId } = await auth();
         if (!userId) return [];
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const habits = await Habit
             .find({ clerkUserId: userId })
@@ -197,7 +197,7 @@ export async function completeHabit(habitId: string, timezone: string = 'UTC') {
         if (!userId) throw new Error('User not authenticated');
         if (!Types.ObjectId.isValid(habitId)) throw new Error('Invalid habit ID');
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const habit = await Habit.findOne({
             _id: new Types.ObjectId(habitId),
@@ -282,7 +282,7 @@ export async function skipHabit(habitId: string, timezone: string = 'UTC') {
         if (!userId) throw new Error('User not authenticated');
         if (!Types.ObjectId.isValid(habitId)) throw new Error('Invalid habit ID');
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const habit = await Habit.findOne({
             _id: new Types.ObjectId(habitId),
@@ -357,7 +357,7 @@ export async function updateHabitStatus(habitId: string, status: 'active' | 'pau
         if (!userId) throw new Error('User not authenticated');
         if (!Types.ObjectId.isValid(habitId)) throw new Error('Invalid habit ID');
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const result = await Habit.updateOne(
             { _id: new Types.ObjectId(habitId), clerkUserId: userId },
@@ -382,7 +382,7 @@ export async function deleteHabit(habitId: string) {
         if (!userId) throw new Error('User not authenticated');
         if (!Types.ObjectId.isValid(habitId)) throw new Error('Invalid habit ID');
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const result = await Habit.deleteOne({
             _id: new Types.ObjectId(habitId),
@@ -415,7 +415,7 @@ export async function updateHabit(habitId: string, updateData: {
         if (!userId) throw new Error('User not authenticated');
         if (!Types.ObjectId.isValid(habitId)) throw new Error('Invalid habit ID');
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const result = await Habit.updateOne(
             { _id: new Types.ObjectId(habitId), clerkUserId: userId },
@@ -441,7 +441,7 @@ export async function getHabitAnalytics(days: number = 7, timezone: string = 'UT
             return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
         }
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const habits = await Habit.find({ clerkUserId: userId, status: 'active' }).lean();
         if (!habits?.length) {
@@ -513,7 +513,7 @@ export async function createHabitChain(data: {
         const { userId } = await auth();
         if (!userId) throw new Error('User not authenticated');
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const habitChain = new HabitChain({
             clerkUserId: userId,
@@ -535,7 +535,7 @@ export async function getUserHabitChains(): Promise<IHabitChain[]> {
         const { userId } = await auth();
         if (!userId) return [];
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const chains = await HabitChain
             .find({ clerkUserId: userId })
@@ -566,7 +566,7 @@ export async function deleteHabitChain(chainId: string) {
         if (!userId) throw new Error('User not authenticated');
         if (!Types.ObjectId.isValid(chainId)) throw new Error('Invalid chain ID');
 
-        await connectToDatabase();
+        await ensureConnection();
 
         const result = await HabitChain.deleteOne({
             _id: new Types.ObjectId(chainId),
