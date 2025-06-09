@@ -559,7 +559,7 @@ function HabitCard({ habit, isAdded, onAddHabit, trending = false }: HabitCardPr
 
       <CardFooter className="pt-0">
         <Button
-          className="w-full"
+          className="w-full cursor-pointer"
           disabled={isAdded}
           onClick={() => onAddHabit(habit)}
         >

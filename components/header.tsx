@@ -85,7 +85,7 @@ export function Header() {
           <Link href="/dashboard">
             <Button
               variant={pathname === "/dashboard" ? "default" : "ghost"}
-              className="hidden sm:flex"
+              className="hidden cursor-pointer sm:flex"
             >
               Dashboard
             </Button>
@@ -93,7 +93,7 @@ export function Header() {
           <Link href="/habits">
             <Button
               variant={pathname === "/habits" ? "default" : "ghost"}
-              className="hidden sm:flex"
+              className="hidden cursor-pointer sm:flex"
             >
               My Habits
             </Button>
@@ -101,7 +101,7 @@ export function Header() {
           <Link href="/leaderboard">
             <Button
               variant={pathname === "/leaderboard" ? "default" : "ghost"}
-              className="hidden sm:flex"
+              className="hidden cursor-pointer sm:flex"
             >
               Leaderboard
             </Button>

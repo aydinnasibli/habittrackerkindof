@@ -233,7 +233,7 @@ export function HabitList() {
         </div>
 
 
-        <Button onClick={() => router.push('/habits/new')}>
+        <Button className="cursor-pointer" onClick={() => router.push('/habits/new')}>
           Add New Habit
         </Button>
       </div>
