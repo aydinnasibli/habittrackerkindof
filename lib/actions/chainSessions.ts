@@ -251,7 +251,7 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
                     nextHabit.startedAt = new Date();
                 } else {
                     // Chain completed
-                    const completedHabits = chainSession.habits.filter(h => h.status === 'completed').length;
+                    const completedHabits = chainSession.habits.filter((h: HabitSessionItem) => h.status === 'completed').length;
                     const completionRate = completedHabits / chainSession.habits.length;
 
                     chainSession.status = 'completed';
@@ -293,7 +293,7 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
                                 userId,
                                 chainCompletionXP,
                                 'chain_completion',
-                                `Completed chain: ${chainSession.chainName} (${chainSession.habits.filter(h => h.status === 'completed').length}/${chainSession.habits.length} habits)`
+                                `Completed chain: ${chainSession.chainName} (${chainSession.habits.filter((h: HabitSessionItem) => h.status === 'completed').length}/${chainSession.habits.length} habits)`
                             );
                         }
 
@@ -327,6 +327,7 @@ export async function completeCurrentHabit(sessionId: string, notes?: string) {
         };
     }
 }
+
 export async function skipCurrentHabit(sessionId: string, reason?: string) {
     try {
         const { userId } = await auth();
