@@ -315,7 +315,7 @@ export function HabitOverview() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-bold">Today's Habits</CardTitle>
+          <CardTitle className="text-xl font-bold">Today&aposs Habits</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -344,7 +344,7 @@ export function HabitOverview() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
-            <CardTitle className="text-xl font-bold">Today's Habits</CardTitle>
+            <CardTitle className="text-xl font-bold">Today&aposs Habits</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               {getCurrentDateInTimezone(userTimezone)} • {userTimezone}
             </p>
