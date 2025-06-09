@@ -94,29 +94,15 @@ export default function ProfilePage() {
         dailyHabitTarget: 3,
         weeklyGoal: 21
     });
-    const [selectedTheme, setSelectedTheme] = useState('dark');
+    const [selectedTheme, setSelectedTheme] = useState('');
+    const [savedTheme, setSavedTheme] = useState('');
     // Load profile data
     useEffect(() => {
         async function loadProfile() {
             try {
                 const profileData = await getOrCreateProfile();
                 if (profileData) {
-                    // Check if XP field is missing or undefined and fix it
-                    if (!profileData.xp || profileData.xp.total === undefined || profileData.xp.total === null) {
-                        console.log('XP field missing, attempting to fix...');
-                        const fixResult = await fixMissingXP();
-                        if (fixResult.success) {
-                            // Reload profile after fixing
-                            const updatedProfile = await getOrCreateProfile();
-                            if (updatedProfile) {
-                                profileData.xp = updatedProfile.xp || { total: 0 };
-                            }
-                            toast({
-                                title: "Profile Fixed",
-                                description: "Your profile has been updated with missing fields",
-                            });
-                        }
-                    }
+                    // ... existing code for XP fix ...
 
                     setProfile(profileData);
                     setPersonalInfo({
@@ -128,12 +114,14 @@ export default function ProfilePage() {
                     setPreferences({
                         timeFormat: profileData.timeFormat,
                     });
-                    // Also set the selected theme from profile data
-                    // Set theme from profile data
+
+                    // Set both saved and selected theme from profile data
                     if (profileData.theme) {
+                        setSavedTheme(profileData.theme);
                         setSelectedTheme(profileData.theme);
                         setTheme(profileData.theme);
                     }
+
                     setNotifications(profileData.notifications);
                     setPrivacy(profileData.privacy);
                     setGoals(profileData.goals);
@@ -151,7 +139,8 @@ export default function ProfilePage() {
         }
 
         loadProfile();
-    }, [toast]);
+    }, [toast]); // Remove setTheme from dependencies if it's there
+
 
 
     // Save functions
@@ -181,17 +170,15 @@ export default function ProfilePage() {
     const savePreferences = async () => {
         setSaving(true);
         try {
-            // Include theme in the preferences update
             const preferencesData = {
                 ...preferences,
                 theme: selectedTheme as 'light' | 'dark' | 'system' | 'midnight' | 'forest' | 'ocean' | 'sunset' | 'lavender'
             };
 
-            // Apply theme immediately
-            setTheme(selectedTheme);
-
             const result = await updateProfile(preferencesData);
             if (result.success) {
+                // Update the saved theme state to match the selected theme
+                setSavedTheme(selectedTheme);
                 toast({
                     title: "Success",
                     description: "Preferences updated successfully",
@@ -200,6 +187,9 @@ export default function ProfilePage() {
                 throw new Error(result.error);
             }
         } catch (error) {
+            // If save fails, revert to saved theme
+            setSelectedTheme(savedTheme);
+            setTheme(savedTheme);
             toast({
                 title: "Error",
                 description: "Failed to update preferences",

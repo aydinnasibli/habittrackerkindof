@@ -25,10 +25,12 @@ export function Header() {
   const { setTheme } = useTheme();
   // Routes where header should show sign-in/sign-up buttons
   const isPublicRoute = ['/', '/sign-in', '/sign-up'].includes(pathname);
+  const [themeAlready, setThemeAlready] = useState(false);
   // Move useEffect to top level - always called, but conditionally executed
   useEffect(() => {
     const fetchProfile = async () => {
-      if (isSignedIn && user?.id) {
+      if (isSignedIn && user?.id && !themeAlready) {
+        setThemeAlready(true); // Prevent multiple calls
         try {
           const data = await getOrCreateProfile();
           if (data?.theme) {
@@ -108,7 +110,7 @@ export function Header() {
           </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button variant="ghost" size="icon" className="cursor-pointer rounded-full">
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -123,12 +125,7 @@ export function Header() {
                   <span>Profile</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer flex w-full">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
+
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => signOut()}
