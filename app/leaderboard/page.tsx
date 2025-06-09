@@ -3,7 +3,6 @@ import { getLeaderboard } from '@/lib/actions/leaderboard';
 import LeaderboardList from './LeaderboardList';
 import { Metadata } from 'next';
 import { Trophy, TrendingUp, Users, Zap, Crown, Star, Sparkles } from 'lucide-react';
-import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 
 export const metadata: Metadata = {
@@ -21,33 +20,6 @@ export const metadata: Metadata = {
         description: 'Top habit builders ranked by their achievements and dedication',
     }
 };
-
-// Optimized loading component for Suspense with better styling
-const LeaderboardSkeleton = () => (
-    <div className="space-y-4 max-w-4xl mx-auto" role="status" aria-label="Loading leaderboard">
-        <div className="animate-pulse">
-            {/* Hero skeleton */}
-            <div className="text-center mb-16">
-                <div className="w-20 h-20 bg-muted rounded-full mx-auto mb-6" />
-                <div className="h-16 bg-muted rounded-lg mb-6 max-w-md mx-auto" />
-                <div className="h-6 bg-muted rounded-lg mb-12 max-w-2xl mx-auto" />
-
-                {/* Stats grid skeleton */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-12">
-                    {Array.from({ length: 4 }, (_, i) => (
-                        <div key={i} className="h-24 bg-muted rounded-xl" />
-                    ))}
-                </div>
-            </div>
-
-            {/* User cards skeleton */}
-            {Array.from({ length: 5 }, (_, i) => (
-                <div key={i} className="h-28 bg-muted rounded-2xl mb-4" />
-            ))}
-        </div>
-        <span className="sr-only">Loading leaderboard data...</span>
-    </div>
-);
 
 // Optimized stats card component with better performance
 const StatCard = ({
@@ -199,8 +171,8 @@ const calculateStats = (users: any[]) => {
     };
 };
 
-// Main leaderboard content component with better error handling
-const LeaderboardContent = async () => {
+// Main page component - now async to use global loading
+export default async function LeaderboardPage() {
     try {
         const result = await getLeaderboard();
 
@@ -212,58 +184,35 @@ const LeaderboardContent = async () => {
 
         const users = result.users;
 
-        // Early return for empty data
-        if (users.length === 0) {
-            return (
-                <>
-                    <HeroSection
-                        totalUsers={0}
-                        totalCompletions={0}
-                        topStreak={0}
-                        avgStreak={0}
-                    />
-                    <main>
-                        <LeaderboardList users={[]} />
-                    </main>
-                </>
-            );
-        }
-
         // Calculate stats efficiently
-        const stats = calculateStats(users);
+        const stats = users.length > 0 ? calculateStats(users) : {
+            totalUsers: 0,
+            totalCompletions: 0,
+            topStreak: 0,
+            avgStreak: 0
+        };
 
         return (
-            <>
-                <HeroSection {...stats} />
-                <main>
-                    <LeaderboardList users={users} />
-                </main>
-            </>
+            <div className="min-h-screen bg-background">
+                <div className="container mx-auto px-4 py-8">
+                    <HeroSection {...stats} />
+                    <main>
+                        <LeaderboardList users={users} />
+                    </main>
+
+                    {/* Bottom decoration */}
+                    <footer className="text-center mt-16">
+                        <div className="inline-flex items-center gap-2 text-muted-foreground">
+                            <Sparkles className="w-4 h-4" aria-hidden="true" />
+                            <span className="text-sm">Powered by Dedication & Consistency</span>
+                            <Sparkles className="w-4 h-4" aria-hidden="true" />
+                        </div>
+                    </footer>
+                </div>
+            </div>
         );
     } catch (error) {
         console.error('Leaderboard page error:', error);
         return notFound();
     }
-};
-
-// Main page component with better error boundaries
-export default function LeaderboardPage() {
-    return (
-        <div className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-8">
-                <Suspense fallback={<LeaderboardSkeleton />}>
-                    <LeaderboardContent />
-                </Suspense>
-
-                {/* Bottom decoration */}
-                <footer className="text-center mt-16">
-                    <div className="inline-flex items-center gap-2 text-muted-foreground">
-                        <Sparkles className="w-4 h-4" aria-hidden="true" />
-                        <span className="text-sm">Powered by Dedication & Consistency</span>
-                        <Sparkles className="w-4 h-4" aria-hidden="true" />
-                    </div>
-                </footer>
-            </div>
-        </div>
-    );
 }
