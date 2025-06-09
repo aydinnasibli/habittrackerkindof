@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 /* Tailwind v4 Theme Configuration */
-@theme {
+/* Moved theme variables to :root for compatibility */
+:root {
   /* Animation configuration */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -825,6 +826,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
