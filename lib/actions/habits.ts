@@ -79,8 +79,8 @@ function calculateStreak(completions: IHabitCompletion[], frequency: string, tim
     // Get unique completion dates (YYYY-MM-DD format)
     const completedDates = new Set(
         completions
-            .filter(c => c.completed)
-            .map(c => getDateString(new Date(c.date), timezone))
+            .filter((c: IHabitCompletion) => c.completed)
+            .map((c: IHabitCompletion) => getDateString(new Date(c.date), timezone))
     );
 
     if (completedDates.size === 0) return 0;
@@ -210,7 +210,7 @@ export async function completeHabit(habitId: string, timezone: string = 'UTC') {
         const todayDate = new Date(today + 'T00:00:00.000Z');
 
         // Check if already completed today
-        const alreadyCompleted = habit.completions?.some(c =>
+        const alreadyCompleted = habit.completions?.some((c: IHabitCompletion) =>
             c.completed && getDateString(new Date(c.date), timezone) === today
         );
 
@@ -258,7 +258,7 @@ export async function completeHabit(habitId: string, timezone: string = 'UTC') {
         // Check for daily bonus
         const allHabits = await Habit.find({ clerkUserId: userId, status: 'active' }).lean();
         const todayCompletions = allHabits.filter(h =>
-            h.completions?.some(c =>
+            h.completions?.some((c: IHabitCompletion) =>
                 c.completed && getDateString(new Date(c.date), timezone) === today
             )
         ).length;
@@ -294,7 +294,7 @@ export async function skipHabit(habitId: string, timezone: string = 'UTC') {
         const today = getTodayString(timezone);
 
         // Check if completed today
-        const todayCompletion = habit.completions?.find(c =>
+        const todayCompletion = habit.completions?.find((c: IHabitCompletion) =>
             c.completed && getDateString(new Date(c.date), timezone) === today
         );
 
@@ -306,7 +306,7 @@ export async function skipHabit(habitId: string, timezone: string = 'UTC') {
         const previousStreak = calculateStreak(habit.completions || [], habit.frequency, timezone);
 
         // Remove today's completion
-        const updatedCompletions = habit.completions?.filter(c =>
+        const updatedCompletions = habit.completions?.filter((c: IHabitCompletion) =>
             !(c.completed && getDateString(new Date(c.date), timezone) === today)
         ) || [];
 
@@ -466,7 +466,7 @@ export async function getHabitAnalytics(days: number = 7, timezone: string = 'UT
                 if (shouldDoHabitOnDay(habit.frequency, dayOfWeek)) {
                     dayPossible++;
 
-                    const completed = habit.completions?.some(c =>
+                    const completed = habit.completions?.some((c: IHabitCompletion) =>
                         c.completed && getDateString(new Date(c.date), timezone) === dateString
                     );
 
