@@ -104,5 +104,7 @@ GroupSchema.index({ 'members.clerkUserId': 1 });
 GroupSchema.index({ 'invites.inviteCode': 1 });
 GroupSchema.index({ isPrivate: 1, createdAt: -1 }); // For public group discovery
 GroupSchema.index({ memberCount: -1 }); // For popular groups
-
+// Compound indexes for group operations
+GroupSchema.index({ 'members.clerkUserId': 1, 'members.isActive': 1 });
+GroupSchema.index({ owner: 1, isPrivate: 1 });
 export const Group = models.Group || model<IGroup>('Group', GroupSchema);

@@ -195,5 +195,8 @@ ProfileSchema.index({ email: 1 });
 ProfileSchema.index({ 'xp.total': -1 }); // For leaderboard queries
 ProfileSchema.index({ 'rank.level': -1, 'xp.total': -1 }); // For ranking queries
 ProfileSchema.index({ 'groups.groupId': 1 }); // For group queries
-
+// Add these compound indexes for better query performance
+ProfileSchema.index({ clerkUserId: 1, 'groups.groupId': 1 });
+ProfileSchema.index({ 'xp.total': -1, 'rank.level': -1 });
+ProfileSchema.index({ clerkUserId: 1, updatedAt: -1 });
 export const Profile = models.Profile || model<IProfile>('Profile', ProfileSchema);
