@@ -4,6 +4,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { connectToDatabase } from '@/lib/mongoose';
 import { Profile } from '@/lib/models/Profile';
+import { Types } from 'mongoose';
 
 export interface LeaderboardUser {
     _id: string;
@@ -34,6 +35,28 @@ export interface UserProfile {
     joinedAt: string;
 }
 
+// Type definition for lean query results
+interface LeaderboardQueryResult {
+    _id: Types.ObjectId;
+    firstName?: string;
+    lastName?: string;
+    userName?: string;
+    rank?: {
+        title?: string;
+        level?: number;
+        progress?: number;
+    };
+    stats?: {
+        totalCompletions?: number;
+        longestStreak?: number;
+        totalHabitsCreated?: number;
+        totalChainsCompleted?: number;
+        dailyBonusesEarned?: number;
+    };
+    createdAt?: Date;
+    bio?: string;
+}
+
 export async function getLeaderboard(): Promise<{ success: boolean; users?: LeaderboardUser[]; error?: string }> {
     try {
         const { userId } = await auth();
@@ -47,7 +70,7 @@ export async function getLeaderboard(): Promise<{ success: boolean; users?: Lead
             .select('firstName lastName userName rank stats createdAt')
             .sort({ 'xp.total': -1 })
             .limit(100)
-            .lean();
+            .lean<LeaderboardQueryResult[]>();
 
         const leaderboardUsers: LeaderboardUser[] = users.map((user) => ({
             _id: user._id.toString(),
@@ -82,7 +105,7 @@ export async function getUserProfile(userId: string): Promise<{ success: boolean
             'privacy.profileVisibility': 'public'
         })
             .select('firstName lastName userName bio rank stats createdAt')
-            .lean();
+            .lean<LeaderboardQueryResult>();
 
         if (!user) {
             return { success: false, error: 'User not found or profile is private' };
