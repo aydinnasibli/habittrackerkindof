@@ -156,6 +156,7 @@ const LeaderboardContent = async () => {
         const result = await getLeaderboard();
 
         if (!result.success || !result.users) {
+            console.log('cant access db')
             return notFound();
         }
 
@@ -197,6 +198,7 @@ const LeaderboardContent = async () => {
         );
     } catch (error) {
         console.error('Leaderboard page error:', error);
+        console.log("page error")
         return notFound();
     }
 };
