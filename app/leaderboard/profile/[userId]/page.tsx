@@ -7,13 +7,14 @@ import ProfileDetails from './ProfileDetails';
 import { Metadata } from 'next';
 
 interface ProfilePageProps {
-    params: {
+    params: Promise<{
         userId: string;
-    };
+    }>;
 }
 
 export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
-    const result = await getUserProfile(params.userId);
+    const { userId } = await params;
+    const result = await getUserProfile(userId);
 
     if (!result.success || !result.user) {
         return {
@@ -32,7 +33,8 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-    const result = await getUserProfile(params.userId);
+    const { userId } = await params;
+    const result = await getUserProfile(userId);
 
     if (!result.success || !result.user) {
         notFound();
@@ -49,7 +51,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                     <span>Back to Leaderboard</span>
                 </Link>
             </div>
-
             <ProfileDetails user={result.user} />
         </div>
     );
