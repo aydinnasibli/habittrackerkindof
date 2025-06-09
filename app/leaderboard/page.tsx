@@ -156,17 +156,20 @@ const LeaderboardContent = async () => {
         const result = await getLeaderboard();
 
         if (!result.success || !result.users) {
-            <div>Hi</div>
+            return notFound();
         }
 
+        // At this point, we know result.users exists, but TypeScript needs explicit assertion
+        const users = result.users;
+
         // Calculate stats with error handling
-        const totalUsers = result.users.length;
-        const totalCompletions = result.users.reduce((sum, user) => {
+        const totalUsers = users.length;
+        const totalCompletions = users.reduce((sum, user) => {
             const completions = Number(user.totalCompletions) || 0;
             return sum + completions;
         }, 0);
 
-        const validStreaks = result.users
+        const validStreaks = users
             .map(user => Number(user.longestStreak) || 0)
             .filter(streak => streak > 0);
 
@@ -187,14 +190,14 @@ const LeaderboardContent = async () => {
 
                 <main>
                     <Suspense fallback={<LeaderboardSkeleton />}>
-                        <LeaderboardList users={result.users} />
+                        <LeaderboardList users={users} />
                     </Suspense>
                 </main>
             </>
         );
     } catch (error) {
         console.error('Leaderboard page error:', error);
-        <div>HI</div>
+        return notFound();
     }
 };
 
