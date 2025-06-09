@@ -40,8 +40,12 @@ import {
 import { HabitDetailModal } from "@/components/modals/habit-detail-modal";
 import { HabitEditModal } from "@/components/modals/habit-edit-modal";
 
+interface HabitListProps {
+  onLoadingComplete?: () => void;
+  showInternalLoading?: boolean;
+}
 
-export function HabitList() {
+export function HabitList({ onLoadingComplete, showInternalLoading = true }: HabitListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [habits, setHabits] = useState<IHabit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +75,10 @@ export function HabitList() {
       });
     } finally {
       setLoading(false);
+      // Call the callback when loading is complete
+      if (onLoadingComplete) {
+        onLoadingComplete();
+      }
     }
   };
 
@@ -87,8 +95,6 @@ export function HabitList() {
           habit.description.toLowerCase().includes(searchQuery.toLowerCase());
 
         if (!matchesSearch) return false;
-
-
 
         return true;
       });
@@ -207,8 +213,7 @@ export function HabitList() {
     }
   };
 
-
-  if (loading) {
+  if (loading && showInternalLoading) {
     return (
       <div className="container mx-auto space-y-6">
         <div className="flex items-center justify-center py-8">
@@ -217,6 +222,11 @@ export function HabitList() {
         </div>
       </div>
     );
+  }
+
+  // If loading but not showing internal loading, return empty div
+  if (loading && !showInternalLoading) {
+    return <div />;
   }
 
   return (
@@ -231,7 +241,6 @@ export function HabitList() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-
 
         <Button className="cursor-pointer" onClick={() => router.push('/habits/new')}>
           Add New Habit
@@ -369,7 +378,6 @@ export function HabitList() {
                                 Clear search
                               </Button>
                             )}
-
                           </div>
                         </>
                       ) : (
@@ -413,7 +421,6 @@ export function HabitList() {
           setSelectedHabit(null);
         }}
       />
-
     </div>
   );
 }
