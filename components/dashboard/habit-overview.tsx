@@ -190,7 +190,9 @@ export function HabitOverview() {
       }
 
       const habit = habits[habitIndex];
-      let result;
+
+      // Define the result type based on the return type of skipHabit/completeHabit
+      let result: { success: boolean; error?: string; newStreak?: number };
 
       if (currentStatus) {
         // If completed, skip it (mark as not completed)
