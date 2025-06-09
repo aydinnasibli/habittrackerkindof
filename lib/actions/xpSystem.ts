@@ -7,6 +7,30 @@ import { Profile } from '@/lib/models/Profile';
 import { Group } from '@/lib/models/Group';
 import { RANK_REQUIREMENTS, XP_REWARDS, IXPEntry } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
+
+// Define types for better type safety
+interface GroupMember {
+    clerkUserId: string;
+    totalXP: number;
+    rank: string;
+    firstName?: string;
+    lastName?: string;
+    userName?: string;
+    isActive: boolean;
+    joinedAt: Date;
+}
+
+interface GroupWithMembers {
+    _id: string;
+    members: GroupMember[];
+    settings: {
+        xpMultiplier: number;
+    };
+    stats: {
+        totalXPEarned: number;
+    };
+}
+
 // Recalculate and sync XP/rank for a profile
 export async function recalculateProfileXP(clerkUserId: string) {
     try {
@@ -37,6 +61,7 @@ export async function recalculateProfileXP(clerkUserId: string) {
         return { success: false, error: 'Failed to recalculate XP' };
     }
 }
+
 // Calculate rank from total XP using RANK_REQUIREMENTS
 function calculateRank(totalXP: number): { title: string; level: number; progress: number } {
     // Find the appropriate rank based on total XP
@@ -85,8 +110,8 @@ export async function awardXP(
         // Apply group multiplier if in a group
         let finalAmount = amount;
         if (groupId) {
-            const group = await Group.findById(groupId);
-            if (group && group.members.some(m => m.clerkUserId === clerkUserId)) {
+            const group = await Group.findById(groupId) as GroupWithMembers | null;
+            if (group && group.members.some((m: GroupMember) => m.clerkUserId === clerkUserId)) {
                 finalAmount = Math.floor(amount * group.settings.xpMultiplier);
             }
         }
@@ -311,21 +336,21 @@ export async function getGroupLeaderboard(groupId: string) {
 
         const group = await Group.findById(groupId)
             .select('members')
-            .lean();
+            .lean() as { members: GroupMember[] } | null;
 
         if (!group) {
             return { success: false, error: 'Group not found' };
         }
 
         // Check if user is member
-        const isMember = group.members.some(m => m.clerkUserId === userId);
+        const isMember = group.members.some((m: GroupMember) => m.clerkUserId === userId);
         if (!isMember) {
             return { success: false, error: 'Not a member of this group' };
         }
 
         // Sort members by XP and create leaderboard
         const leaderboard = group.members
-            .filter(m => m.isActive)
+            .filter((m: GroupMember) => m.isActive)
             .sort((a, b) => b.totalXP - a.totalXP)
             .map((member, index) => ({
                 rank: index + 1,
@@ -369,9 +394,6 @@ export async function getUserRankInfo(clerkUserId: string) {
     }
 }
 
-
-// Add this function to your lib/actions/xpSystem.ts file
-
 // Remove XP from user (for habit unmarking, etc.)
 export async function removeXP(
     clerkUserId: string,
@@ -394,8 +416,8 @@ export async function removeXP(
         // Apply group multiplier if in a group (same as when awarding)
         let finalAmount = amount;
         if (groupId) {
-            const group = await Group.findById(groupId);
-            if (group && group.members.some(m => m.clerkUserId === clerkUserId)) {
+            const group = await Group.findById(groupId) as GroupWithMembers | null;
+            if (group && group.members.some((m: GroupMember) => m.clerkUserId === clerkUserId)) {
                 finalAmount = Math.floor(amount * group.settings.xpMultiplier);
             }
         }
