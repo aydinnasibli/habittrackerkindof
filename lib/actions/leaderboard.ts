@@ -57,6 +57,9 @@ interface LeaderboardQueryResult {
     bio?: string;
 }
 
+
+
+
 export async function getLeaderboard(): Promise<{ success: boolean; users?: LeaderboardUser[]; error?: string }> {
     try {
         const { userId } = await auth();
@@ -66,11 +69,32 @@ export async function getLeaderboard(): Promise<{ success: boolean; users?: Lead
 
         await ensureConnection();
 
-        const users = await Profile.find({ 'privacy.profileVisibility': 'public' })
-            .select('firstName lastName userName rank stats createdAt')
-            .sort({ 'xp.total': -1 })
-            .limit(100)
-            .lean<LeaderboardQueryResult[]>();
+        // Optimized aggregation pipeline for better performance
+        const users = await Profile.aggregate([
+            // Match only public profiles
+            { $match: { 'privacy.profileVisibility': 'public' } },
+
+            // Project only needed fields early to reduce data transfer
+            {
+                $project: {
+                    firstName: 1,
+                    lastName: 1,
+                    userName: 1,
+                    'rank.title': 1,
+                    'rank.level': 1,
+                    'stats.totalCompletions': 1,
+                    'stats.longestStreak': 1,
+                    'xp.total': 1,
+                    createdAt: 1
+                }
+            },
+
+            // Sort by XP total (this should have an index)
+            { $sort: { 'xp.total': -1 } },
+
+            // Limit early for performance
+            { $limit: 100 }
+        ]);
 
         const leaderboardUsers: LeaderboardUser[] = users.map((user) => ({
             _id: user._id.toString(),
@@ -90,7 +114,6 @@ export async function getLeaderboard(): Promise<{ success: boolean; users?: Lead
         return { success: false, error: 'Failed to fetch leaderboard' };
     }
 }
-
 export async function getUserProfile(userId: string): Promise<{ success: boolean; user?: UserProfile; error?: string }> {
     try {
         const { userId: currentUserId } = await auth();
