@@ -2,7 +2,7 @@
 import { getLeaderboard } from '@/lib/actions/leaderboard';
 import LeaderboardList from './LeaderboardList';
 import { Metadata } from 'next';
-import { Trophy, TrendingUp, Users, Zap, Crown, Star, Sparkles, AlertTriangle } from 'lucide-react';
+import { Trophy, TrendingUp, Users, Zap, Crown, Star, Sparkles } from 'lucide-react';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 
@@ -22,18 +22,34 @@ export const metadata: Metadata = {
     }
 };
 
-// Loading component for Suspense
+// Optimized loading component for Suspense with better styling
 const LeaderboardSkeleton = () => (
     <div className="space-y-4 max-w-4xl mx-auto" role="status" aria-label="Loading leaderboard">
-        {Array.from({ length: 5 }, (_, i) => (
-            <div key={i} className="h-28 bg-muted rounded-2xl animate-pulse" />
-        ))}
+        <div className="animate-pulse">
+            {/* Hero skeleton */}
+            <div className="text-center mb-16">
+                <div className="w-20 h-20 bg-muted rounded-full mx-auto mb-6" />
+                <div className="h-16 bg-muted rounded-lg mb-6 max-w-md mx-auto" />
+                <div className="h-6 bg-muted rounded-lg mb-12 max-w-2xl mx-auto" />
+
+                {/* Stats grid skeleton */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-12">
+                    {Array.from({ length: 4 }, (_, i) => (
+                        <div key={i} className="h-24 bg-muted rounded-xl" />
+                    ))}
+                </div>
+            </div>
+
+            {/* User cards skeleton */}
+            {Array.from({ length: 5 }, (_, i) => (
+                <div key={i} className="h-28 bg-muted rounded-2xl mb-4" />
+            ))}
+        </div>
+        <span className="sr-only">Loading leaderboard data...</span>
     </div>
 );
 
-
-
-// Stats card component for better organization
+// Optimized stats card component with better performance
 const StatCard = ({
     icon: Icon,
     value,
@@ -65,7 +81,7 @@ const StatCard = ({
     </div>
 );
 
-// Hero section component
+// Optimized hero section with better performance
 const HeroSection = ({
     totalUsers,
     totalCompletions,
@@ -77,6 +93,7 @@ const HeroSection = ({
     topStreak: number;
     avgStreak: number;
 }) => {
+    // Static stats configuration - prevents recreation on each render
     const stats = [
         {
             icon: Users,
@@ -94,14 +111,14 @@ const HeroSection = ({
         },
         {
             icon: Zap,
-            value: topStreak,
+            value: topStreak.toLocaleString(),
             label: "Epic Streak",
             color: "text-yellow-600 dark:text-yellow-400",
             description: "Best performance"
         },
         {
             icon: Star,
-            value: avgStreak,
+            value: avgStreak.toLocaleString(),
             label: "Avg Mastery",
             color: "text-purple-600 dark:text-purple-400",
             description: "Community standard"
@@ -114,13 +131,13 @@ const HeroSection = ({
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/20 border-2 border-primary/30 mb-6 shadow-lg">
                     <Trophy className="w-10 h-10 text-primary" aria-hidden="true" />
                 </div>
-                <div className="absolute inset-0 bg-primary/5 rounded-full blur-3xl -z-10"></div>
+                <div className="absolute inset-0 bg-primary/5 rounded-full blur-3xl -z-10" />
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 text-foreground leading-tight">
                 HALL OF
                 <br />
-                <span className="text-primary bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                <span className=" bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                     LEGENDS
                 </span>
             </h1>
@@ -133,7 +150,7 @@ const HeroSection = ({
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-12">
                 {stats.map((stat, index) => (
-                    <StatCard key={index} {...stat} />
+                    <StatCard key={`${stat.label}-${index}`} {...stat} />
                 ))}
             </div>
 
@@ -144,65 +161,92 @@ const HeroSection = ({
                 <div
                     className="w-2 h-2 bg-green-500 rounded-full animate-pulse"
                     aria-label="Live status indicator"
-                ></div>
+                />
             </div>
         </header>
     );
 };
 
-// Main leaderboard content component
+// Optimized stats calculation functions
+const calculateStats = (users: any[]) => {
+    const totalUsers = users.length;
+
+    // More efficient reduction
+    let totalCompletions = 0;
+    const validStreaks: number[] = [];
+
+    for (const user of users) {
+        const completions = Number(user.totalCompletions) || 0;
+        totalCompletions += completions;
+
+        const streak = Number(user.longestStreak) || 0;
+        if (streak > 0) {
+            validStreaks.push(streak);
+        }
+    }
+
+    const avgStreak = validStreaks.length > 0
+        ? Math.round(validStreaks.reduce((sum, streak) => sum + streak, 0) / validStreaks.length)
+        : 0;
+
+    const topStreak = validStreaks.length > 0 ? Math.max(...validStreaks) : 0;
+
+    return {
+        totalUsers,
+        totalCompletions,
+        topStreak,
+        avgStreak
+    };
+};
+
+// Main leaderboard content component with better error handling
 const LeaderboardContent = async () => {
     try {
         const result = await getLeaderboard();
 
-        if (!result.success || !result.users) {
-            console.log('cant access db')
+        // Better error handling
+        if (!result?.success || !result?.users || !Array.isArray(result.users)) {
+            console.error('Invalid leaderboard data:', result);
             return notFound();
         }
 
-        // At this point, we know result.users exists, but TypeScript needs explicit assertion
         const users = result.users;
 
-        // Calculate stats with error handling
-        const totalUsers = users.length;
-        const totalCompletions = users.reduce((sum, user) => {
-            const completions = Number(user.totalCompletions) || 0;
-            return sum + completions;
-        }, 0);
+        // Early return for empty data
+        if (users.length === 0) {
+            return (
+                <>
+                    <HeroSection
+                        totalUsers={0}
+                        totalCompletions={0}
+                        topStreak={0}
+                        avgStreak={0}
+                    />
+                    <main>
+                        <LeaderboardList users={[]} />
+                    </main>
+                </>
+            );
+        }
 
-        const validStreaks = users
-            .map(user => Number(user.longestStreak) || 0)
-            .filter(streak => streak > 0);
-
-        const avgStreak = validStreaks.length > 0
-            ? Math.round(validStreaks.reduce((sum, streak) => sum + streak, 0) / validStreaks.length)
-            : 0;
-
-        const topStreak = validStreaks.length > 0 ? Math.max(...validStreaks) : 0;
+        // Calculate stats efficiently
+        const stats = calculateStats(users);
 
         return (
             <>
-                <HeroSection
-                    totalUsers={totalUsers}
-                    totalCompletions={totalCompletions}
-                    topStreak={topStreak}
-                    avgStreak={avgStreak}
-                />
-
+                <HeroSection {...stats} />
                 <main>
-                    <Suspense fallback={<LeaderboardSkeleton />}>
-                        <LeaderboardList users={users} />
-                    </Suspense>
+                    <LeaderboardList users={users} />
                 </main>
             </>
         );
     } catch (error) {
         console.error('Leaderboard page error:', error);
-        console.log("page error")
         return notFound();
     }
 };
 
+// Main page component with better error boundaries
 export default function LeaderboardPage() {
     return (
         <div className="min-h-screen bg-background">

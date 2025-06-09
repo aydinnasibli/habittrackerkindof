@@ -9,7 +9,7 @@ import {
     Flame, Trophy, Award, Sparkles, Target, Sword, Shield, Gem
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 
 interface LeaderboardListProps {
     users: LeaderboardUser[];
@@ -33,137 +33,139 @@ interface CardStyle {
     shadow: string;
 }
 
-// Memoized helper functions for better performance
-const getRankBadgeStyle = (rankLevel: number): RankBadgeStyle => {
-    const styles: Record<number, RankBadgeStyle> = {
-        1: {
-            bg: 'bg-secondary/80',
-            text: 'text-secondary-foreground',
-            icon: <Star className="w-3 h-3" aria-hidden="true" />
-        },
-        2: {
-            bg: 'bg-green-500/20 dark:bg-green-500/30',
-            text: 'text-green-700 dark:text-green-300',
-            icon: <Zap className="w-3 h-3" aria-hidden="true" />
-        },
-        3: {
-            bg: 'bg-blue-500/20 dark:bg-blue-500/30',
-            text: 'text-blue-700 dark:text-blue-300',
-            icon: <TrendingUp className="w-3 h-3" aria-hidden="true" />
-        },
-        4: {
-            bg: 'bg-purple-500/20 dark:bg-purple-500/30',
-            text: 'text-purple-700 dark:text-purple-300',
-            icon: <Crown className="w-3 h-3" aria-hidden="true" />
-        },
-        5: {
-            bg: 'bg-yellow-500/20 dark:bg-yellow-500/30',
-            text: 'text-yellow-700 dark:text-yellow-300',
-            icon: <Flame className="w-3 h-3" aria-hidden="true" />
-        },
-        6: {
-            bg: 'bg-red-500/20 dark:bg-red-500/30',
-            text: 'text-red-700 dark:text-red-300',
-            icon: <Target className="w-3 h-3" aria-hidden="true" />
-        },
-        7: {
-            bg: 'bg-pink-500/20 dark:bg-pink-500/30',
-            text: 'text-pink-700 dark:text-pink-300',
-            icon: <Gem className="w-3 h-3" aria-hidden="true" />
-        },
-        8: {
-            bg: 'bg-orange-500/20 dark:bg-orange-500/30',
-            text: 'text-orange-700 dark:text-orange-300',
-            icon: <Sword className="w-3 h-3" aria-hidden="true" />
-        }
-    };
+// Static data that doesn't change - moved outside component to prevent recreation
+const RANK_BADGE_STYLES: Record<number, RankBadgeStyle> = {
+    1: {
+        bg: 'bg-secondary/80',
+        text: 'text-secondary-foreground',
+        icon: <Star className="w-3 h-3" aria-hidden="true" />
+    },
+    2: {
+        bg: 'bg-green-500/20 dark:bg-green-500/30',
+        text: 'text-green-700 dark:text-green-300',
+        icon: <Zap className="w-3 h-3" aria-hidden="true" />
+    },
+    3: {
+        bg: 'bg-blue-500/20 dark:bg-blue-500/30',
+        text: 'text-blue-700 dark:text-blue-300',
+        icon: <TrendingUp className="w-3 h-3" aria-hidden="true" />
+    },
+    4: {
+        bg: 'bg-purple-500/20 dark:bg-purple-500/30',
+        text: 'text-purple-700 dark:text-purple-300',
+        icon: <Crown className="w-3 h-3" aria-hidden="true" />
+    },
+    5: {
+        bg: 'bg-yellow-500/20 dark:bg-yellow-500/30',
+        text: 'text-yellow-700 dark:text-yellow-300',
+        icon: <Flame className="w-3 h-3" aria-hidden="true" />
+    },
+    6: {
+        bg: 'bg-red-500/20 dark:bg-red-500/30',
+        text: 'text-red-700 dark:text-red-300',
+        icon: <Target className="w-3 h-3" aria-hidden="true" />
+    },
+    7: {
+        bg: 'bg-pink-500/20 dark:bg-pink-500/30',
+        text: 'text-pink-700 dark:text-pink-300',
+        icon: <Gem className="w-3 h-3" aria-hidden="true" />
+    },
+    8: {
+        bg: 'bg-orange-500/20 dark:bg-orange-500/30',
+        text: 'text-orange-700 dark:text-orange-300',
+        icon: <Sword className="w-3 h-3" aria-hidden="true" />
+    }
+};
 
-    return styles[rankLevel] || {
-        bg: 'bg-muted/50',
-        text: 'text-muted-foreground',
-        icon: <Shield className="w-3 h-3" aria-hidden="true" />
-    };
+const DEFAULT_RANK_BADGE: RankBadgeStyle = {
+    bg: 'bg-muted/50',
+    text: 'text-muted-foreground',
+    icon: <Shield className="w-3 h-3" aria-hidden="true" />
+};
+
+const CARD_STYLES: Record<number, CardStyle> = {
+    0: {
+        border: 'border-2 border-yellow-500/40',
+        bg: 'bg-card/90 backdrop-blur-sm',
+        shadow: 'shadow-lg shadow-yellow-500/20'
+    },
+    1: {
+        border: 'border-2 border-muted-foreground/30',
+        bg: 'bg-card/90 backdrop-blur-sm',
+        shadow: 'shadow-lg shadow-muted/20'
+    },
+    2: {
+        border: 'border-2 border-orange-500/40',
+        bg: 'bg-card/90 backdrop-blur-sm',
+        shadow: 'shadow-lg shadow-orange-500/20'
+    }
+};
+
+const DEFAULT_CARD_STYLE: CardStyle = {
+    border: 'border border-border/50',
+    bg: 'bg-card/80 backdrop-blur-sm',
+    shadow: 'shadow-md'
+};
+
+const ACHIEVEMENT_BADGES = {
+    0: { label: '🏆 CHAMPION', bg: 'bg-yellow-500' },
+    1: { label: '🥈 ELITE', bg: 'bg-muted-foreground' },
+    2: { label: '🥉 LEGEND', bg: 'bg-orange-500' }
+} as const;
+
+// Optimized helper functions with memoization
+const getRankBadgeStyle = (rankLevel: number): RankBadgeStyle => {
+    return RANK_BADGE_STYLES[rankLevel] || DEFAULT_RANK_BADGE;
 };
 
 const getRankPosition = (index: number): RankPosition => {
     const position = index + 1;
 
-    if (position === 1) {
-        return {
-            display: (
-                <div className="relative" role="img" aria-label="First place">
-                    <span className="text-2xl" aria-hidden="true">👑</span>
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center">
-                        <Sparkles className="w-2 h-2 text-yellow-900" aria-hidden="true" />
+    switch (position) {
+        case 1:
+            return {
+                display: (
+                    <div className="relative" role="img" aria-label="First place">
+                        <span className="text-2xl" aria-hidden="true">👑</span>
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center">
+                            <Sparkles className="w-2 h-2 text-yellow-900" aria-hidden="true" />
+                        </div>
                     </div>
-                </div>
-            ),
-            bgColor: 'bg-yellow-500/20 dark:bg-yellow-500/30',
-            borderColor: 'border-yellow-500/50'
-        };
+                ),
+                bgColor: 'bg-yellow-500/20 dark:bg-yellow-500/30',
+                borderColor: 'border-yellow-500/50'
+            };
+        case 2:
+            return {
+                display: <span className="text-2xl" role="img" aria-label="Second place">🥈</span>,
+                bgColor: 'bg-muted/50',
+                borderColor: 'border-muted-foreground/30'
+            };
+        case 3:
+            return {
+                display: <span className="text-2xl" role="img" aria-label="Third place">🥉</span>,
+                bgColor: 'bg-orange-500/20 dark:bg-orange-500/30',
+                borderColor: 'border-orange-500/50'
+            };
+        default:
+            return {
+                display: `#${position}`,
+                bgColor: 'bg-muted/30',
+                borderColor: 'border-border'
+            };
     }
-
-    if (position === 2) {
-        return {
-            display: <span className="text-2xl" role="img" aria-label="Second place">🥈</span>,
-            bgColor: 'bg-muted/50',
-            borderColor: 'border-muted-foreground/30'
-        };
-    }
-
-    if (position === 3) {
-        return {
-            display: <span className="text-2xl" role="img" aria-label="Third place">🥉</span>,
-            bgColor: 'bg-orange-500/20 dark:bg-orange-500/30',
-            borderColor: 'border-orange-500/50'
-        };
-    }
-
-    return {
-        display: `#${position}`,
-        bgColor: 'bg-muted/30',
-        borderColor: 'border-border'
-    };
 };
 
 const getCardStyle = (index: number): CardStyle => {
-    const styles: Record<number, CardStyle> = {
-        0: {
-            border: 'border-2 border-yellow-500/40',
-            bg: 'bg-card/90 backdrop-blur-sm',
-            shadow: 'shadow-lg shadow-yellow-500/20'
-        },
-        1: {
-            border: 'border-2 border-muted-foreground/30',
-            bg: 'bg-card/90 backdrop-blur-sm',
-            shadow: 'shadow-lg shadow-muted/20'
-        },
-        2: {
-            border: 'border-2 border-orange-500/40',
-            bg: 'bg-card/90 backdrop-blur-sm',
-            shadow: 'shadow-lg shadow-orange-500/20'
-        }
-    };
-
-    return styles[index] || {
-        border: 'border border-border/50',
-        bg: 'bg-card/80 backdrop-blur-sm',
-        shadow: 'shadow-md'
-    };
+    return CARD_STYLES[index] || DEFAULT_CARD_STYLE;
 };
 
 const getAchievementBadge = (index: number) => {
-    const badges = {
-        0: { label: '🏆 CHAMPION', bg: 'bg-yellow-500' },
-        1: { label: '🥈 ELITE', bg: 'bg-muted-foreground' },
-        2: { label: '🥉 LEGEND', bg: 'bg-orange-500' }
-    };
-
-    return badges[index as keyof typeof badges];
+    return ACHIEVEMENT_BADGES[index as keyof typeof ACHIEVEMENT_BADGES];
 };
 
-// Loading skeleton component
-const LoadingSkeleton = () => (
+// Memoized loading skeleton component
+const LoadingSkeleton = memo(() => (
     <div className="space-y-4 max-w-4xl mx-auto" role="status" aria-label="Loading leaderboard">
         {Array.from({ length: 5 }, (_, i) => (
             <div
@@ -174,10 +176,12 @@ const LoadingSkeleton = () => (
         ))}
         <span className="sr-only">Loading leaderboard data...</span>
     </div>
-);
+));
 
-// Empty state component  
-const EmptyState = () => (
+LoadingSkeleton.displayName = 'LoadingSkeleton';
+
+// Memoized empty state component  
+const EmptyState = memo(() => (
     <div className="text-center py-20" role="status">
         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center">
             <Crown className="w-10 h-10 text-primary" aria-hidden="true" />
@@ -187,44 +191,63 @@ const EmptyState = () => (
             Be the first to enter the Hall of Legends and claim your throne!
         </p>
     </div>
-);
+));
 
-// User card component for better organization
-const UserCard = ({ user, index, maxCompletions }: {
+EmptyState.displayName = 'EmptyState';
+
+// Optimized user card component with better memoization
+const UserCard = memo(({
+    user,
+    index,
+    maxCompletions
+}: {
     user: LeaderboardUser;
     index: number;
     maxCompletions: number;
 }) => {
+    // Memoize expensive calculations
     const rankPosition = useMemo(() => getRankPosition(index), [index]);
     const rankBadge = useMemo(() => getRankBadgeStyle(user.rankLevel), [user.rankLevel]);
     const cardStyle = useMemo(() => getCardStyle(index), [index]);
     const achievementBadge = useMemo(() => getAchievementBadge(index), [index]);
 
     const displayName = useMemo(() => {
-        return user.userName ||
-            `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
-            'Anonymous Legend';
+        if (user.userName) return user.userName;
+        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+        return fullName || 'Anonymous Legend';
     }, [user.userName, user.firstName, user.lastName]);
 
-    const dominancePercentage = useMemo(() =>
-        Math.min(100, Math.round((user.totalCompletions / maxCompletions) * 100)),
-        [user.totalCompletions, maxCompletions]
-    );
+    const dominancePercentage = useMemo(() => {
+        if (maxCompletions === 0) return 0;
+        return Math.min(100, Math.round((user.totalCompletions / maxCompletions) * 100));
+    }, [user.totalCompletions, maxCompletions]);
 
     const formattedJoinDate = useMemo(() => {
         try {
             return formatDistanceToNow(new Date(user.joinedAt), { addSuffix: true });
-        } catch (error) {
-            console.warn('Invalid date format for user:', user._id);
+        } catch {
             return 'Recently joined';
         }
-    }, [user.joinedAt, user._id]);
+    }, [user.joinedAt]);
+
+    // Animation variants for better performance
+    const cardVariants = {
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -20 }
+    };
+
+    const progressVariants = {
+        initial: { width: 0 },
+        animate: { width: `${dominancePercentage}%` }
+    };
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            variants={cardVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
             transition={{ delay: index * 0.05, duration: 0.3 }}
             whileHover={{ scale: 1.01, transition: { duration: 0.2 } }}
             className="relative"
@@ -335,8 +358,9 @@ const UserCard = ({ user, index, maxCompletions }: {
                         >
                             <motion.div
                                 className="h-full bg-primary rounded-full"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${dominancePercentage}%` }}
+                                variants={progressVariants}
+                                initial="initial"
+                                animate="animate"
                                 transition={{ delay: (index * 0.1) + 0.3, duration: 0.8 }}
                             />
                         </div>
@@ -355,10 +379,12 @@ const UserCard = ({ user, index, maxCompletions }: {
             </Link>
         </motion.div>
     );
-};
+});
 
-// Call to action component
-const CallToAction = ({ userCount }: { userCount: number }) => (
+UserCard.displayName = 'UserCard';
+
+// Memoized call to action component
+const CallToAction = memo(({ userCount }: { userCount: number }) => (
     <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -374,8 +400,11 @@ const CallToAction = ({ userCount }: { userCount: number }) => (
             Every champion started with a single habit. Your journey to greatness begins today.
         </p>
     </motion.div>
-);
+));
 
+CallToAction.displayName = 'CallToAction';
+
+// Main component with optimizations
 export default function LeaderboardList({ users }: LeaderboardListProps) {
     const [mounted, setMounted] = useState(false);
 
@@ -383,27 +412,28 @@ export default function LeaderboardList({ users }: LeaderboardListProps) {
         setMounted(true);
     }, []);
 
-    // Memoize expensive calculations
-    const maxCompletions = useMemo(() =>
-        users.length > 0 ? Math.max(...users.map(u => u.totalCompletions)) : 1,
+    // Memoize expensive calculations only when users array changes
+    const maxCompletions = useMemo(() => {
+        if (users.length === 0) return 1;
+        return Math.max(...users.map(u => u.totalCompletions));
+    }, [users]);
+
+    // Create a stable key for each user to prevent unnecessary re-renders
+    const userKeys = useMemo(() =>
+        users.map(user => user._id),
         [users]
     );
 
     // Early returns for loading and empty states
-    if (!mounted) {
-        return <LoadingSkeleton />;
-    }
-
-    if (users.length === 0) {
-        return <EmptyState />;
-    }
+    if (!mounted) return <LoadingSkeleton />;
+    if (users.length === 0) return <EmptyState />;
 
     return (
         <div className="space-y-4 max-w-4xl mx-auto">
             <AnimatePresence mode="wait">
                 {users.map((user, index) => (
                     <UserCard
-                        key={user._id}
+                        key={userKeys[index]}
                         user={user}
                         index={index}
                         maxCompletions={maxCompletions}
