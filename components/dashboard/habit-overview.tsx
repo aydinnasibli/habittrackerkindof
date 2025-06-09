@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, MoreHorizontal, Zap, Edit, Eye } from "lucide-react";
+import { Check, X, MoreHorizontal, Zap, Edit, Eye, Clock, Sun, Moon, Calendar, Flame, Target, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,10 @@ import { HabitEditModal } from "../modals/habit-edit-modal";
 type HabitWithCompletion = IHabit & {
   completedToday: boolean;
   impactScore: number;
+};
+
+type GroupedHabits = {
+  [key: string]: HabitWithCompletion[];
 };
 
 // Helper function to get user's timezone with fallback
@@ -111,6 +116,73 @@ function calculateImpactScore(habit: IHabit): number {
   return Math.round(impactScore * 10) / 10;
 }
 
+// Helper function to group habits by time of day
+function groupHabitsByTimeOfDay(habits: HabitWithCompletion[]): GroupedHabits {
+  const grouped: GroupedHabits = {
+    'Morning': [],
+    'Afternoon': [],
+    'Evening': [],
+    'Throughout day': []
+  };
+
+  habits.forEach(habit => {
+    const timeOfDay = habit.timeOfDay;
+    if (grouped[timeOfDay]) {
+      grouped[timeOfDay].push(habit);
+    } else {
+      // Handle any unexpected timeOfDay values by putting them in "Throughout day"
+      grouped['Throughout day'].push(habit);
+    }
+  });
+
+  // Sort habits within each time group
+  Object.keys(grouped).forEach(timeOfDay => {
+    grouped[timeOfDay].sort((a, b) => {
+      // Sort by completion status (incomplete first), then by priority, then by name
+      if (a.completedToday !== b.completedToday) {
+        return a.completedToday ? 1 : -1;
+      }
+      const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+      const priorityDiff = (priorityOrder[b.priority as keyof typeof priorityOrder] || 0) -
+        (priorityOrder[a.priority as keyof typeof priorityOrder] || 0);
+      if (priorityDiff !== 0) return priorityDiff;
+      return a.name.localeCompare(b.name);
+    });
+  });
+
+  return grouped;
+}
+
+// Helper function to get time of day icon
+function getTimeOfDayIcon(timeOfDay: string) {
+  switch (timeOfDay) {
+    case 'Morning':
+      return Sun;
+    case 'Afternoon':
+      return Sun;
+    case 'Evening':
+      return Moon;
+    case 'Throughout day':
+      return Clock;
+    default:
+      return Clock;
+  }
+}
+
+// Helper function to get priority color
+function getPriorityColor(priority: string) {
+  switch (priority.toLowerCase()) {
+    case 'high':
+      return 'bg-red-100 text-red-800 border-red-200';
+    case 'medium':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'low':
+      return 'bg-green-100 text-green-800 border-green-200';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
+}
+
 export function HabitOverview() {
   const [habits, setHabits] = useState<HabitWithCompletion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,17 +223,6 @@ export function HabitOverview() {
             completedToday,
             impactScore
           };
-        })
-        .sort((a, b) => {
-          // Sort by completion status (incomplete first), then by priority, then by name
-          if (a.completedToday !== b.completedToday) {
-            return a.completedToday ? 1 : -1;
-          }
-          const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
-          const priorityDiff = (priorityOrder[b.priority as keyof typeof priorityOrder] || 0) -
-            (priorityOrder[a.priority as keyof typeof priorityOrder] || 0);
-          if (priorityDiff !== 0) return priorityDiff;
-          return a.name.localeCompare(b.name);
         });
 
       setHabits(habitsWithCompletion);
@@ -235,7 +296,7 @@ export function HabitOverview() {
         });
 
         toast({
-          title: "Habit completed! 🎉",
+          title: "Habit completed!",
           description: `You've completed "${habit?.name}". Great job!`,
         });
 
@@ -250,7 +311,7 @@ export function HabitOverview() {
 
             if (waterHabit) {
               toast({
-                title: "Chain Reaction! ⚡",
+                title: "Chain Reaction!",
                 description: "Consider drinking water next - it pairs well with meditation!",
                 action: (
                   <Button
@@ -315,24 +376,42 @@ export function HabitOverview() {
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Today's Habits</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="p-4 border rounded-lg animate-pulse">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 bg-muted rounded-full"></div>
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 bg-muted rounded w-1/3"></div>
-                    <div className="h-3 bg-muted rounded w-1/2"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
+      <Card className="shadow-sm border-0 bg-gradient-to-br from-slate-50 to-white">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                Today's Habits
+              </CardTitle>
+              <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Loading your habits...
+              </p>
+            </div>
           </div>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {['Morning', 'Afternoon', 'Evening', 'Throughout day'].map((timeOfDay) => (
+            <div key={timeOfDay} className="space-y-4">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                <div className="h-6 w-6 bg-slate-200 rounded-lg animate-pulse"></div>
+                <div className="h-5 w-20 bg-slate-200 rounded animate-pulse"></div>
+              </div>
+              <div className="space-y-3">
+                {[1, 2].map((i) => (
+                  <div key={i} className="p-5 bg-white border border-slate-100 rounded-xl shadow-sm animate-pulse">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 bg-slate-200 rounded-full"></div>
+                      <div className="space-y-2 flex-1">
+                        <div className="h-5 bg-slate-200 rounded w-2/3"></div>
+                        <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
     );
@@ -340,127 +419,196 @@ export function HabitOverview() {
 
   const completedCount = habits.filter((habit) => habit.completedToday).length;
   const completionPercentage = habits.length > 0 ? (completedCount / habits.length) * 100 : 0;
+  const groupedHabits = groupHabitsByTimeOfDay(habits);
+
+  // Define the order of time periods
+  const timeOrder = ['Morning', 'Afternoon', 'Evening', 'Throughout day'];
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <div>
-            <CardTitle className="text-xl font-bold">Today's Habits</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {getCurrentDateInTimezone(userTimezone)} • {userTimezone}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="text-sm text-muted-foreground text-right">
-              <div>{completedCount} of {habits.length} completed</div>
-              <div className="text-xs">{Math.round(completionPercentage)}% done</div>
+      <Card className="shadow-sm border-0 bg-gradient-to-br from-slate-50 to-white">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                Today's Habits
+              </CardTitle>
+              <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {getCurrentDateInTimezone(userTimezone)}
+                <span className="w-1 h-1 rounded-full bg-slate-400"></span>
+                <span>{userTimezone}</span>
+              </p>
             </div>
-            <Progress value={completionPercentage} className="w-24" />
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-sm font-medium text-slate-700">
+                  {completedCount} of {habits.length} completed
+                </div>
+                <div className="text-xs text-slate-500">
+                  {Math.round(completionPercentage)}% progress
+                </div>
+              </div>
+              <div className="relative">
+                <Progress
+                  value={completionPercentage}
+                  className="w-32 h-2 bg-slate-100"
+                />
+                <div className="absolute -top-1 -right-1">
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </div>
+              </div>
+            </div>
           </div>
         </CardHeader>
+
         <CardContent>
           {habits.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No habits scheduled for today.</p>
-              <p className="text-sm mt-2">Check back on your scheduled days!</p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Target className="h-8 w-8 text-slate-400" />
+              </div>
+              <p className="text-slate-600 font-medium">No habits scheduled for today</p>
+              <p className="text-sm text-slate-500 mt-1">Check back on your scheduled days!</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {habits.map((habit) => (
-                <div
-                  key={habit._id}
-                  className={`p-4 border rounded-lg flex items-center justify-between group transition-all duration-200 ${habit.completedToday
-                    ? "bg-muted/30 border-muted"
-                    : "bg-card border-border hover:bg-muted/10 hover:border-muted-foreground/20"
-                    }`}
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <Button
-                      size="icon"
-                      variant={habit.completedToday ? "default" : "outline"}
-                      className={`h-10 w-10 rounded-full transition-all duration-200 ${habit.completedToday
-                        ? "bg-primary hover:bg-primary/90"
-                        : "hover:bg-primary/10 hover:border-primary/50"
-                        } ${isToggling[habit._id!] ? "animate-pulse" : ""}`}
-                      onClick={() => toggleHabit(habit._id!, habit.completedToday)}
-                      disabled={isToggling[habit._id!]}
-                    >
-                      {habit.completedToday ? (
-                        <Check className="h-5 w-5 text-primary-foreground" />
-                      ) : (
-                        <div className="h-5 w-5" />
-                      )}
-                    </Button>
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className={`font-medium cursor-pointer hover:text-primary transition-colors truncate ${habit.completedToday ? "line-through text-muted-foreground" : ""
-                          }`}
-                        onClick={() => handleHabitNameClick(habit)}
-                        title={habit.name}
-                      >
-                        {habit.name}
+            <div className="space-y-8">
+              {timeOrder.map((timeOfDay) => {
+                const timeHabits = groupedHabits[timeOfDay];
+                if (!timeHabits || timeHabits.length === 0) return null;
+
+                const completedInTime = timeHabits.filter(h => h.completedToday).length;
+                const TimeIcon = getTimeOfDayIcon(timeOfDay);
+
+                return (
+                  <div key={timeOfDay} className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                          <TimeIcon className="h-4 w-4 text-slate-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-slate-900">{timeOfDay}</h3>
+                          <p className="text-xs text-slate-500">{timeHabits.length} habit{timeHabits.length !== 1 ? 's' : ''}</p>
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-                        <span>{habit.timeOfDay}</span>
-                        <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
-                        <span>{habit.frequency}</span>
-                        <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
-                        <span>{habit.streak} day{habit.streak !== 1 ? 's' : ''} streak</span>
-                        <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
-                        <span className="capitalize">{habit.priority.toLowerCase()} priority</span>
-                      </div>
+                      <Badge variant="secondary" className="bg-slate-100 text-slate-600">
+                        {completedInTime}/{timeHabits.length}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-3">
+                      {timeHabits.map((habit) => (
+                        <div
+                          key={habit._id}
+                          className={`group relative p-5 rounded-xl border transition-all duration-200 ${habit.completedToday
+                            ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-sm"
+                            : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                            }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <Button
+                              size="icon"
+                              variant={habit.completedToday ? "default" : "outline"}
+                              className={`h-12 w-12 rounded-full transition-all duration-200 ${habit.completedToday
+                                ? "bg-green-500 hover:bg-green-600 border-green-500 shadow-sm"
+                                : "border-slate-300 hover:border-green-400 hover:bg-green-50"
+                                } ${isToggling[habit._id!] ? "animate-pulse" : ""}`}
+                              onClick={() => toggleHabit(habit._id!, habit.completedToday)}
+                              disabled={isToggling[habit._id!]}
+                            >
+                              {habit.completedToday ? (
+                                <Check className="h-5 w-5 text-white" />
+                              ) : (
+                                <div className="h-5 w-5" />
+                              )}
+                            </Button>
+
+                            <div className="flex-1 min-w-0">
+                              <div
+                                className={`font-semibold text-lg cursor-pointer hover:text-blue-600 transition-colors truncate ${habit.completedToday ? "line-through text-slate-500" : "text-slate-900"
+                                  }`}
+                                onClick={() => handleHabitNameClick(habit)}
+                                title={habit.name}
+                              >
+                                {habit.name}
+                              </div>
+
+                              <div className="flex items-center gap-4 mt-2 flex-wrap">
+                                <Badge variant="outline" className="text-xs">
+                                  {habit.frequency}
+                                </Badge>
+
+                                <div className="flex items-center gap-1 text-sm text-slate-600">
+                                  <Flame className="h-4 w-4 text-orange-500" />
+                                  <span className="font-medium">{habit.streak}</span>
+                                  <span>day{habit.streak !== 1 ? 's' : ''}</span>
+                                </div>
+
+                                <Badge className={`text-xs font-medium ${getPriorityColor(habit.priority)}`}>
+                                  {habit.priority} Priority
+                                </Badge>
+
+                                <div className="hidden md:flex items-center gap-1 text-sm text-slate-600">
+                                  <Target className="h-4 w-4" />
+                                  <span>Impact: {habit.impactScore}/10</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => toggleHabit(habit._id!, habit.completedToday)}
+                                  className="cursor-pointer"
+                                  disabled={isToggling[habit._id!]}
+                                >
+                                  {habit.completedToday ? (
+                                    <>
+                                      <X className="mr-2 h-4 w-4" />
+                                      Mark incomplete
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Check className="mr-2 h-4 w-4" />
+                                      Mark complete
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => handleEditHabit(habit)}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit habit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => handleViewDetails(habit)}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View details
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm px-2 py-1 bg-secondary rounded-full hidden md:inline-block">
-                      Impact: {habit.impactScore}/10
-                    </span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Options</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => toggleHabit(habit._id!, habit.completedToday)}
-                          className="cursor-pointer"
-                          disabled={isToggling[habit._id!]}
-                        >
-                          {habit.completedToday ? (
-                            <>
-                              <X className="mr-2 h-4 w-4" />
-                              Mark as incomplete
-                            </>
-                          ) : (
-                            <>
-                              <Check className="mr-2 h-4 w-4" />
-                              Mark as complete
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => handleEditHabit(habit)}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit habit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => handleViewDetails(habit)}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View details
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
