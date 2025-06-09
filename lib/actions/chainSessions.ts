@@ -13,7 +13,12 @@ import { IChainSession } from '@/lib/types';
 import { Types, FlattenMaps } from 'mongoose';
 
 type LeanChainSession = FlattenMaps<IChainSession> & { _id: Types.ObjectId };
-
+interface ChainHabit {
+    habitId: string;
+    habitName: string;
+    duration: number;
+    order: number;
+}
 export async function startHabitChain(chainId: string) {
     try {
         const { userId } = await auth();
@@ -61,12 +66,12 @@ export async function startHabitChain(chainId: string) {
             startedAt: new Date(),
             currentHabitIndex: 0,
             totalHabits: chain.habits.length,
-            habits: chain.habits.map(habit => ({
+            habits: chain.habits.map((habit: ChainHabit) => ({
                 habitId: habit.habitId,
                 habitName: habit.habitName,
                 duration: habit.duration,
                 order: habit.order,
-                status: 'pending'
+                status: 'pending' as const
             })),
             totalDuration: chain.totalTime,
             pauseDuration: 0,
