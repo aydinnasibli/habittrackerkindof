@@ -53,6 +53,28 @@ type MonthlyData = {
   percentage: number;
 };
 
+// Custom tooltip component with proper theming
+const CustomTooltip = ({ active, payload, label, formatter }: any) => {
+  if (!active || !payload || !payload.length) return null;
+
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-lg p-3">
+      <p className="text-card-foreground font-medium mb-2">{label}</p>
+      {payload.map((entry: any, index: number) => (
+        <div key={index} className="flex items-center gap-2">
+          <div
+            className="w-3 h-3 rounded-sm"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-card-foreground text-sm">
+            {entry.name}: {formatter ? formatter(entry.value, entry.name)[0] : entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export function HabitStats() {
   const [habits, setHabits] = useState<IHabit[]>([]);
   const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
@@ -228,15 +250,21 @@ export function HabitStats() {
                 data={weeklyData}
                 margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
+                <XAxis
+                  dataKey="name"
+                  stroke="hsl(var(--chart-text))"
+                  fontSize={12}
+                />
+                <YAxis
+                  stroke="hsl(var(--chart-text))"
+                  fontSize={12}
+                />
                 <Tooltip
-                  formatter={(value, name) => [
+                  content={<CustomTooltip formatter={(value: any, name: any) => [
                     name === 'completed' ? `${value} habits` : `${value}%`,
                     name === 'completed' ? 'Completed' : 'Completion Rate'
-                  ]}
-                  labelFormatter={(label) => `${label}`}
+                  ]} />}
                 />
                 <Area
                   type="monotone"
@@ -273,9 +301,11 @@ export function HabitStats() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value) => [`${value}%`, "Percentage"]}
+                    content={<CustomTooltip formatter={(value: any) => [`${value}%`, "Percentage"]} />}
                   />
-                  <Legend />
+                  <Legend
+                    wrapperStyle={{ color: 'hsl(var(--chart-text))' }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -299,11 +329,20 @@ export function HabitStats() {
                   layout="vertical"
                   margin={{ top: 5, right: 5, left: 50, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis type="category" dataKey="name" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
+                  <XAxis
+                    type="number"
+                    stroke="hsl(var(--chart-text))"
+                    fontSize={12}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    stroke="hsl(var(--chart-text))"
+                    fontSize={12}
+                  />
                   <Tooltip
-                    formatter={(value) => [`${value} days`, "Current Streak"]}
+                    content={<CustomTooltip formatter={(value: any) => [`${value} days`, "Current Streak"]} />}
                   />
                   <Bar dataKey="streak" fill="hsl(var(--chart-2))" />
                 </BarChart>
@@ -339,15 +378,20 @@ export function HabitStats() {
                   data={monthlyData}
                   margin={{ top: 5, right: 5, left: 0, bottom: 20 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
                   <XAxis
                     dataKey="name"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: 'hsl(var(--chart-text))' }}
                     interval={4}
+                    stroke="hsl(var(--chart-text))"
                   />
-                  <YAxis domain={[0, 100]} />
+                  <YAxis
+                    domain={[0, 100]}
+                    stroke="hsl(var(--chart-text))"
+                    tick={{ fontSize: 12, fill: 'hsl(var(--chart-text))' }}
+                  />
                   <Tooltip
-                    formatter={(value) => [`${value}%`, "Completion Rate"]}
+                    content={<CustomTooltip formatter={(value: any) => [`${value}%`, "Completion Rate"]} />}
                   />
                   <Area
                     type="monotone"
@@ -366,15 +410,23 @@ export function HabitStats() {
                   data={monthlyData}
                   margin={{ top: 5, right: 5, left: 0, bottom: 20 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
                   <XAxis
                     dataKey="name"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: 'hsl(var(--chart-text))' }}
                     interval={4}
+                    stroke="hsl(var(--chart-text))"
                   />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
+                  <YAxis
+                    stroke="hsl(var(--chart-text))"
+                    tick={{ fontSize: 12, fill: 'hsl(var(--chart-text))' }}
+                  />
+                  <Tooltip
+                    content={<CustomTooltip />}
+                  />
+                  <Legend
+                    wrapperStyle={{ color: 'hsl(var(--chart-text))' }}
+                  />
                   <Bar dataKey="completed" fill="hsl(var(--chart-1))" name="Completed" />
                   <Bar dataKey="total" fill="hsl(var(--chart-4))" name="Total" />
                 </BarChart>
