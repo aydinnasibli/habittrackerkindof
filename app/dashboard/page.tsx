@@ -38,11 +38,7 @@ function formatDateForDisplay(dateString: string): string {
 }
 
 export default async function DashboardPage() {
-  // Check authentication
-  const { userId } = await auth();
-  if (!userId) {
-    redirect('/sign-in');
-  }
+
 
   // Get user timezone (you might want to fetch this from user profile)
   const timezone = getUserTimezone();
