@@ -3,7 +3,7 @@ import {
   Zap,
   Sparkles,
   Compass,
-  Users,
+  UsersRound,
   TreePine,
   LineChart,
   Layers,
@@ -11,7 +11,7 @@ import {
 
 const features = [
   {
-    icon: <Zap className="h-10 w-10 text-blue-600" />,
+    icon: <Zap className="h-10 w-10 text-primary" />,
     title: "Habit Chain Reaction",
     description:
       "Build powerful habit sequences where completing one habit automatically triggers related ones, creating seamless routines.",
@@ -29,7 +29,7 @@ const features = [
       "Visualize alternative timelines showing how your life changes based on maintained versus broken habits.",
   },
   {
-    icon: <Users className="h-10 w-10 text-green-500" />,
+    icon: <UsersRound className="h-10 w-10 text-green-500" />,
     title: "Habit Tribes",
     description:
       "Join communities of users with similar goals for mutual support, accountability, and motivation.",
@@ -60,32 +60,31 @@ const features = [
   },
 ];
 
-export default function FeaturesSection() {
+export function FeaturesSection() {
   return (
-    <section id="features" className="w-full py-16 md:py-20 lg:py-24 bg-gray-50">
+    <section id="features" className="w-full py-16 md:py-20 lg:py-24 bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-4xl mx-auto mb-12 lg:mb-16">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 lg:mb-6 text-gray-900">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 lg:mb-6">
             Features That Set Us Apart
           </h2>
-          <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
+          <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">
             Necmettinyo combines behavioral science, AI, and gamification to create
             a unique habit-building experience.
           </p>
         </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto">
           {features.map((feature, index) => (
             <div
               key={index}
-              className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 group hover:-translate-y-1"
+              className="bg-card rounded-xl p-6 border border-border hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group hover:-translate-y-1"
             >
-              <div className="mb-4 p-3 rounded-lg bg-gray-100 inline-block overflow-hidden">
-                <div className="group-hover:scale-110 transition-transform duration-300 origin-center">
-                  {feature.icon}
-                </div>
+              <div className="mb-4 p-3 rounded-lg bg-muted inline-block group-hover:scale-110 transition-transform duration-300">
+                {feature.icon}
               </div>
-              <h3 className="text-xl font-semibold mb-3 leading-tight text-gray-900">{feature.title}</h3>
-              <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+              <h3 className="text-xl font-semibold mb-3 leading-tight">{feature.title}</h3>
+              <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
             </div>
           ))}
         </div>
