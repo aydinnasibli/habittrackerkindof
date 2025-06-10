@@ -60,15 +60,15 @@ const features = [
   },
 ];
 
-export function FeaturesSection() {
+export default function FeaturesSection() {
   return (
-    <section id="features" className="w-full py-16 md:py-20 lg:py-24 bg-background">
+    <section id="features" className="w-full py-16 md:py-20 lg:py-24 bg-gray-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-4xl mx-auto mb-12 lg:mb-16">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 lg:mb-6">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 lg:mb-6 text-gray-900">
             Features That Set Us Apart
           </h2>
-          <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">
+          <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
             Necmettinyo combines behavioral science, AI, and gamification to create
             a unique habit-building experience.
           </p>
@@ -77,15 +77,15 @@ export function FeaturesSection() {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="bg-card rounded-xl p-6 border border-border hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group hover:-translate-y-1"
+              className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 group hover:-translate-y-1"
             >
-              <div className="mb-4 p-3 rounded-lg bg-muted inline-block overflow-hidden">
+              <div className="mb-4 p-3 rounded-lg bg-gray-100 inline-block overflow-hidden">
                 <div className="group-hover:scale-110 transition-transform duration-300 origin-center">
                   {feature.icon}
                 </div>
               </div>
-              <h3 className="text-xl font-semibold mb-3 leading-tight">{feature.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+              <h3 className="text-xl font-semibold mb-3 leading-tight text-gray-900">{feature.title}</h3>
+              <p className="text-gray-600 leading-relaxed">{feature.description}</p>
             </div>
           ))}
         </div>
