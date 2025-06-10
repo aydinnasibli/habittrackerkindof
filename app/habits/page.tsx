@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 
 // Dynamically import heavy client components
@@ -42,59 +42,60 @@ const ComponentLoading = () => (
   </div>
 );
 
-// Main loading screen (now renders faster without heavy components)
-const LoadingScreen = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="flex flex-col items-center space-y-8 p-8">
-      <div className="relative">
-        <div className="w-16 h-16 border-3 border-border rounded-full">
-          <div className="absolute inset-0 border-3 border-transparent border-t-primary rounded-full animate-spin" />
-        </div>
-        <div className="absolute top-1/2 left-1/2 w-2 h-2 -translate-x-1/2 -translate-y-1/2 bg-primary rounded-full animate-pulse" />
-        <div className="absolute -inset-2 border border-primary/20 rounded-full animate-ping" />
-      </div>
-      <div className="text-center space-y-3">
-        <div className="flex items-center justify-center space-x-2">
-          <h1 className="text-2xl font-semibold text-foreground">Loading</h1>
-          <div className="flex space-x-1">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-1 h-1 bg-primary rounded-full animate-bounce"
-                style={{
-                  animationDelay: `${i * 0.15}s`,
-                  animationDuration: '0.8s'
-                }}
-              />
-            ))}
-          </div>
-        </div>
-        <p className="text-muted-foreground text-sm max-w-sm">
-          Preparing your habits dashboard...
-        </p>
-      </div>
-      <div className="w-48 h-1 bg-muted rounded-full overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full animate-pulse" />
-      </div>
-    </div>
-  </div>
-);
-
 export default function HabitsPage() {
   const [isPageLoaded, setIsPageLoaded] = useState(false);
 
-  // Callback to handle when habits are loaded
+  // Auto-load the page after a short delay to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsPageLoaded(true);
+    }, 1000); // Show loading for 1 second, then show the page
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Callback to handle when habits are loaded (optional now)
   const handleHabitsLoaded = useCallback(() => {
     setIsPageLoaded(true);
   }, []);
 
-  // Show loading screen initially - now renders much faster
+  // Show loading screen initially
   if (!isPageLoaded) {
     return (
-      <>
-        <LoadingScreen />
-
-      </>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-8 p-8">
+          <div className="relative">
+            <div className="w-16 h-16 border-3 border-border rounded-full">
+              <div className="absolute inset-0 border-3 border-transparent border-t-primary rounded-full animate-spin" />
+            </div>
+            <div className="absolute top-1/2 left-1/2 w-2 h-2 -translate-x-1/2 -translate-y-1/2 bg-primary rounded-full animate-pulse" />
+            <div className="absolute -inset-2 border border-primary/20 rounded-full animate-ping" />
+          </div>
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center space-x-2">
+              <h1 className="text-2xl font-semibold text-foreground">Loading Your Habits</h1>
+              <div className="flex space-x-1">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="w-1 h-1 bg-primary rounded-full animate-bounce"
+                    style={{
+                      animationDelay: `${i * 0.15}s`,
+                      animationDuration: '0.8s'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <p className="text-muted-foreground text-sm max-w-sm">
+              Preparing your habits dashboard...
+            </p>
+          </div>
+          <div className="w-48 h-1 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full animate-pulse" />
+          </div>
+        </div>
+      </div>
     );
   }
 
