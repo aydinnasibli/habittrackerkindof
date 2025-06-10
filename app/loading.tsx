@@ -6,8 +6,8 @@ export default function Loading() {
                 {/* Primary spinner */}
                 <div className="relative">
                     {/* Outer rotating ring */}
-                    <div className="w-16 h-16 border-3 border-border rounded-full">
-                        <div className="absolute inset-0 border-3 border-transparent border-t-primary rounded-full animate-spin" />
+                    <div className="w-16 h-16 border-4 border-border rounded-full">
+                        <div className="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin" />
                     </div>
 
                     {/* Inner dot */}

@@ -93,10 +93,7 @@ export default function HabitsPage() {
     return (
       <>
         <LoadingScreen />
-        {/* Pre-load only the critical HabitList component */}
-        <div style={{ position: 'absolute', left: '-9999px', visibility: 'hidden', pointerEvents: 'none' }}>
-          <HabitList onLoadingComplete={handleHabitsLoaded} showInternalLoading={false} />
-        </div>
+
       </>
     );
   }
