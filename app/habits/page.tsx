@@ -1,16 +1,48 @@
 "use client";
 
-import { HabitList } from "@/components/habits/habit-list";
-import { HabitChains } from "@/components/habits/habit-chains";
-import { ParallelUniverses } from "@/components/habits/parallel-universes";
-import { PastSessions } from "@/components/habits/past-sessions";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import React, { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 
-// Loading component
+// Dynamically import heavy client components
+const HabitList = dynamic(() => import("@/components/habits/habit-list").then(mod => ({ default: mod.HabitList })), {
+  ssr: false,
+  loading: () => <ComponentLoading />
+});
+
+const HabitChains = dynamic(() => import("@/components/habits/habit-chains").then(mod => ({ default: mod.HabitChains })), {
+  ssr: false,
+  loading: () => <ComponentLoading />
+});
+
+const ParallelUniverses = dynamic(() => import("@/components/habits/parallel-universes").then(mod => ({ default: mod.ParallelUniverses })), {
+  ssr: false,
+  loading: () => <ComponentLoading />
+});
+
+const PastSessions = dynamic(() => import("@/components/habits/past-sessions").then(mod => ({ default: mod.PastSessions })), {
+  ssr: false,
+  loading: () => <ComponentLoading />
+});
+
+// Lightweight component loading placeholder
+const ComponentLoading = () => (
+  <div className="flex items-center justify-center py-12">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="relative">
+        <div className="w-8 h-8 border-2 border-border rounded-full">
+          <div className="absolute inset-0 border-2 border-transparent border-t-primary rounded-full animate-spin" />
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground">Loading component...</p>
+    </div>
+  </div>
+);
+
+// Main loading screen (now renders faster without heavy components)
 const LoadingScreen = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
     <div className="flex flex-col items-center space-y-8 p-8">
@@ -56,12 +88,12 @@ export default function HabitsPage() {
     setIsPageLoaded(true);
   }, []);
 
-  // Show loading screen until habits are loaded
+  // Show loading screen initially - now renders much faster
   if (!isPageLoaded) {
     return (
       <>
         <LoadingScreen />
-        {/* Pre-load HabitList component invisibly to trigger data fetching */}
+        {/* Pre-load only the critical HabitList component */}
         <div style={{ position: 'absolute', left: '-9999px', visibility: 'hidden', pointerEvents: 'none' }}>
           <HabitList onLoadingComplete={handleHabitsLoaded} showInternalLoading={false} />
         </div>
