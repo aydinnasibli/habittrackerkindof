@@ -117,7 +117,7 @@ function generateEnhancedAnalyticsData(habits: IHabit[], profile: IProfile | nul
             completed,
             total,
             percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
-            streak: 0, // You can calculate this based on your needs
+            streak: 0,
             newHabits: 0
         };
     });
@@ -146,6 +146,14 @@ function generateEnhancedAnalyticsData(habits: IHabit[], profile: IProfile | nul
         }
     });
 
+    const COLORS = [
+        'hsl(var(--chart-1))',
+        'hsl(var(--chart-2))',
+        'hsl(var(--chart-3))',
+        'hsl(var(--chart-4))',
+        'hsl(var(--chart-5))'
+    ];
+
     const categoryInsights: CategoryInsight[] = Array.from(categoryMap.entries()).map(([name, data], index) => {
         const completionRate = data.total > 0 ? Math.round((data.completed / (data.total * 7)) * 100) : 0;
         const averageStreak = data.streaks.length > 0 ?
@@ -157,15 +165,15 @@ function generateEnhancedAnalyticsData(habits: IHabit[], profile: IProfile | nul
             percentage: completionRate,
             trend: 'stable' as const,
             trendValue: 0,
-            color: `hsl(var(--chart-${(index % 5) + 1}))`,
+            color: COLORS[index % COLORS.length],
             completionRate,
             averageStreak
         };
     });
 
-    // Generate habit performance
+    // Generate habit performance data
     const habitPerformance: HabitPerformance[] = habits
-        .filter(h => h.status === 'active')
+        .filter(habit => habit.status === 'active')
         .map(habit => {
             const recentCompletions = habit.completions?.filter(c => {
                 const completionDate = getDateString(new Date(c.date), timezone);
@@ -175,36 +183,39 @@ function generateEnhancedAnalyticsData(habits: IHabit[], profile: IProfile | nul
             const completedCount = recentCompletions.filter(c => c.completed).length;
             const completionRate = Math.round((completedCount / 7) * 100);
 
-            const allCompletions = habit.completions?.filter(c => c.completed) || [];
-            const longestStreak = Math.max(habit.streak, 0);
-
             return {
                 name: habit.name,
                 category: habit.category,
                 completionRate,
                 currentStreak: habit.streak,
-                longestStreak,
-                weeklyTrend: 0, // You can calculate trend here
+                longestStreak: habit.streak, // You might want to track this separately
+                weeklyTrend: 0, // Calculate based on comparison with previous week
                 difficulty: completionRate >= 80 ? 'easy' : completionRate >= 50 ? 'medium' : 'hard',
                 consistency: completionRate
             };
         });
 
     // Calculate scores
-    const motivationScore = habitPerformance.length > 0 ?
-        Math.round(habitPerformance.reduce((sum, h) => sum + h.completionRate, 0) / habitPerformance.length) : 0;
+    const motivationScore = Math.round(
+        habitPerformance.reduce((sum, h) => sum + h.completionRate, 0) /
+        Math.max(habitPerformance.length, 1)
+    );
 
-    const consistencyScore = motivationScore; // Simplified for now
-    const diversityScore = (categoryInsights.filter(c => c.value > 0).length / categories.length) * 100;
+    const consistencyScore = Math.round(
+        habits.reduce((sum, h) => sum + (h.streak > 0 ? 100 : 0), 0) /
+        Math.max(habits.length, 1)
+    );
+
+    const diversityScore = Math.round((categories.length / 5) * 100);
 
     return {
         weeklyData,
-        monthlyData: [], // You can implement this
+        monthlyData: [], // Can implement later
         categoryInsights,
         habitPerformance,
-        aiInsights: [], // Will be populated by AI
-        streakData: [], // You can implement this
-        timePatterns: [], // You can implement this
+        aiInsights: [], // Will be populated by AI service
+        streakData: [], // Can implement later
+        timePatterns: [], // Can implement later
         motivationScore,
         consistencyScore,
         diversityScore,
@@ -212,7 +223,7 @@ function generateEnhancedAnalyticsData(habits: IHabit[], profile: IProfile | nul
     };
 }
 
-export async function getAIAnalytics() {
+export async function getAIAnalytics(): Promise<AnalyticsData | null> {
     try {
         const { userId } = await auth();
         if (!userId) {
@@ -224,38 +235,16 @@ export async function getAIAnalytics() {
             getOrCreateProfile()
         ]);
 
-        if (habits.length === 0) {
-            return {
-                analyticsData: null,
-                error: null,
-                message: 'No habits found. Create some habits to see analytics.'
-            };
-        }
-
-        // Generate enhanced analytics data
         const analyticsData = generateEnhancedAnalyticsData(habits, profile);
 
-        // Get AI insights
+        // Generate AI insights
         const aiInsights = await generateHabitAnalytics(habits, profile, analyticsData);
-
-        // Add AI insights to analytics data
         analyticsData.aiInsights = aiInsights;
 
-        return {
-            analyticsData,
-            error: null,
-            message: null
-        };
+        return analyticsData;
 
     } catch (error) {
         console.error('Error getting AI analytics:', error);
-        return {
-            analyticsData: null,
-            error: error instanceof Error ? error.message : 'Unknown error occurred',
-            message: null
-        };
+        return null;
     }
 }
-
-// Export the types for use in components
-export type { AnalyticsData, AIInsight, CategoryInsight, HabitPerformance, EnhancedWeeklyData };

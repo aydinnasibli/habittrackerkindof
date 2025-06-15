@@ -2,9 +2,23 @@
 import OpenAI from 'openai';
 import { IHabit, IProfile } from '@/lib/types';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY!,
-});
+// Don't instantiate OpenAI client at module level - do it lazily
+let openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI | null {
+    if (!process.env.OPENAI_API_KEY) {
+        console.warn('OpenAI API key not configured - AI features will be disabled');
+        return null;
+    }
+
+    if (!openaiClient) {
+        openaiClient = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+    }
+
+    return openaiClient;
+}
 
 interface AIInsight {
     type: 'success' | 'warning' | 'tip' | 'achievement';
@@ -21,6 +35,14 @@ export async function generateHabitAnalytics(
     analyticsData: any
 ): Promise<AIInsight[]> {
     try {
+        const openai = getOpenAIClient();
+
+        // If no OpenAI client, return default insights
+        if (!openai) {
+            console.log('Using fallback analytics - OpenAI not configured');
+            return getDefaultInsights(habits, analyticsData);
+        }
+
         const prompt = createAnalyticsPrompt(habits, profile, analyticsData);
 
         const completion = await openai.chat.completions.create({
@@ -84,20 +106,22 @@ function createAnalyticsPrompt(
 ): string {
     const { weeklyData, categoryInsights, habitPerformance, scores } = analyticsData;
 
-    const recentPerformance = weeklyData.slice(-7);
-    const avgRecentCompletion = recentPerformance.reduce((sum, day) => sum + day.percentage, 0) / 7;
+    const recentPerformance = weeklyData?.slice(-7) || [];
+    const avgRecentCompletion = recentPerformance.length > 0
+        ? recentPerformance.reduce((sum, day) => sum + (day.percentage || 0), 0) / recentPerformance.length
+        : 0;
 
-    const strugglingHabits = habitPerformance.filter(h => h.completionRate < 50);
-    const excellentHabits = habitPerformance.filter(h => h.completionRate >= 80);
-    const longStreaks = habitPerformance.filter(h => h.currentStreak >= 7);
+    const strugglingHabits = habitPerformance?.filter(h => h.completionRate < 50) || [];
+    const excellentHabits = habitPerformance?.filter(h => h.completionRate >= 80) || [];
+    const longStreaks = habitPerformance?.filter(h => h.currentStreak >= 7) || [];
 
-    const bestCategory = categoryInsights.reduce((best, cat) =>
+    const bestCategory = categoryInsights?.reduce((best, cat) =>
         cat.completionRate > best.completionRate ? cat : best
-    );
+    ) || { name: 'None', completionRate: 0 };
 
-    const strugglingCategory = categoryInsights.reduce((worst, cat) =>
+    const strugglingCategory = categoryInsights?.reduce((worst, cat) =>
         cat.completionRate < worst.completionRate ? cat : worst
-    );
+    ) || { name: 'None', completionRate: 0 };
 
     return `
 HABIT ANALYTICS DATA for ${profile?.firstName || 'User'}:
@@ -105,9 +129,9 @@ HABIT ANALYTICS DATA for ${profile?.firstName || 'User'}:
 OVERALL METRICS:
 - Total Habits: ${habits.length}
 - Recent Average Completion: ${Math.round(avgRecentCompletion)}%
-- Motivation Score: ${scores.motivation}/100
-- Consistency Score: ${scores.consistency}/100
-- Diversity Score: ${scores.diversity}/100
+- Motivation Score: ${scores?.motivation || 0}/100
+- Consistency Score: ${scores?.consistency || 0}/100
+- Diversity Score: ${scores?.diversity || 0}/100
 
 PERFORMANCE BREAKDOWN:
 - Excellent Habits (80%+): ${excellentHabits.length} habits
@@ -124,50 +148,29 @@ CATEGORY PERFORMANCE:
 - Needs Work: ${strugglingCategory.name} (${strugglingCategory.completionRate}% completion)
 
 RECENT TRENDS (Last 7 days):
-${recentPerformance.map(day => `${day.name}: ${day.percentage}%`).join(', ')}
+${recentPerformance.map(day => `${day.name}: ${day.percentage || 0}%`).join(', ')}
 
-WEEKLY PATTERNS:
-- Best performing day: ${recentPerformance.reduce((best, day) => day.percentage > best.percentage ? day : best).name}
-- Most challenging day: ${recentPerformance.reduce((worst, day) => day.percentage < worst.percentage ? day : worst).name}
-
-Generate insights that:
-1. Celebrate specific achievements with exact numbers
-2. Identify concerning patterns and suggest solutions
-3. Provide actionable tips for improvement
-4. Recognize milestones and streaks
-5. Give strategic advice for habit optimization
-
-Focus on what matters most for this user's habit journey.`;
+Generate insights that help the user improve their habit journey.`;
 }
 
 function parseInsights(response: string): AIInsight[] {
     try {
-        let jsonStr = response.trim();
+        // Clean the response
+        const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const parsed = JSON.parse(cleaned);
 
-        if (jsonStr.startsWith('```json')) {
-            jsonStr = jsonStr.replace(/```json\n?/, '').replace(/\n?```$/, '');
-        } else if (jsonStr.startsWith('```')) {
-            jsonStr = jsonStr.replace(/```\n?/, '').replace(/\n?```$/, '');
+        if (Array.isArray(parsed)) {
+            return parsed.filter(insight =>
+                insight.type && insight.title && insight.description
+            ).map(insight => ({
+                ...insight,
+                priority: insight.priority || 'medium'
+            }));
         }
 
-        const insights = JSON.parse(jsonStr);
-
-        if (!Array.isArray(insights)) {
-            throw new Error('Response is not an array');
-        }
-
-        return insights.map((insight: any) => ({
-            type: ['success', 'warning', 'tip', 'achievement'].includes(insight.type)
-                ? insight.type : 'tip',
-            title: insight.title || 'Insight',
-            description: insight.description || 'Keep up the great work!',
-            action: insight.action,
-            priority: ['high', 'medium', 'low'].includes(insight.priority)
-                ? insight.priority : 'medium'
-        }));
-
+        return [];
     } catch (error) {
-        console.error('Error parsing insights:', error);
+        console.error('Error parsing AI insights:', error);
         return [];
     }
 }
@@ -176,68 +179,42 @@ function getDefaultInsights(habits: IHabit[], analyticsData: any): AIInsight[] {
     const insights: AIInsight[] = [];
 
     if (habits.length === 0) {
-        return [{
-            type: 'tip',
-            title: 'Start Your Habit Journey',
-            description: 'Begin with 1-2 simple habits to build momentum and create lasting change.',
-            action: 'Add Your First Habit',
-            priority: 'high'
-        }];
-    }
-
-    // Active streaks
-    const activeStreaks = habits.filter(h => h.streak > 0);
-    if (activeStreaks.length > 0) {
-        const longestStreak = Math.max(...activeStreaks.map(h => h.streak));
-        insights.push({
-            type: 'success',
-            title: `${longestStreak}-Day Streak! 🔥`,
-            description: `You're maintaining ${activeStreaks.length} active streaks. Your longest is ${longestStreak} days!`,
-            priority: 'high'
-        });
-    }
-
-    // Completion rate insight
-    const totalCompletions = habits.reduce((sum, h) =>
-        sum + (h.completions?.filter(c => c.completed).length || 0), 0);
-    const totalAttempts = habits.reduce((sum, h) =>
-        sum + (h.completions?.length || 0), 0);
-    const overallRate = totalAttempts > 0 ? Math.round((totalCompletions / totalAttempts) * 100) : 0;
-
-    if (overallRate >= 80) {
-        insights.push({
-            type: 'achievement',
-            title: 'Consistency Champion',
-            description: `Incredible! You're maintaining an ${overallRate}% completion rate across all habits.`,
-            priority: 'high'
-        });
-    } else if (overallRate < 50) {
         insights.push({
             type: 'tip',
-            title: 'Focus on Fewer Habits',
-            description: `Your completion rate is ${overallRate}%. Try focusing on 2-3 core habits to build stronger foundations.`,
-            action: 'Review Your Habits',
-            priority: 'medium'
-        });
-    }
-
-    // Recent activity
-    const recentActivity = habits.filter(h => {
-        const lastCompletion = h.completions?.slice(-1)[0];
-        if (!lastCompletion) return false;
-        const daysSince = Math.floor((Date.now() - new Date(lastCompletion.date).getTime()) / (1000 * 60 * 60 * 24));
-        return daysSince <= 1;
-    });
-
-    if (recentActivity.length === 0) {
-        insights.push({
-            type: 'warning',
-            title: 'Stay Connected',
-            description: 'No recent activity detected. Small consistent actions lead to big results.',
-            action: 'Check In Today',
+            title: '🌟 Start Your Habit Journey',
+            description: 'Create your first habit to begin building a better you. Start small with just 2-3 minutes daily.',
+            action: 'Create First Habit',
             priority: 'high'
         });
+    } else {
+        const activeHabits = habits.filter(h => h.status === 'active');
+        const totalStreaks = activeHabits.reduce((sum, h) => sum + h.streak, 0);
+
+        if (totalStreaks > 0) {
+            insights.push({
+                type: 'success',
+                title: '🔥 Great Momentum!',
+                description: `You've built ${totalStreaks} total streak days across your habits. Keep the consistency going!`,
+                priority: 'medium'
+            });
+        }
+
+        if (activeHabits.length >= 3) {
+            insights.push({
+                type: 'achievement',
+                title: '📈 Habit Builder',
+                description: `You're tracking ${activeHabits.length} active habits. Focus on consistency over quantity.`,
+                priority: 'medium'
+            });
+        }
+
+        insights.push({
+            type: 'tip',
+            title: '💡 Daily Consistency',
+            description: 'The key to lasting habits is showing up every day, even if just for 2 minutes.',
+            priority: 'low'
+        });
     }
 
-    return insights.slice(0, 4);
+    return insights;
 }
