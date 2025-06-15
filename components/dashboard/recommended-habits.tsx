@@ -1,7 +1,24 @@
+// components/dashboard/enhanced-recommended-habits.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Star, Info, Clock, BarChart3, Zap, Loader2 } from "lucide-react";
+import {
+  RefreshCw,
+  Sparkles,
+  TrendingUp,
+  Zap,
+  Clock,
+  Brain,
+  Plus,
+  Star,
+  Info,
+  BarChart3,
+  Loader2,
+  ThumbsUp,
+  ThumbsDown,
+  Heart,
+  Target
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,359 +29,93 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { getUserHabits, createHabit } from "@/lib/actions/habits";
-import { IHabit } from "@/lib/types";
+import { getAIRecommendations, refreshAIRecommendations } from "@/lib/actions/ai-recommendations";
+import { createHabit } from "@/lib/actions/habits";
+import { AIRecommendedHabit } from "@/lib/services/openai-service";
 
-type RecommendedHabit = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  frequency: string;
-  timeOfDay: string;
-  timeToComplete: string;
-  priority: string;
-  matchScore: number;
-  benefits: string[];
-  impactAreas: string[];
-  chainsWith: string[];
-};
-
-// Comprehensive habit recommendations based on different categories and user patterns
-const getRecommendedHabits = (userHabits: IHabit[]): RecommendedHabit[] => {
-  const userCategories = new Set(userHabits.map(habit => habit.category));
-  const userTimeSlots = new Set(userHabits.map(habit => habit.timeOfDay));
-
-  const allRecommendations: RecommendedHabit[] = [
-    // Mindfulness habits
-    {
-      id: "rec-1",
-      name: "Daily Journaling",
-      description: "Spend 10 minutes writing about your thoughts and feelings",
-      category: "Mindfulness",
-      frequency: "Daily",
-      timeOfDay: "Evening",
-      timeToComplete: "10 minutes",
-      priority: "Medium",
-      matchScore: 95,
-      benefits: ["Clarity", "Self-awareness", "Stress reduction"],
-      impactAreas: ["Mental Health", "Productivity"],
-      chainsWith: ["Meditation", "Reading"],
-    },
-    {
-      id: "rec-2",
-      name: "Gratitude Practice",
-      description: "Write down 3 things you're grateful for each day",
-      category: "Mindfulness",
-      frequency: "Daily",
-      timeOfDay: "Morning",
-      timeToComplete: "5 minutes",
-      priority: "High",
-      matchScore: 89,
-      benefits: ["Increased happiness", "Reduced negativity", "Better perspective"],
-      impactAreas: ["Mental Health", "Relationships"],
-      chainsWith: ["Meditation", "Journaling"],
-    },
-    {
-      id: "rec-3",
-      name: "Mindful Breathing",
-      description: "5-minute breathing exercise to center yourself",
-      category: "Mindfulness",
-      frequency: "Daily",
-      timeOfDay: "Throughout day",
-      timeToComplete: "5 minutes",
-      priority: "Medium",
-      matchScore: 88,
-      benefits: ["Stress reduction", "Focus improvement", "Emotional regulation"],
-      impactAreas: ["Mental Health", "Productivity"],
-      chainsWith: ["Meditation", "Deep Work"],
-    },
-
-    // Health habits
-    {
-      id: "rec-4",
-      name: "Cold Shower",
-      description: "End your shower with 30 seconds of cold water",
-      category: "Health",
-      frequency: "Daily",
-      timeOfDay: "Morning",
-      timeToComplete: "2 minutes",
-      priority: "Medium",
-      matchScore: 87,
-      benefits: ["Increased alertness", "Better circulation", "Strengthened willpower"],
-      impactAreas: ["Physical Health", "Mental Toughness"],
-      chainsWith: ["Exercise", "Meditation"],
-    },
-    {
-      id: "rec-5",
-      name: "Morning Stretching",
-      description: "5-minute stretching routine to start your day",
-      category: "Health",
-      frequency: "Daily",
-      timeOfDay: "Morning",
-      timeToComplete: "5 minutes",
-      priority: "Medium",
-      matchScore: 91,
-      benefits: ["Flexibility", "Energy boost", "Reduced stiffness"],
-      impactAreas: ["Physical Health", "Energy"],
-      chainsWith: ["Exercise", "Meditation"],
-    },
-    {
-      id: "rec-6",
-      name: "Afternoon Walk",
-      description: "10-minute walk to break up your day",
-      category: "Health",
-      frequency: "Daily",
-      timeOfDay: "Afternoon",
-      timeToComplete: "10 minutes",
-      priority: "Medium",
-      matchScore: 88,
-      benefits: ["Energy boost", "Creativity", "Stress reduction"],
-      impactAreas: ["Physical Health", "Mental Clarity"],
-      chainsWith: ["Deep Work", "Hydration"],
-    },
-    {
-      id: "rec-7",
-      name: "Hydration Tracking",
-      description: "Drink 8 glasses of water throughout the day",
-      category: "Health",
-      frequency: "Daily",
-      timeOfDay: "Throughout day",
-      timeToComplete: "Ongoing",
-      priority: "High",
-      matchScore: 85,
-      benefits: ["Better energy", "Improved skin", "Better digestion"],
-      impactAreas: ["Physical Health", "Energy"],
-      chainsWith: ["Exercise", "Healthy Eating"],
-    },
-
-    // Learning habits
-    {
-      id: "rec-8",
-      name: "Daily Reading",
-      description: "Read for 20 minutes each day",
-      category: "Learning",
-      frequency: "Daily",
-      timeOfDay: "Evening",
-      timeToComplete: "20 minutes",
-      priority: "High",
-      matchScore: 92,
-      benefits: ["Knowledge expansion", "Vocabulary improvement", "Mental stimulation"],
-      impactAreas: ["Personal Growth", "Mental Health"],
-      chainsWith: ["Journaling", "Digital Detox"],
-    },
-    {
-      id: "rec-9",
-      name: "Language Practice",
-      description: "Practice a new language for 15 minutes",
-      category: "Learning",
-      frequency: "Daily",
-      timeOfDay: "Morning",
-      timeToComplete: "15 minutes",
-      priority: "Medium",
-      matchScore: 83,
-      benefits: ["Cognitive improvement", "Cultural awareness", "Career advancement"],
-      impactAreas: ["Personal Growth", "Career"],
-      chainsWith: ["Reading", "Deep Work"],
-    },
-
-    // Productivity habits
-    {
-      id: "rec-10",
-      name: "Deep Work Block",
-      description: "2-hour focused work session without distractions",
-      category: "Productivity",
-      frequency: "Weekdays",
-      timeOfDay: "Morning",
-      timeToComplete: "2 hours",
-      priority: "High",
-      matchScore: 90,
-      benefits: ["Increased productivity", "Better quality work", "Goal achievement"],
-      impactAreas: ["Career", "Personal Growth"],
-      chainsWith: ["Digital Detox", "Planning"],
-    },
-    {
-      id: "rec-11",
-      name: "Daily Planning",
-      description: "Plan your next day every evening",
-      category: "Productivity",
-      frequency: "Daily",
-      timeOfDay: "Evening",
-      timeToComplete: "10 minutes",
-      priority: "High",
-      matchScore: 88,
-      benefits: ["Better organization", "Reduced stress", "Goal clarity"],
-      impactAreas: ["Productivity", "Mental Health"],
-      chainsWith: ["Journaling", "Review"],
-    },
-
-    // Digital Wellbeing habits
-    {
-      id: "rec-12",
-      name: "Digital Sunset",
-      description: "No screens 1 hour before bed",
-      category: "Digital Wellbeing",
-      frequency: "Daily",
-      timeOfDay: "Evening",
-      timeToComplete: "1 hour",
-      priority: "High",
-      matchScore: 92,
-      benefits: ["Better sleep", "Reduced anxiety", "Mental recovery"],
-      impactAreas: ["Sleep", "Mental Health"],
-      chainsWith: ["Reading", "Journaling"],
-    },
-    {
-      id: "rec-13",
-      name: "Social Media Limit",
-      description: "Limit social media to 30 minutes per day",
-      category: "Digital Wellbeing",
-      frequency: "Daily",
-      timeOfDay: "Throughout day",
-      timeToComplete: "30 minutes max",
-      priority: "Medium",
-      matchScore: 90,
-      benefits: ["Mental clarity", "Productivity", "Better focus"],
-      impactAreas: ["Mental Health", "Productivity"],
-      chainsWith: ["Reading", "Deep Work"],
-    },
-  ];
-
-  // Calculate match scores based on user's existing habits
-  return allRecommendations.map(habit => {
-    let adjustedScore = habit.matchScore;
-
-    // Boost score if user doesn't have habits in this category
-    if (!userCategories.has(habit.category)) {
-      adjustedScore += 5;
-    }
-
-    // Boost score if user has habits at different times (suggests they can handle this time slot)
-    if (userTimeSlots.has(habit.timeOfDay)) {
-      adjustedScore += 3;
-    }
-
-    // Cap at 100
-    adjustedScore = Math.min(100, adjustedScore);
-
-    return {
-      ...habit,
-      matchScore: adjustedScore
-    };
-  }).sort((a, b) => b.matchScore - a.matchScore);
-};
-
-// Time-based recommendations
-const getTimeBasedHabits = (): RecommendedHabit[] => [
-  {
-    id: "time-1",
-    name: "Morning Routine",
-    description: "5-minute morning routine to start your day right",
-    category: "Mindfulness",
-    frequency: "Daily",
-    timeOfDay: "Morning",
-    timeToComplete: "5 minutes",
-    priority: "High",
-    matchScore: 94,
-    benefits: ["Consistency", "Energy boost", "Mental clarity"],
-    impactAreas: ["Mental Health", "Productivity"],
-    chainsWith: ["Exercise", "Meditation"],
-  },
-  {
-    id: "time-2",
-    name: "Midday Reset",
-    description: "2-minute breathing break in the middle of your day",
-    category: "Mindfulness",
-    frequency: "Weekdays",
-    timeOfDay: "Afternoon",
-    timeToComplete: "2 minutes",
-    priority: "Medium",
-    matchScore: 87,
-    benefits: ["Stress reduction", "Renewed focus", "Energy restoration"],
-    impactAreas: ["Mental Health", "Productivity"],
-    chainsWith: ["Deep Work", "Hydration"],
-  },
-  {
-    id: "time-3",
-    name: "Evening Wind-Down",
-    description: "10-minute relaxation routine before bed",
-    category: "Mindfulness",
-    frequency: "Daily",
-    timeOfDay: "Evening",
-    timeToComplete: "10 minutes",
-    priority: "High",
-    matchScore: 91,
-    benefits: ["Better sleep", "Stress reduction", "Mental recovery"],
-    impactAreas: ["Sleep", "Mental Health"],
-    chainsWith: ["Reading", "Journaling"],
-  },
-];
-
-// Trending habits
-const getTrendingHabits = (): RecommendedHabit[] => [
-  {
-    id: "trend-1",
-    name: "Mindful Eating",
-    description: "Focus entirely on your food during meals, no distractions",
-    category: "Mindfulness",
-    frequency: "Daily",
-    timeOfDay: "Throughout day",
-    timeToComplete: "During meals",
-    priority: "Medium",
-    matchScore: 86,
-    benefits: ["Better digestion", "Weight management", "Increased satisfaction"],
-    impactAreas: ["Physical Health", "Mindfulness"],
-    chainsWith: ["Meditation", "Gratitude"],
-  },
-  {
-    id: "trend-2",
-    name: "Micro-Meditation",
-    description: "1-minute meditation sessions throughout the day",
-    category: "Mindfulness",
-    frequency: "Daily",
-    timeOfDay: "Throughout day",
-    timeToComplete: "1 minute",
-    priority: "Low",
-    matchScore: 89,
-    benefits: ["Stress reduction", "Improved focus", "Emotional regulation"],
-    impactAreas: ["Mental Health", "Productivity"],
-    chainsWith: ["Deep Work", "Breathing"],
-  },
-];
+interface RecommendationData {
+  recommendations: AIRecommendedHabit[];
+  isFromCache: boolean;
+  weeklyTheme: string;
+  canRefresh: boolean;
+  nextRefreshTime?: string;
+}
 
 export function RecommendedHabits() {
-  const [userHabits, setUserHabits] = useState<IHabit[]>([]);
-  const [addedHabits, setAddedHabits] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [recommendedHabits, setRecommendedHabits] = useState<RecommendedHabit[]>([]);
+  const [activeTab, setActiveTab] = useState<'for-you' | 'trending' | 'new-habits'>('for-you');
+  const [recommendations, setRecommendations] = useState<Record<string, RecommendationData>>({});
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [refreshing, setRefreshing] = useState(false);
+  const [addingHabit, setAddingHabit] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchUserHabits = async () => {
-      try {
-        const habits = await getUserHabits();
-        setUserHabits(habits);
-        setRecommendedHabits(getRecommendedHabits(habits));
-      } catch (error) {
-        console.error('Error fetching user habits:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load your habits. Using default recommendations.",
-          variant: "destructive",
-        });
-        setRecommendedHabits(getRecommendedHabits([]));
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Load recommendations for a specific section
+  const loadRecommendations = async (section: 'for-you' | 'trending' | 'new-habits', force = false) => {
+    setLoading(prev => ({ ...prev, [section]: true }));
 
-    fetchUserHabits();
-  }, [toast]);
-
-  const handleAddHabit = async (habit: RecommendedHabit) => {
     try {
-      setAddedHabits(prev => [...prev, habit.id]);
+      const result = force
+        ? await refreshAIRecommendations(section)
+        : await getAIRecommendations(section);
 
+      setRecommendations(prev => ({
+        ...prev,
+        [section]: result
+      }));
+
+      if (!result.isFromCache && !force) {
+        toast({
+          title: "✨ Fresh AI Recommendations",
+          description: `New ${section.replace('-', ' ')} habits generated just for you!`,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading recommendations:', error);
+      toast({
+        title: "Error loading recommendations",
+        description: "Please try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(prev => ({ ...prev, [section]: false }));
+      setRefreshing(false);
+    }
+  };
+
+  // Load initial recommendations
+  useEffect(() => {
+    loadRecommendations(activeTab);
+  }, [activeTab]);
+
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    const section = value as 'for-you' | 'trending' | 'new-habits';
+    setActiveTab(section);
+
+    // Load recommendations if not already loaded
+    if (!recommendations[section]) {
+      loadRecommendations(section);
+    }
+  };
+
+  // Handle refresh with feedback
+  const handleRefresh = async (feedback?: 'not_relevant' | 'too_easy' | 'too_hard' | 'different_category') => {
+    setRefreshing(true);
+    await loadRecommendations(activeTab, true);
+  };
+
+  // Add habit to user's list
+  const handleAddHabit = async (habit: AIRecommendedHabit) => {
+    setAddingHabit(habit.id);
+
+    try {
       const formData = new FormData();
       formData.append('name', habit.name);
       formData.append('description', habit.description);
@@ -374,205 +125,413 @@ export function RecommendedHabits() {
       formData.append('timeToComplete', habit.timeToComplete);
       formData.append('priority', habit.priority);
 
-      const result = await createHabit(formData);
+      await createHabit(formData);
 
-      if (result.success) {
-        toast({
-          title: "Habit Added Successfully!",
-          description: `${habit.name} has been added to your habits.`,
-        });
-      } else {
-        // Remove from added habits if creation failed
-        setAddedHabits(prev => prev.filter(id => id !== habit.id));
-        toast({
-          title: "Error",
-          description: result.error || "Failed to add habit. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      // Remove from added habits if creation failed
-      setAddedHabits(prev => prev.filter(id => id !== habit.id));
       toast({
-        title: "Error",
-        description: "Failed to add habit. Please try again.",
+        title: "🎉 Habit Added!",
+        description: `"${habit.name}" has been added to your habits.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error adding habit",
+        description: "Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setAddingHabit(null);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading recommendations...</span>
-      </div>
-    );
-  }
+  // Get priority color
+  const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return 'bg-red-500/10 text-red-700 border-red-500/20';
+      case 'medium':
+        return 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20';
+      case 'low':
+        return 'bg-green-500/10 text-green-700 border-green-500/20';
+      default:
+        return 'bg-gray-500/10 text-gray-700 border-gray-500/20';
+    }
+  };
+
+  // Get category icon
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Mindfulness':
+        return <Brain className="h-4 w-4" />;
+      case 'Health':
+        return <Heart className="h-4 w-4" />;
+      case 'Learning':
+        return <Star className="h-4 w-4" />;
+      case 'Productivity':
+        return <Target className="h-4 w-4" />;
+      case 'Digital Wellbeing':
+        return <Zap className="h-4 w-4" />;
+      default:
+        return <Sparkles className="h-4 w-4" />;
+    }
+  };
+
+  const currentData = recommendations[activeTab];
+  const isLoading = loading[activeTab];
 
   return (
-    <div className="space-y-8">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold">Recommended Habits</h2>
-        <p className="text-muted-foreground">
-          Personalized recommendations based on your current habits and goals
-        </p>
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Header with Weekly Theme */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">AI Recommended Habits</h2>
+            <p className="text-muted-foreground">
+              Personalized suggestions powered by AI, updated weekly
+            </p>
+          </div>
+        </div>
+
+        {/* Weekly Theme Banner */}
+        {currentData?.weeklyTheme && (
+          <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border border-blue-500/20 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-blue-500" />
+                <span className="font-medium">This Week's Theme: {currentData.weeklyTheme}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {currentData.isFromCache && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Cached
+                  </Badge>
+                )}
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  AI Generated
+                </Badge>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Enhanced Tabs */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <div className="flex items-center justify-between">
+            <TabsList className="grid w-full max-w-md grid-cols-3">
+              <TabsTrigger value="for-you" className="flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                <span className="hidden sm:inline">For You</span>
+              </TabsTrigger>
+              <TabsTrigger value="trending" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                <span className="hidden sm:inline">Trending</span>
+              </TabsTrigger>
+              <TabsTrigger value="new-habits" className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                <span className="hidden sm:inline">Discover</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Refresh Controls */}
+            <div className="flex items-center gap-2">
+              {currentData?.canRefresh && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleRefresh()}>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Fresh recommendations
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleRefresh('not_relevant')}>
+                      <ThumbsDown className="h-4 w-4 mr-2" />
+                      Not relevant
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleRefresh('too_easy')}>
+                      <Target className="h-4 w-4 mr-2" />
+                      Too easy
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleRefresh('too_hard')}>
+                      <Zap className="h-4 w-4 mr-2" />
+                      Too challenging
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleRefresh('different_category')}>
+                      <Star className="h-4 w-4 mr-2" />
+                      Different category
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              {refreshing && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Tab Contents */}
+          <TabsContent value="for-you" className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Personalized recommendations based on your current habits and goals
+            </div>
+            {isLoading ? (
+              <LoadingSkeleton />
+            ) : (
+              <RecommendationGrid
+                recommendations={currentData?.recommendations || []}
+                onAddHabit={handleAddHabit}
+                addingHabit={addingHabit}
+                getPriorityColor={getPriorityColor}
+                getCategoryIcon={getCategoryIcon}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="trending" className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Popular habits trending in the wellness community right now
+            </div>
+            {isLoading ? (
+              <LoadingSkeleton />
+            ) : (
+              <RecommendationGrid
+                recommendations={currentData?.recommendations || []}
+                onAddHabit={handleAddHabit}
+                addingHabit={addingHabit}
+                getPriorityColor={getPriorityColor}
+                getCategoryIcon={getCategoryIcon}
+                showTrendingBadge
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="new-habits" className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Discover innovative habits from different cultures and disciplines
+            </div>
+            {isLoading ? (
+              <LoadingSkeleton />
+            ) : (
+              <RecommendationGrid
+                recommendations={currentData?.recommendations || []}
+                onAddHabit={handleAddHabit}
+                addingHabit={addingHabit}
+                getPriorityColor={getPriorityColor}
+                getCategoryIcon={getCategoryIcon}
+                showNewBadge
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Help Text */}
+        {!isLoading && (!currentData?.recommendations || currentData.recommendations.length === 0) && (
+          <Card className="text-center py-8">
+            <CardContent>
+              <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No recommendations yet</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Add some habits to get personalized AI recommendations
+              </p>
+              <Button onClick={() => loadRecommendations(activeTab, true)}>
+                Generate Recommendations
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
+    </TooltipProvider>
+  );
+}
 
-      <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="personal">Personalized</TabsTrigger>
-          <TabsTrigger value="time">Time-Based</TabsTrigger>
-          <TabsTrigger value="trending">Trending</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="personal" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recommendedHabits.slice(0, 9).map((habit) => (
-              <HabitCard
-                key={habit.id}
-                habit={habit}
-                isAdded={addedHabits.includes(habit.id)}
-                onAddHabit={handleAddHabit}
-              />
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="time" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {getTimeBasedHabits().map((habit) => (
-              <HabitCard
-                key={habit.id}
-                habit={habit}
-                isAdded={addedHabits.includes(habit.id)}
-                onAddHabit={handleAddHabit}
-              />
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="trending" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {getTrendingHabits().map((habit) => (
-              <HabitCard
-                key={habit.id}
-                habit={habit}
-                isAdded={addedHabits.includes(habit.id)}
-                onAddHabit={handleAddHabit}
-                trending={true}
-              />
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+// Loading skeleton component
+function LoadingSkeleton() {
+  return (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {[...Array(6)].map((_, i) => (
+        <Card key={i} className="animate-pulse">
+          <CardHeader>
+            <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+            <div className="h-3 bg-muted rounded w-full"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="h-3 bg-muted rounded"></div>
+              <div className="h-3 bg-muted rounded w-2/3"></div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <div className="h-5 bg-muted rounded w-16"></div>
+              <div className="h-5 bg-muted rounded w-12"></div>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <div className="h-9 bg-muted rounded w-full"></div>
+          </CardFooter>
+        </Card>
+      ))}
     </div>
   );
 }
 
-type HabitCardProps = {
-  habit: RecommendedHabit;
-  isAdded: boolean;
-  onAddHabit: (habit: RecommendedHabit) => void;
-  trending?: boolean;
-};
+// Recommendation grid component
+interface RecommendationGridProps {
+  recommendations: AIRecommendedHabit[];
+  onAddHabit: (habit: AIRecommendedHabit) => void;
+  addingHabit: string | null;
+  getPriorityColor: (priority: string) => string;
+  getCategoryIcon: (category: string) => React.ReactNode;
+  showTrendingBadge?: boolean;
+  showNewBadge?: boolean;
+}
 
-function HabitCard({ habit, isAdded, onAddHabit, trending = false }: HabitCardProps) {
+function RecommendationGrid({
+  recommendations,
+  onAddHabit,
+  addingHabit,
+  getPriorityColor,
+  getCategoryIcon,
+  showTrendingBadge,
+  showNewBadge
+}: RecommendationGridProps) {
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02] duration-200">
-      <CardHeader className="pb-3 relative">
-        {trending && (
-          <Badge variant="outline" className="absolute right-4 top-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white border-0">
-            🔥 Trending
-          </Badge>
-        )}
-        <CardTitle className="text-lg flex items-start justify-between pr-8">
-          <span className="line-clamp-2">{habit.name}</span>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                  <Info className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="max-w-xs">
-                <div className="space-y-2">
-                  <p className="font-medium">Benefits:</p>
-                  <ul className="list-disc list-inside text-sm space-y-1">
-                    {habit.benefits.map((benefit, index) => (
-                      <li key={index}>{benefit}</li>
-                    ))}
-                  </ul>
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {recommendations.map((habit) => (
+        <Card key={habit.id} className="flex flex-col hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                {getCategoryIcon(habit.category)}
+                <CardTitle className="text-lg leading-tight">{habit.name}</CardTitle>
+              </div>
+              <div className="flex flex-col gap-1">
+                {showTrendingBadge && (
+                  <Badge variant="secondary" className="text-xs">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    Trending
+                  </Badge>
+                )}
+                {showNewBadge && (
+                  <Badge variant="secondary" className="text-xs">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    New
+                  </Badge>
+                )}
+                {habit.matchScore && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge variant="outline" className="text-xs">
+                        {habit.matchScore}% match
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>How well this habit matches your profile</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+            </div>
+            <CardDescription className="text-sm">
+              {habit.description}
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="flex-1 space-y-4">
+            {/* Habit Details */}
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-muted-foreground" />
+                <span className="text-muted-foreground">{habit.timeToComplete}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <BarChart3 className="h-3 w-3 text-muted-foreground" />
+                <span className="text-muted-foreground">{habit.frequency}</span>
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2">
+              <Badge className={getPriorityColor(habit.priority)}>
+                {habit.priority}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {habit.category}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {habit.timeOfDay}
+              </Badge>
+            </div>
+
+            {/* Benefits */}
+            {habit.benefits && habit.benefits.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Benefits:</p>
+                <div className="flex flex-wrap gap-1">
+                  {habit.benefits.slice(0, 3).map((benefit, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {benefit}
+                    </Badge>
+                  ))}
                 </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </CardTitle>
-        <CardDescription className="line-clamp-3">
-          {habit.description}
-        </CardDescription>
-      </CardHeader>
+              </div>
+            )}
 
-      <CardContent className="pb-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-medium">
-              {habit.matchScore}% Match
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              {habit.timeToComplete}
-            </span>
-          </div>
-        </div>
+            {/* AI Reasoning */}
+            {habit.aiReasoning && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-start gap-2 p-2 bg-muted/50 rounded text-xs">
+                    <Brain className="h-3 w-3 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-muted-foreground line-clamp-2">
+                      {habit.aiReasoning}
+                    </p>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>{habit.aiReasoning}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary" className="text-xs">
-            {habit.category}
-          </Badge>
-          <Badge variant="outline" className="text-xs">
-            {habit.timeOfDay}
-          </Badge>
-          <Badge variant="outline" className="text-xs">
-            {habit.priority} Priority
-          </Badge>
-        </div>
+            {/* Chains With */}
+            {habit.chainsWith && habit.chainsWith.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Chains well with:</p>
+                <p className="text-xs text-muted-foreground">
+                  {habit.chainsWith.slice(0, 2).join(', ')}
+                </p>
+              </div>
+            )}
+          </CardContent>
 
-        <div className="space-y-2 text-sm">
-          <div className="flex items-start gap-2">
-            <BarChart3 className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            <span className="text-muted-foreground">
-              Impact: {habit.impactAreas.join(", ")}
-            </span>
-          </div>
-          <div className="flex items-start gap-2">
-            <Zap className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            <span className="text-muted-foreground">
-              Chains with: {habit.chainsWith.join(", ")}
-            </span>
-          </div>
-        </div>
-      </CardContent>
-
-      <CardFooter className="pt-0">
-        <Button
-          className="w-full cursor-pointer"
-          disabled={isAdded}
-          onClick={() => onAddHabit(habit)}
-        >
-          {isAdded ? (
-            "Added ✓"
-          ) : (
-            <>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Habit
-            </>
-          )}
-        </Button>
-      </CardFooter>
-    </Card>
+          <CardFooter className="pt-3">
+            <Button
+              onClick={() => onAddHabit(habit)}
+              disabled={addingHabit === habit.id}
+              className="w-full"
+              size="sm"
+            >
+              {addingHabit === habit.id ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Habit
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
   );
 }

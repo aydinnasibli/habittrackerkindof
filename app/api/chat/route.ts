@@ -62,7 +62,7 @@ Be thorough but concise in your responses.`;
 
         // Use streaming for better performance and to avoid timeouts
         const stream = await anthropic.messages.create({
-            model: 'claude-opus-4-0', // Switch to Sonnet 4 - it's faster and more efficient
+            model: 'claude-sonnet-4-0', // Switch to Sonnet 4 - it's faster and more efficient
             max_tokens: 32000, // Reduced max_tokens for faster responses
             messages: finalMessages,
             stream: true, // Enable streaming
