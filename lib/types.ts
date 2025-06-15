@@ -274,3 +274,47 @@ export const XP_REWARDS = {
         365: 5000   // 1 year streak
     }
 } as const;
+
+
+
+// lib/types.ts
+export interface Message {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: Date;
+}
+
+export interface ChatResponse {
+    content: string;
+    usage?: {
+        input_tokens: number;
+        output_tokens: number;
+    };
+}
+
+export interface ChatError {
+    error: string;
+}
+
+export interface RepoFile {
+    name: string;
+    path: string;
+    type: 'file' | 'dir';
+    content?: string;
+    size?: number;
+}
+
+export interface GitHubRepo {
+    name: string;
+    full_name: string;
+    private: boolean;
+    html_url: string;
+    description?: string;
+}
+
+export interface RepoContext {
+    repoUrl: string;
+    selectedFiles: RepoFile[];
+    repoStructure: RepoFile[];
+}

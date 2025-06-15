@@ -1,10 +1,10 @@
-import ChatComponent from '@/components/ChatComponent'
-import React from 'react'
+// app/page.tsx
+import Chat from '@/components/Chat';
 
-function page() {
+export default function Home() {
     return (
-        <div><ChatComponent /></div>
-    )
+        <main className="h-screen">
+            <Chat />
+        </main>
+    );
 }
-
-export default page
