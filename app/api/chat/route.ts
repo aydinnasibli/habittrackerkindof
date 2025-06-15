@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
             : `You are a helpful AI assistant.`;
 
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4', // Using GPT-4 for better code analysis
+            model: 'gpt-4.1-2025-04-14', // Using GPT-4 for better code analysis
             messages: [
                 {
                     role: 'system',
