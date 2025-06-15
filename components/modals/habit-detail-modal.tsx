@@ -189,7 +189,7 @@ export function HabitDetailModal({ habit, isOpen, onClose }: HabitDetailModalPro
                                                     }`} />
                                                 <div>
                                                     <div className="text-sm font-medium">
-                                                        {completion.date.toLocaleDateString('tr-TR', {
+                                                        {completion.date.toLocaleDateString('en-EN', {
                                                             weekday: 'short',
                                                             month: 'short',
                                                             day: 'numeric'
