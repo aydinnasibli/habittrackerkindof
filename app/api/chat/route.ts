@@ -34,9 +34,9 @@ Be thorough but concise in your responses.`;
 
             repoContext.selectedFiles.forEach((file: any) => {
                 if (file.content) {
-                    // Truncate very long files to avoid token limits
-                    const content = file.content.length > 10000
-                        ? file.content.substring(0, 10000) + '\n\n... (file truncated due to length)'
+                    // More aggressive truncation to avoid token limits and timeouts
+                    const content = file.content.length > 5000
+                        ? file.content.substring(0, 5000) + '\n\n... (file truncated due to length)'
                         : file.content;
 
                     systemMessage += `\n--- ${file.path} ---\n${content}\n`;
@@ -60,16 +60,62 @@ Be thorough but concise in your responses.`;
             ]
             : claudeMessages;
 
-        const response = await anthropic.messages.create({
-            model: 'claude-opus-4-0',
-            max_tokens: 65536,
+        // Use streaming for better performance and to avoid timeouts
+        const stream = await anthropic.messages.create({
+            model: 'claude-opus-4-0', // Switch to Sonnet 4 - it's faster and more efficient
+            max_tokens: 32000, // Reduced max_tokens for faster responses
             messages: finalMessages,
+            stream: true, // Enable streaming
         });
 
-        return NextResponse.json({
-            content: response.content[0].type === 'text' ? response.content[0].text : 'Unable to generate response',
-            usage: response.usage,
+        // Create a ReadableStream to handle the streaming response
+        const encoder = new TextEncoder();
+        const readable = new ReadableStream({
+            async start(controller) {
+                try {
+                    let fullContent = '';
+                    let usage = null;
+
+                    for await (const chunk of stream) {
+                        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+                            const text = chunk.delta.text;
+                            fullContent += text;
+
+                            // Send each chunk to the client
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: text, type: 'chunk' })}\n\n`));
+                        } else if (chunk.type === 'message_stop') {
+                            usage = chunk.usage || null;
+                        }
+                    }
+
+                    // Send final message with complete content and usage
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                        content: fullContent,
+                        usage: usage,
+                        type: 'complete'
+                    })}\n\n`));
+
+                    controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                    controller.close();
+                } catch (error) {
+                    console.error('Streaming error:', error);
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                        error: 'Streaming failed',
+                        type: 'error'
+                    })}\n\n`));
+                    controller.close();
+                }
+            },
         });
+
+        return new Response(readable, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            },
+        });
+
     } catch (error) {
         console.error('Error calling Claude API:', error);
 
