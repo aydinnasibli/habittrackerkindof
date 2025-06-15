@@ -238,7 +238,7 @@ export default function RepoBrowser({ onFilesSelected, selectedFiles }: RepoBrow
     const clearError = () => setError('');
 
     return (
-        <div className="bg-white border rounded-lg p-4 mb-4">
+        <div className="bg-gray-800 border rounded-lg p-4 mb-4">
             <h3 className="text-lg font-semibold mb-4">Repository Access</h3>
 
             {/* Error Display */}
@@ -261,8 +261,8 @@ export default function RepoBrowser({ onFilesSelected, selectedFiles }: RepoBrow
                 <button
                     onClick={() => setActiveTab('url')}
                     className={`px-4 py-2 transition-colors ${activeTab === 'url'
-                            ? 'border-b-2 border-blue-500 text-blue-600'
-                            : 'text-gray-600 hover:text-gray-800'
+                        ? 'border-b-2 border-blue-500 text-blue-600'
+                        : 'text-gray-600 hover:text-gray-800'
                         }`}
                 >
                     Direct URL
@@ -270,8 +270,8 @@ export default function RepoBrowser({ onFilesSelected, selectedFiles }: RepoBrow
                 <button
                     onClick={() => setActiveTab('browse')}
                     className={`px-4 py-2 transition-colors ${activeTab === 'browse'
-                            ? 'border-b-2 border-blue-500 text-blue-600'
-                            : 'text-gray-600 hover:text-gray-800'
+                        ? 'border-b-2 border-blue-500 text-blue-600'
+                        : 'text-gray-600 hover:text-gray-800'
                         }`}
                 >
                     Browse User Repos
@@ -403,10 +403,10 @@ export default function RepoBrowser({ onFilesSelected, selectedFiles }: RepoBrow
                                     key={file.path}
                                     onClick={() => loadFileContent(file)}
                                     className={`p-2 border-b last:border-b-0 flex items-center transition-colors ${isSelected
-                                            ? 'bg-blue-50 cursor-default'
-                                            : isSupported
-                                                ? 'hover:bg-gray-100 cursor-pointer'
-                                                : 'opacity-50 cursor-not-allowed'
+                                        ? 'bg-blue-50 cursor-default'
+                                        : isSupported
+                                            ? 'hover:bg-gray-100 cursor-pointer'
+                                            : 'opacity-50 cursor-not-allowed'
                                         }`}
                                 >
                                     <span className="mr-2">
