@@ -1,162 +1,110 @@
-// components/dashboard/enhanced-habit-stats.tsx
+// components/dashboard/habit-stats.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  LineChart,
-  Line,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar
-} from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Brain,
   TrendingUp,
   TrendingDown,
-  Calendar,
+  AlertTriangle,
   Target,
-  Zap,
-  Brain,
-  Heart,
-  Clock,
-  Star,
-  Award,
-  ChevronRight,
   Lightbulb,
-  AlertCircle,
-  CheckCircle2,
+  Calendar,
+  Clock,
+  Award,
+  Zap,
+  ChevronRight,
+  ChevronDown,
+  Star,
+  Shield,
   Activity,
-  BarChart3,
-  PieChart as PieChartIcon,
-  LineChart as LineChartIcon,
-  Radar as RadarIcon,
+  Users,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Info,
+  Flame,
+  BarChart3
 } from "lucide-react";
 import {
-  Tooltip as UITooltip,
+  Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { getUserHabits } from "@/lib/actions/habits";
-import { getOrCreateProfile } from "@/lib/actions/profile";
-import { generateHabitAnalytics } from "@/lib/services/habit-analytics-ai";
-import { IHabit, IProfile } from "@/lib/types";
+import { getAIAnalytics } from "@/lib/actions/ai-analytics";
+import {
+  ComprehensiveAnalysis,
+  PersonalizedInsight,
+  HabitPrediction,
+  HabitPattern,
+  CoachingPlan,
+  BehavioralProfile,
+  RiskAssessment,
+  ActionStep
+} from "@/lib/services/habit-analytics-ai";
 
-const COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))"
-];
-
-// Enhanced data types
-interface EnhancedWeeklyData {
-  name: string;
-  date: string;
-  completed: number;
-  total: number;
-  percentage: number;
-  streak: number;
-  newHabits: number;
-}
-
-interface CategoryInsight {
-  name: string;
-  value: number;
-  percentage: number;
-  trend: 'up' | 'down' | 'stable';
-  trendValue: number;
-  color: string;
-  completionRate: number;
-  averageStreak: number;
-}
-
-interface HabitPerformance {
-  name: string;
-  category: string;
-  completionRate: number;
-  currentStreak: number;
-  longestStreak: number;
-  weeklyTrend: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-  consistency: number;
-}
-
-interface AIInsight {
-  type: 'success' | 'warning' | 'tip' | 'achievement';
-  title: string;
-  description: string;
-  action?: string;
-  data?: any;
-  priority: 'high' | 'medium' | 'low';
-}
-
-interface AnalyticsData {
-  weeklyData: EnhancedWeeklyData[];
-  monthlyData: any[];
-  categoryInsights: CategoryInsight[];
-  habitPerformance: HabitPerformance[];
-  aiInsights: AIInsight[];
-  streakData: any[];
-  timePatterns: any[];
-  motivationScore: number;
-  consistencyScore: number;
-  diversityScore: number;
-  overallTrend: 'improving' | 'declining' | 'stable';
-}
-
-// Custom tooltip component
-const CustomTooltip = ({ active, payload, label, formatter }: any) => {
-  if (!active || !payload || !payload.length) return null;
-
+// Loading skeleton component
+function AnalyticsLoadingSkeleton() {
   return (
-    <div className="bg-card border border-border rounded-lg shadow-lg p-3 min-w-32">
-      <p className="text-card-foreground font-medium mb-2">{label}</p>
-      {payload.map((entry: any, index: number) => (
-        <div key={index} className="flex items-center gap-2 text-sm">
-          <div
-            className="w-3 h-3 rounded-sm"
-            style={{ backgroundColor: entry.color }}
-          />
-          <span className="text-card-foreground">
-            {entry.name}: {formatter ? formatter(entry.value, entry.name)[0] : entry.value}
-          </span>
-        </div>
-      ))}
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 bg-muted animate-pulse rounded" />
+            <div className="h-6 w-48 bg-muted animate-pulse rounded" />
+          </div>
+          <div className="h-4 w-64 bg-muted animate-pulse rounded mt-2" />
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="text-center space-y-2">
+                <div className="h-8 w-16 bg-muted animate-pulse rounded mx-auto" />
+                <div className="h-4 w-24 bg-muted animate-pulse rounded mx-auto" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardHeader>
+              <div className="h-6 w-3/4 bg-muted animate-pulse rounded" />
+              <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                <div className="h-4 w-4/5 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-3/5 bg-muted animate-pulse rounded" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
-};
+}
 
 export function HabitStats() {
-  const [habits, setHabits] = useState<IHabit[]>([]);
-  const [profile, setProfile] = useState<IProfile | null>(null);
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [analysis, setAnalysis] = useState<ComprehensiveAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
   const [refreshing, setRefreshing] = useState(false);
+  const [activeInsight, setActiveInsight] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('insights');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -166,18 +114,8 @@ export function HabitStats() {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const [fetchedHabits, fetchedProfile] = await Promise.all([
-        getUserHabits(),
-        getOrCreateProfile()
-      ]);
-
-      setHabits(fetchedHabits);
-      setProfile(fetchedProfile);
-
-      if (fetchedHabits.length > 0) {
-        const analytics = await generateEnhancedAnalytics(fetchedHabits, fetchedProfile);
-        setAnalyticsData(analytics);
-      }
+      const result = await getAIAnalytics();
+      setAnalysis(result);
     } catch (error) {
       console.error('Error loading analytics:', error);
       toast({
@@ -191,432 +129,47 @@ export function HabitStats() {
   };
 
   const refreshAnalytics = async () => {
-    setRefreshing(true);
-    await loadAnalytics();
-    setRefreshing(false);
-    toast({
-      title: "✨ Analytics Refreshed",
-      description: "Your habit insights have been updated with the latest data.",
-    });
-  };
-
-  const generateEnhancedAnalytics = async (
-    habits: IHabit[],
-    profile: IProfile | null
-  ): Promise<AnalyticsData> => {
-    // Generate comprehensive analytics
-    const weeklyData = calculateEnhancedWeeklyStats(habits);
-    const monthlyData = calculateMonthlyStats(habits);
-    const categoryInsights = calculateCategoryInsights(habits);
-    const habitPerformance = calculateHabitPerformance(habits);
-    const streakData = calculateStreakData(habits);
-    const timePatterns = calculateTimePatterns(habits);
-
-    // Calculate scores
-    const scores = calculateScores(habits, habitPerformance);
-
-    // Generate AI insights
-    const aiInsights = await generateHabitAnalytics(habits, profile, {
-      weeklyData,
-      categoryInsights,
-      habitPerformance,
-      scores
-    });
-
-    return {
-      weeklyData,
-      monthlyData,
-      categoryInsights,
-      habitPerformance,
-      aiInsights,
-      streakData,
-      timePatterns,
-      motivationScore: scores.motivation,
-      consistencyScore: scores.consistency,
-      diversityScore: scores.diversity,
-      overallTrend: calculateOverallTrend(weeklyData)
-    };
-  };
-
-  // Enhanced calculation functions
-  const calculateEnhancedWeeklyStats = (habits: IHabit[]): EnhancedWeeklyData[] => {
-    const today = new Date();
-    const weekData: EnhancedWeeklyData[] = [];
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-    for (let i = 13; i >= 0; i--) { // Last 14 days for better trend analysis
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-
-      const dayName = dayNames[date.getDay()];
-      let completed = 0;
-      let total = 0;
-      let streakCount = 0;
-      let newHabits = 0;
-
-      habits.forEach(habit => {
-        if (habit.status === 'active') {
-          total++;
-
-          // Check if habit was created on this day
-          const createdDate = new Date(habit.createdAt);
-          createdDate.setHours(0, 0, 0, 0);
-          if (createdDate.getTime() === date.getTime()) {
-            newHabits++;
-          }
-
-          const dayCompletion = habit.completions?.find(comp => {
-            const compDate = new Date(comp.date);
-            compDate.setHours(0, 0, 0, 0);
-            return compDate.getTime() === date.getTime();
-          });
-
-          if (dayCompletion?.completed) {
-            completed++;
-            if (habit.streak > 0) streakCount++;
-          }
-        }
+    try {
+      setRefreshing(true);
+      const result = await getAIAnalytics();
+      setAnalysis(result);
+      toast({
+        title: "✨ Analytics Refreshed",
+        description: "Your insights have been updated with the latest data.",
       });
-
-      weekData.push({
-        name: i === 0 ? 'Today' : i === 1 ? 'Yesterday' : dayName,
-        date: date.toISOString().split('T')[0],
-        completed,
-        total: total || 1,
-        percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
-        streak: streakCount,
-        newHabits
+    } catch (error) {
+      console.error('Error refreshing analytics:', error);
+      toast({
+        title: "Error refreshing analytics",
+        description: "Please try again in a moment.",
+        variant: "destructive",
       });
+    } finally {
+      setRefreshing(false);
     }
-
-    return weekData;
-  };
-
-  const calculateCategoryInsights = (habits: IHabit[]): CategoryInsight[] => {
-    const categoryMap = new Map<string, {
-      count: number;
-      completions: number;
-      totalAttempts: number;
-      streaks: number[];
-      weeklyCompletions: number[];
-    }>();
-
-    const colors = {
-      'Mindfulness': 'hsl(280, 100%, 70%)',
-      'Health': 'hsl(0, 100%, 70%)',
-      'Learning': 'hsl(45, 100%, 70%)',
-      'Productivity': 'hsl(200, 100%, 70%)',
-      'Digital Wellbeing': 'hsl(120, 100%, 70%)'
-    };
-
-    habits.forEach(habit => {
-      if (!categoryMap.has(habit.category)) {
-        categoryMap.set(habit.category, {
-          count: 0,
-          completions: 0,
-          totalAttempts: 0,
-          streaks: [],
-          weeklyCompletions: []
-        });
-      }
-
-      const data = categoryMap.get(habit.category)!;
-      data.count++;
-      data.streaks.push(habit.streak);
-
-      const completions = habit.completions?.filter(c => c.completed).length || 0;
-      const attempts = habit.completions?.length || 0;
-
-      data.completions += completions;
-      data.totalAttempts += attempts;
-
-      // Calculate weekly completions for trend
-      const weeklyCompletions = habit.completions?.filter(c => {
-        const compDate = new Date(c.date);
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return compDate >= weekAgo && c.completed;
-      }).length || 0;
-
-      data.weeklyCompletions.push(weeklyCompletions);
-    });
-
-    return Array.from(categoryMap.entries()).map(([category, data]) => {
-      const completionRate = data.totalAttempts > 0
-        ? Math.round((data.completions / data.totalAttempts) * 100)
-        : 0;
-
-      const averageStreak = data.streaks.length > 0
-        ? Math.round(data.streaks.reduce((a, b) => a + b, 0) / data.streaks.length)
-        : 0;
-
-      const weeklyTotal = data.weeklyCompletions.reduce((a, b) => a + b, 0);
-      const previousWeekTotal = Math.floor(weeklyTotal * 0.8); // Simulated previous week
-      const trendValue = previousWeekTotal > 0
-        ? Math.round(((weeklyTotal - previousWeekTotal) / previousWeekTotal) * 100)
-        : 0;
-
-      return {
-        name: category,
-        value: data.count,
-        percentage: Math.round((data.count / habits.length) * 100),
-        trend: trendValue > 5 ? 'up' : trendValue < -5 ? 'down' : 'stable',
-        trendValue,
-        color: colors[category as keyof typeof colors] || 'hsl(0, 0%, 50%)',
-        completionRate,
-        averageStreak
-      };
-    });
-  };
-
-  const calculateHabitPerformance = (habits: IHabit[]): HabitPerformance[] => {
-    return habits.map(habit => {
-      const completions = habit.completions?.filter(c => c.completed).length || 0;
-      const attempts = habit.completions?.length || 0;
-      const completionRate = attempts > 0 ? Math.round((completions / attempts) * 100) : 0;
-
-      // Calculate consistency (how regular the completions are)
-      const recentCompletions = habit.completions?.slice(-14) || [];
-      const consistencyScore = calculateConsistencyScore(recentCompletions);
-
-      // Calculate weekly trend
-      const thisWeekCompletions = habit.completions?.filter(c => {
-        const compDate = new Date(c.date);
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return compDate >= weekAgo && c.completed;
-      }).length || 0;
-
-      const lastWeekCompletions = habit.completions?.filter(c => {
-        const compDate = new Date(c.date);
-        const twoWeeksAgo = new Date();
-        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return compDate >= twoWeeksAgo && compDate < weekAgo && c.completed;
-      }).length || 0;
-
-      const weeklyTrend = lastWeekCompletions > 0
-        ? Math.round(((thisWeekCompletions - lastWeekCompletions) / lastWeekCompletions) * 100)
-        : 0;
-
-      // Calculate difficulty based on completion rate and consistency
-      let difficulty: 'easy' | 'medium' | 'hard';
-      if (completionRate >= 80 && consistencyScore >= 70) difficulty = 'easy';
-      else if (completionRate >= 60 && consistencyScore >= 50) difficulty = 'medium';
-      else difficulty = 'hard';
-
-      // Calculate longest streak
-      const longestStreak = calculateLongestStreak(habit.completions || []);
-
-      return {
-        name: habit.name,
-        category: habit.category,
-        completionRate,
-        currentStreak: habit.streak,
-        longestStreak,
-        weeklyTrend,
-        difficulty,
-        consistency: consistencyScore
-      };
-    });
-  };
-
-  const calculateConsistencyScore = (completions: any[]): number => {
-    if (completions.length < 3) return 0;
-
-    const completedDays = completions.filter(c => c.completed).length;
-    const totalDays = completions.length;
-    const baseScore = (completedDays / totalDays) * 100;
-
-    // Bonus for consecutive completions
-    let consecutiveBonus = 0;
-    let currentConsecutive = 0;
-    let maxConsecutive = 0;
-
-    completions.forEach(completion => {
-      if (completion.completed) {
-        currentConsecutive++;
-        maxConsecutive = Math.max(maxConsecutive, currentConsecutive);
-      } else {
-        currentConsecutive = 0;
-      }
-    });
-
-    consecutiveBonus = Math.min((maxConsecutive / totalDays) * 20, 20);
-
-    return Math.round(Math.min(baseScore + consecutiveBonus, 100));
-  };
-
-  const calculateLongestStreak = (completions: any[]): number => {
-    let maxStreak = 0;
-    let currentStreak = 0;
-
-    completions.forEach(completion => {
-      if (completion.completed) {
-        currentStreak++;
-        maxStreak = Math.max(maxStreak, currentStreak);
-      } else {
-        currentStreak = 0;
-      }
-    });
-
-    return maxStreak;
-  };
-
-  const calculateScores = (habits: IHabit[], performance: HabitPerformance[]) => {
-    const totalHabits = habits.length;
-    if (totalHabits === 0) return { motivation: 0, consistency: 0, diversity: 0 };
-
-    // Motivation score based on streaks and recent activity
-    const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / totalHabits;
-    const recentActivity = habits.filter(h => {
-      const lastCompletion = h.completions?.slice(-1)[0];
-      if (!lastCompletion) return false;
-      const daysSinceLastCompletion = Math.floor(
-        (Date.now() - new Date(lastCompletion.date).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      return daysSinceLastCompletion <= 3;
-    }).length;
-
-    const motivationScore = Math.round(
-      (avgStreak * 10 + (recentActivity / totalHabits) * 50) * 0.8
-    );
-
-    // Consistency score
-    const avgConsistency = performance.reduce((sum, p) => sum + p.consistency, 0) / performance.length;
-    const consistencyScore = Math.round(avgConsistency || 0);
-
-    // Diversity score based on category distribution
-    const categories = new Set(habits.map(h => h.category));
-    const diversityScore = Math.round((categories.size / 5) * 100); // 5 total categories
-
-    return {
-      motivation: Math.min(motivationScore, 100),
-      consistency: consistencyScore,
-      diversity: diversityScore
-    };
-  };
-
-  const calculateMonthlyStats = (habits: IHabit[]) => {
-    // Implementation for monthly statistics
-    const monthlyData = [];
-    const today = new Date();
-
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-
-      let completed = 0;
-      let total = 0;
-
-      habits.forEach(habit => {
-        if (habit.status === 'active') {
-          total++;
-          const dayCompletion = habit.completions?.find(comp => {
-            const compDate = new Date(comp.date);
-            compDate.setHours(0, 0, 0, 0);
-            date.setHours(0, 0, 0, 0);
-            return compDate.getTime() === date.getTime();
-          });
-
-          if (dayCompletion?.completed) {
-            completed++;
-          }
-        }
-      });
-
-      monthlyData.push({
-        name: `Day ${30 - i}`,
-        date: date.toISOString().split('T')[0],
-        completed,
-        total: total || 1,
-        percentage: total > 0 ? Math.round((completed / total) * 100) : 0
-      });
-    }
-
-    return monthlyData;
-  };
-
-  const calculateStreakData = (habits: IHabit[]) => {
-    return habits.map(habit => ({
-      name: habit.name.length > 15 ? habit.name.substring(0, 12) + '...' : habit.name,
-      streak: habit.streak,
-      category: habit.category
-    })).sort((a, b) => b.streak - a.streak);
-  };
-
-  const calculateTimePatterns = (habits: IHabit[]) => {
-    const timeSlots = ['Morning', 'Afternoon', 'Evening', 'Throughout day'];
-    const patterns = timeSlots.map(slot => {
-      const habitsInSlot = habits.filter(h => h.timeOfDay === slot);
-      const completions = habitsInSlot.reduce((sum, habit) => {
-        return sum + (habit.completions?.filter(c => c.completed).length || 0);
-      }, 0);
-
-      return {
-        time: slot,
-        habits: habitsInSlot.length,
-        completions,
-        averageCompletion: habitsInSlot.length > 0 ? Math.round(completions / habitsInSlot.length) : 0
-      };
-    });
-
-    return patterns;
-  };
-
-  const calculateOverallTrend = (weeklyData: EnhancedWeeklyData[]): 'improving' | 'declining' | 'stable' => {
-    if (weeklyData.length < 7) return 'stable';
-
-    const recentWeek = weeklyData.slice(-7);
-    const previousWeek = weeklyData.slice(-14, -7);
-
-    const recentAvg = recentWeek.reduce((sum, day) => sum + day.percentage, 0) / 7;
-    const previousAvg = previousWeek.reduce((sum, day) => sum + day.percentage, 0) / 7;
-
-    const improvement = recentAvg - previousAvg;
-
-    if (improvement > 5) return 'improving';
-    if (improvement < -5) return 'declining';
-    return 'stable';
   };
 
   if (loading) {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 animate-pulse" />
-            <CardTitle>Loading Analytics...</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-20 bg-muted rounded animate-pulse" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <AnalyticsLoadingSkeleton />;
   }
 
-  if (!analyticsData || habits.length === 0) {
+  if (!analysis) {
     return (
-      <Card className="w-full">
+      <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-muted-foreground" />
-            <CardTitle>Habit Analytics</CardTitle>
+            <Brain className="h-6 w-6 text-muted-foreground" />
+            <CardTitle>AI Analytics</CardTitle>
           </div>
+          <CardDescription>
+            Create some habits to unlock AI-powered insights
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No Data Yet</h3>
+            <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">
-              Start tracking habits to see your analytics and insights.
+              Start tracking habits to receive personalized insights and recommendations.
             </p>
           </div>
         </CardContent>
@@ -624,36 +177,24 @@ export function HabitStats() {
     );
   }
 
-  const {
-    weeklyData,
-    categoryInsights,
-    habitPerformance,
-    aiInsights,
-    streakData,
-    timePatterns,
-    motivationScore,
-    consistencyScore,
-    diversityScore,
-    overallTrend
-  } = analyticsData;
-
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* Header with Key Metrics */}
-        <Card className="w-full border-0 shadow-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+        {/* AI Summary Header */}
+        <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 shadow-sm">
-                  <BarChart3 className="h-6 w-6 text-blue-600" />
-                </div>
+              <div className="flex items-center gap-2">
+                <Brain className="h-6 w-6 text-primary animate-pulse" />
                 <div>
-                  <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    Habit Analytics & Insights
+                  <CardTitle className="flex items-center gap-2">
+                    AI Behavioral Analysis
+                    <Badge variant="secondary" className="text-xs">
+                      Powered by GPT-4
+                    </Badge>
                   </CardTitle>
-                  <CardDescription>
-                    AI-powered analysis of your habit patterns and performance
+                  <CardDescription className="mt-1">
+                    Deep insights powered by behavioral psychology and your personal data
                   </CardDescription>
                 </div>
               </div>
@@ -662,407 +203,935 @@ export function HabitStats() {
                 size="sm"
                 onClick={refreshAnalytics}
                 disabled={refreshing}
-                className="bg-white/80 hover:bg-white dark:bg-gray-800/80"
+                className="shrink-0"
               >
-                {refreshing ? (
-                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
-                )}
-                Refresh Insights
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="ml-2 hidden sm:inline">Refresh</span>
               </Button>
             </div>
           </CardHeader>
-
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Overall Trend */}
-              <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  {overallTrend === 'improving' ? (
-                    <TrendingUp className="h-5 w-5 text-green-500" />
-                  ) : overallTrend === 'declining' ? (
-                    <TrendingDown className="h-5 w-5 text-red-500" />
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary mb-1">
+                  {analysis.coachingPlan.readinessScore}%
+                </div>
+                <div className="text-sm text-muted-foreground">Success Readiness</div>
+                <Progress value={analysis.coachingPlan.readinessScore} className="mt-2" />
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-500 mb-1">
+                  {analysis.predictions.filter(p => p.interventionNeeded).length}
+                </div>
+                <div className="text-sm text-muted-foreground">Need Intervention</div>
+                <div className="flex justify-center mt-2">
+                  {analysis.predictions.filter(p => p.interventionNeeded).length > 0 ? (
+                    <AlertTriangle className="h-4 w-4 text-orange-500" />
                   ) : (
-                    <Activity className="h-5 w-5 text-blue-500" />
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
                   )}
-                  <span className="text-sm font-medium text-muted-foreground">Overall Trend</span>
                 </div>
-                <div className="text-2xl font-bold capitalize">{overallTrend}</div>
               </div>
-
-              {/* Motivation Score */}
-              <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="h-5 w-5 text-yellow-500" />
-                  <span className="text-sm font-medium text-muted-foreground">Motivation</span>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-500 mb-1">
+                  {analysis.insights.filter(i => i.type === 'optimization').length}
                 </div>
-                <div className="text-2xl font-bold">{motivationScore}/100</div>
-                <Progress value={motivationScore} className="mt-2" />
+                <div className="text-sm text-muted-foreground">Opportunities</div>
+                <Sparkles className="h-4 w-4 text-green-500 mx-auto mt-2" />
               </div>
-
-              {/* Consistency Score */}
-              <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="h-5 w-5 text-blue-500" />
-                  <span className="text-sm font-medium text-muted-foreground">Consistency</span>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-500 mb-1">
+                  {analysis.riskAssessment.overallRisk === 'low' ? '✓' :
+                    analysis.riskAssessment.overallRisk === 'medium' ? '⚠' : '⚠⚠'}
                 </div>
-                <div className="text-2xl font-bold">{consistencyScore}/100</div>
-                <Progress value={consistencyScore} className="mt-2" />
-              </div>
-
-              {/* Diversity Score */}
-              <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Star className="h-5 w-5 text-purple-500" />
-                  <span className="text-sm font-medium text-muted-foreground">Diversity</span>
-                </div>
-                <div className="text-2xl font-bold">{diversityScore}/100</div>
-                <Progress value={diversityScore} className="mt-2" />
+                <div className="text-sm text-muted-foreground">Risk Level</div>
+                <Badge variant={
+                  analysis.riskAssessment.overallRisk === 'low' ? 'secondary' :
+                    analysis.riskAssessment.overallRisk === 'medium' ? 'destructive' : 'destructive'
+                } className="mt-2 text-xs">
+                  {analysis.riskAssessment.overallRisk.toUpperCase()}
+                </Badge>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* AI Insights */}
-        {aiInsights.length > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-purple-500" />
-                <CardTitle>AI Insights & Recommendations</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {aiInsights.map((insight, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-lg border-l-4 ${insight.type === 'success'
-                      ? 'bg-green-50 border-green-500 dark:bg-green-900/20'
-                      : insight.type === 'warning'
-                        ? 'bg-yellow-50 border-yellow-500 dark:bg-yellow-900/20'
-                        : insight.type === 'achievement'
-                          ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/20'
-                          : 'bg-purple-50 border-purple-500 dark:bg-purple-900/20'
-                      }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1">
-                        {insight.type === 'success' ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500" />
-                        ) : insight.type === 'warning' ? (
-                          <AlertCircle className="h-5 w-5 text-yellow-500" />
-                        ) : insight.type === 'achievement' ? (
-                          <Award className="h-5 w-5 text-blue-500" />
-                        ) : (
-                          <Lightbulb className="h-5 w-5 text-purple-500" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium mb-1">{insight.title}</h4>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {insight.description}
-                        </p>
-                        {insight.action && (
-                          <Button variant="outline" size="sm">
-                            {insight.action}
-                            <ChevronRight className="h-3 w-3 ml-1" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Analytics Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        {/* Main Analytics Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Overview
+            <TabsTrigger value="insights" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              <span className="hidden sm:inline">Insights</span>
             </TabsTrigger>
-            <TabsTrigger value="trends" className="flex items-center gap-2">
-              <LineChartIcon className="h-4 w-4" />
-              Trends
-            </TabsTrigger>
-            <TabsTrigger value="categories" className="flex items-center gap-2">
-              <PieChartIcon className="h-4 w-4" />
-              Categories
-            </TabsTrigger>
-            <TabsTrigger value="performance" className="flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Performance
+            <TabsTrigger value="predictions" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">Predictions</span>
             </TabsTrigger>
             <TabsTrigger value="patterns" className="flex items-center gap-2">
-              <RadarIcon className="h-4 w-4" />
-              Patterns
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Patterns</span>
+            </TabsTrigger>
+            <TabsTrigger value="coaching" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              <span className="hidden sm:inline">Coaching</span>
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Profile</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Weekly Progress</CardTitle>
-                  <CardDescription>Last 14 days completion rate</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={weeklyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Area
-                        type="monotone"
-                        dataKey="percentage"
-                        stroke="hsl(var(--primary))"
-                        fill="hsl(var(--primary))"
-                        fillOpacity={0.3}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Current Streaks</CardTitle>
-                  <CardDescription>Your longest active streaks</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={streakData.slice(0, 5)} layout="horizontal">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={100} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="streak" fill="hsl(var(--primary))" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+          {/* AI Insights Tab */}
+          <TabsContent value="insights" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Personalized Insights</h3>
+              <Badge variant="outline">{analysis.insights.length} insights</Badge>
+            </div>
+            <div className="space-y-4">
+              {analysis.insights
+                .sort((a, b) => {
+                  const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+                  return priorityOrder[b.priority] - priorityOrder[a.priority];
+                })
+                .map((insight) => (
+                  <InsightCard
+                    key={insight.id}
+                    insight={insight}
+                    isActive={activeInsight === insight.id}
+                    onToggle={() => setActiveInsight(
+                      activeInsight === insight.id ? null : insight.id
+                    )}
+                  />
+                ))}
             </div>
           </TabsContent>
 
-          {/* Trends Tab */}
-          <TabsContent value="trends" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">30-Day Trend Analysis</CardTitle>
-                <CardDescription>Daily completion patterns over time</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={analyticsData.monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Line
-                      type="monotone"
-                      dataKey="percentage"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Categories Tab */}
-          <TabsContent value="categories" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Category Distribution</CardTitle>
-                  <CardDescription>Habits by category</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={categoryInsights}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {categoryInsights.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Category Performance</CardTitle>
-                  <CardDescription>Completion rates by category</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {categoryInsights.map((category, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: category.color }}
-                            />
-                            <span className="font-medium">{category.name}</span>
-                            {category.trend === 'up' ? (
-                              <TrendingUp className="h-4 w-4 text-green-500" />
-                            ) : category.trend === 'down' ? (
-                              <TrendingDown className="h-4 w-4 text-red-500" />
-                            ) : null}
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            {category.completionRate}%
-                          </span>
-                        </div>
-                        <Progress value={category.completionRate} />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>{category.value} habits</span>
-                          <span>Avg streak: {category.averageStreak} days</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Predictions Tab */}
+          <TabsContent value="predictions" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Habit Predictions</h3>
+              <Badge variant="outline">{analysis.predictions.length} habits analyzed</Badge>
             </div>
-          </TabsContent>
-
-          {/* Performance Tab */}
-          <TabsContent value="performance" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Habit Performance Analysis</CardTitle>
-                <CardDescription>Detailed performance metrics for each habit</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {habitPerformance.map((habit, index) => (
-                    <div
-                      key={index}
-                      className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <h4 className="font-medium">{habit.name}</h4>
-                          <p className="text-sm text-muted-foreground">{habit.category}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={
-                              habit.difficulty === 'easy'
-                                ? 'default'
-                                : habit.difficulty === 'medium'
-                                  ? 'secondary'
-                                  : 'destructive'
-                            }
-                          >
-                            {habit.difficulty}
-                          </Badge>
-                          {habit.weeklyTrend > 0 ? (
-                            <TrendingUp className="h-4 w-4 text-green-500" />
-                          ) : habit.weeklyTrend < 0 ? (
-                            <TrendingDown className="h-4 w-4 text-red-500" />
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Completion</span>
-                          <div className="font-medium">{habit.completionRate}%</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Current Streak</span>
-                          <div className="font-medium">{habit.currentStreak} days</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Best Streak</span>
-                          <div className="font-medium">{habit.longestStreak} days</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Consistency</span>
-                          <div className="font-medium">{habit.consistency}/100</div>
-                        </div>
-                      </div>
-
-                      <div className="mt-3">
-                        <Progress value={habit.completionRate} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid gap-4">
+              {analysis.predictions
+                .sort((a, b) => a.predictedSuccess - b.predictedSuccess)
+                .map((prediction, index) => (
+                  <PredictionCard key={index} prediction={prediction} />
+                ))}
+            </div>
           </TabsContent>
 
           {/* Patterns Tab */}
           <TabsContent value="patterns" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Time Patterns</CardTitle>
-                  <CardDescription>When you're most active</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <RadarChart data={timePatterns}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="time" />
-                      <PolarRadiusAxis />
-                      <Radar
-                        name="Habits"
-                        dataKey="habits"
-                        stroke="hsl(var(--primary))"
-                        fill="hsl(var(--primary))"
-                        fillOpacity={0.3}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Weekly Patterns</CardTitle>
-                  <CardDescription>Your productivity throughout the week</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={weeklyData.slice(-7)}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="percentage" fill="hsl(var(--primary))" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Behavioral Patterns</h3>
+              <Badge variant="outline">{analysis.patterns.length} patterns found</Badge>
             </div>
+            <PatternAnalysis patterns={analysis.patterns} />
+          </TabsContent>
+
+          {/* Coaching Plan Tab */}
+          <TabsContent value="coaching" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Your Coaching Plan</h3>
+              <Badge variant="outline">Personalized</Badge>
+            </div>
+            <CoachingPlanView plan={analysis.coachingPlan} />
+          </TabsContent>
+
+          {/* Behavioral Profile Tab */}
+          <TabsContent value="profile" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Behavioral Profile</h3>
+              <Badge variant="outline">AI Generated</Badge>
+            </div>
+            <BehavioralProfileView
+              profile={analysis.behavioralProfile}
+              riskAssessment={analysis.riskAssessment}
+            />
           </TabsContent>
         </Tabs>
       </div>
     </TooltipProvider>
+  );
+}
+
+// Individual component implementations
+function InsightCard({ insight, isActive, onToggle }: {
+  insight: PersonalizedInsight;
+  isActive: boolean;
+  onToggle: () => void;
+}) {
+  const getInsightIcon = (type: string) => {
+    switch (type) {
+      case 'breakthrough': return <Zap className="h-5 w-5 text-yellow-500" />;
+      case 'warning': return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      case 'optimization': return <Target className="h-5 w-5 text-blue-500" />;
+      case 'celebration': return <Award className="h-5 w-5 text-green-500" />;
+      case 'prediction': return <Brain className="h-5 w-5 text-purple-500" />;
+      default: return <Lightbulb className="h-5 w-5 text-orange-500" />;
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'critical': return 'destructive';
+      case 'high': return 'destructive';
+      case 'medium': return 'default';
+      case 'low': return 'secondary';
+      default: return 'secondary';
+    }
+  };
+
+  const getImpactColor = (impact: string) => {
+    switch (impact) {
+      case 'high': return 'text-green-600';
+      case 'medium': return 'text-yellow-600';
+      case 'low': return 'text-blue-600';
+      default: return 'text-gray-600';
+    }
+  };
+
+  return (
+    <Card className={`cursor-pointer transition-all hover:shadow-md ${isActive ? 'ring-2 ring-primary shadow-lg' : ''
+      }`}>
+      <CardHeader className="pb-3" onClick={onToggle}>
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3 flex-1">
+            {getInsightIcon(insight.type)}
+            <div className="flex-1">
+              <CardTitle className="text-lg leading-tight">{insight.title}</CardTitle>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <Badge variant={getPriorityColor(insight.priority)} className="text-xs">
+                  {insight.priority} priority
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {insight.confidence}% confidence
+                </Badge>
+                <span className={`text-xs font-medium ${getImpactColor(insight.impact)}`}>
+                  {insight.impact} impact
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {insight.timeframe}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="shrink-0 ml-2">
+            {isActive ?
+              <ChevronDown className="h-4 w-4 text-muted-foreground" /> :
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            }
+          </div>
+        </div>
+      </CardHeader>
+
+      {isActive && (
+        <CardContent className="pt-0">
+          <div className="space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              {insight.description}
+            </p>
+
+            {insight.supportingData && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+                {Object.entries(insight.supportingData.metrics).map(([key, value]) => (
+                  <div key={key} className="text-center">
+                    <div className="font-semibold text-sm">{value}</div>
+                    <div className="text-xs text-muted-foreground capitalize">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {insight.actionPlan && insight.actionPlan.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Action Plan
+                </h4>
+                {insight.actionPlan.map((step, index) => (
+                  <ActionStepCard key={index} step={step} />
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+function ActionStepCard({ step }: { step: ActionStep }) {
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return 'text-green-600 bg-green-50 border-green-200';
+      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'hard': return 'text-red-600 bg-red-50 border-red-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  return (
+    <div className="flex gap-3 p-4 bg-card border rounded-lg hover:shadow-sm transition-shadow">
+      <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+        {step.step}
+      </div>
+      <div className="flex-1 space-y-2">
+        <p className="font-medium leading-tight">{step.action}</p>
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            <span>{step.timeframe}</span>
+          </div>
+          <Badge
+            variant="outline"
+            className={`text-xs ${getDifficultyColor(step.difficulty)}`}
+          >
+            {step.difficulty}
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium">Expected:</span> {step.expectedOutcome}
+        </p>
+        {step.successMetrics && step.successMetrics.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Success Metrics:</p>
+            <ul className="text-xs text-muted-foreground space-y-0.5">
+              {step.successMetrics.map((metric, index) => (
+                <li key={index} className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  {metric}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PredictionCard({ prediction }: { prediction: HabitPrediction }) {
+  const getSuccessColor = (percentage: number) => {
+    if (percentage >= 80) return 'text-green-600';
+    if (percentage >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getSuccessIcon = (percentage: number) => {
+    if (percentage >= 80) return <TrendingUp className="h-4 w-4 text-green-500" />;
+    if (percentage >= 60) return <Activity className="h-4 w-4 text-yellow-500" />;
+    return <TrendingDown className="h-4 w-4 text-red-500" />;
+  };
+
+  return (
+    <Card className={`${prediction.interventionNeeded ? 'border-red-200 bg-red-50/30' : ''}`}>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            {prediction.habitName}
+            {prediction.interventionNeeded && (
+              <AlertCircle className="h-4 w-4 text-red-500" />
+            )}
+          </CardTitle>
+          <div className="flex items-center gap-3">
+            {getSuccessIcon(prediction.predictedSuccess)}
+            <div className="text-right">
+              <div className={`text-lg font-bold ${getSuccessColor(prediction.predictedSuccess)}`}>
+                {prediction.predictedSuccess}%
+              </div>
+              <div className="text-xs text-muted-foreground">Success Rate</div>
+            </div>
+          </div>
+        </div>
+        <Progress value={prediction.predictedSuccess} className="mt-2" />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Time-based predictions */}
+        <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg">
+          <div className="text-center">
+            <div className="font-semibold">{prediction.nextWeekSuccess}%</div>
+            <div className="text-xs text-muted-foreground">Next Week</div>
+          </div>
+          <div className="text-center">
+            <div className="font-semibold">{prediction.nextMonthSuccess}%</div>
+            <div className="text-xs text-muted-foreground">Next Month</div>
+          </div>
+        </div>
+
+        {/* Risk factors */}
+        {prediction.riskFactors.length > 0 && (
+          <div>
+            <h4 className="font-semibold text-sm mb-2 text-red-600 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Risk Factors
+            </h4>
+            <div className="space-y-2">
+              {prediction.riskFactors.map((risk, index) => (
+                <div key={index} className="flex items-start gap-2 text-sm">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${risk.severity === 'high' ? 'bg-red-500' :
+                    risk.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                    }`} />
+                  <div className="flex-1">
+                    <p className="text-muted-foreground">{risk.factor}</p>
+                    <p className="text-xs text-green-600 mt-1">
+                      <strong>Solution:</strong> {risk.mitigation}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {risk.likelihood}%
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Smart recommendations */}
+        {prediction.recommendations.length > 0 && (
+          <div>
+            <h4 className="font-semibold text-sm mb-2 text-green-600 flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Recommendations
+            </h4>
+            <div className="space-y-2">
+              {prediction.recommendations.map((rec, index) => (
+                <div key={index} className="p-3 border rounded-lg bg-green-50/50">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-medium text-sm">{rec.title}</p>
+                    <Badge variant="secondary" className="text-xs">
+                      +{rec.expectedImprovement}%
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{rec.description}</p>
+                  <p className="text-xs text-green-600 mt-1">
+                    <strong>How:</strong> {rec.implementation}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Optimal timing */}
+        <div className="p-3 bg-blue-50/50 rounded-lg border">
+          <h4 className="font-semibold text-sm mb-2 text-blue-600 flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Optimal Timing
+          </h4>
+          <div className="text-sm space-y-1">
+            <p><strong>Best time:</strong> {prediction.optimalTiming.bestTimeOfDay}</p>
+            <p><strong>Best days:</strong> {prediction.optimalTiming.bestDaysOfWeek.join(', ')}</p>
+            {prediction.optimalTiming.avoidTimes.length > 0 && (
+              <p><strong>Avoid:</strong> {prediction.optimalTiming.avoidTimes.join(', ')}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-2">
+              {prediction.optimalTiming.reasoning}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PatternAnalysis({ patterns }: { patterns: HabitPattern[] }) {
+  const getPatternIcon = (type: string) => {
+    switch (type) {
+      case 'success_pattern': return <TrendingUp className="h-5 w-5 text-green-500" />;
+      case 'failure_pattern': return <TrendingDown className="h-5 w-5 text-red-500" />;
+      case 'inconsistency_pattern': return <Activity className="h-5 w-5 text-yellow-500" />;
+      case 'correlation_pattern': return <BarChart3 className="h-5 w-5 text-blue-500" />;
+      default: return <Activity className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  const getPatternColor = (type: string) => {
+    switch (type) {
+      case 'success_pattern': return 'border-green-200 bg-green-50/30';
+      case 'failure_pattern': return 'border-red-200 bg-red-50/30';
+      case 'inconsistency_pattern': return 'border-yellow-200 bg-yellow-50/30';
+      case 'correlation_pattern': return 'border-blue-200 bg-blue-50/30';
+      default: return 'border-gray-200 bg-gray-50/30';
+    }
+  };
+
+  if (patterns.length === 0) {
+    return (
+      <Card>
+        <CardContent className="text-center py-8">
+          <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            Not enough data to identify patterns yet. Keep tracking your habits!
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {patterns.map((pattern, index) => (
+        <Card key={index} className={getPatternColor(pattern.type)}>
+          <CardHeader>
+            <div className="flex items-start gap-3">
+              {getPatternIcon(pattern.type)}
+              <div className="flex-1">
+                <CardTitle className="text-lg">{pattern.title}</CardTitle>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className="text-xs">
+                    {pattern.confidence}% confidence
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    {pattern.timeframe}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">{pattern.description}</p>
+
+            {pattern.triggers.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Key Triggers:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {pattern.triggers.map((trigger, triggerIndex) => (
+                    <Badge key={triggerIndex} variant="outline" className="text-xs">
+                      {trigger}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {pattern.affectedHabits.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Affected Habits:</h4>
+                <div className="text-sm text-muted-foreground">
+                  {pattern.affectedHabits.join(', ')}
+                </div>
+              </div>
+            )}
+
+            <div className="p-3 bg-card border rounded-lg">
+              <h4 className="font-semibold text-sm mb-1 text-green-600">Recommendation:</h4>
+              <p className="text-sm text-muted-foreground">{pattern.recommendation}</p>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function CoachingPlanView({ plan }: { plan: CoachingPlan }) {
+  return (
+    <div className="space-y-6">
+      {/* Current Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-primary" />
+            Current Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Focus Area</div>
+              <div className="font-medium">{plan.currentFocus}</div>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Next Milestone</div>
+              <div className="font-medium">{plan.nextMilestone}</div>
+            </div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground mb-2">Success Readiness</div>
+            <div className="flex items-center gap-3">
+              <Progress value={plan.readinessScore} className="flex-1" />
+              <span className="font-semibold">{plan.readinessScore}%</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Weekly Goals */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-primary" />
+            Weekly Goals
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {plan.weeklyGoals.map((goal, index) => (
+              <div key={index} className="p-4 border rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold">Week {goal.week}</h4>
+                  <div className="flex items-center gap-2">
+                    <div className="flex">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-3 w-3 ${i < goal.difficultyLevel
+                            ? 'text-yellow-500 fill-yellow-500'
+                            : 'text-gray-300'
+                            }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Difficulty
+                    </span>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">{goal.objective}</p>
+
+                <div className="space-y-2">
+                  <div>
+                    <h5 className="text-xs font-semibold mb-1">Actions:</h5>
+                    <ul className="text-xs text-muted-foreground space-y-0.5">
+                      {goal.specificActions.map((action, actionIndex) => (
+                        <li key={actionIndex} className="flex items-start gap-1">
+                          <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
+                          {action}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h5 className="text-xs font-semibold mb-1">Success Criteria:</h5>
+                    <ul className="text-xs text-muted-foreground space-y-0.5">
+                      {goal.successCriteria.map((criteria, criteriaIndex) => (
+                        <li key={criteriaIndex} className="flex items-start gap-1">
+                          <Target className="h-3 w-3 text-blue-500 mt-0.5 shrink-0" />
+                          {criteria}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Monthly Objectives */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-orange-500" />
+            Monthly Objectives
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2">
+            {plan.monthlyObjectives.map((objective, index) => (
+              <li key={index} className="flex items-start gap-2 text-sm">
+                <Award className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                {objective}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* Personalized Strategies */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-purple-500" />
+            Your Personal Strategies
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {plan.personalizedStrategies.map((strategy, index) => (
+              <div key={index} className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">{strategy.name}</h4>
+                <p className="text-sm text-muted-foreground mb-3">{strategy.description}</p>
+
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="font-medium text-green-600">How to implement:</span>
+                    <p className="text-muted-foreground mt-1">{strategy.implementation}</p>
+                  </div>
+
+                  <div>
+                    <span className="font-medium text-blue-600">Why this works:</span>
+                    <p className="text-muted-foreground mt-1">{strategy.evidence}</p>
+                  </div>
+
+                  <div>
+                    <span className="font-medium text-purple-600">For you specifically:</span>
+                    <p className="text-muted-foreground mt-1">{strategy.personalizedReason}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Motivational Profile */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-pink-500" />
+            Your Motivation Profile
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-semibold text-sm mb-2">Primary Driver</h4>
+              <Badge variant="default" className="mb-3">
+                {plan.motivationalProfile.primaryDriver}
+              </Badge>
+
+              <h4 className="font-semibold text-sm mb-2">Secondary Drivers</h4>
+              <div className="flex flex-wrap gap-1">
+                {plan.motivationalProfile.secondaryDrivers.map((driver, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {driver}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-sm mb-2">Challenge Level</h4>
+              <div className="flex items-center gap-2 mb-3">
+                <Progress value={plan.motivationalProfile.optimalChallengeLevel * 10} className="flex-1" />
+                <span className="text-sm">{plan.motivationalProfile.optimalChallengeLevel}/10</span>
+              </div>
+
+              <h4 className="font-semibold text-sm mb-2">Preferred Rewards</h4>
+              <div className="flex flex-wrap gap-1">
+                {plan.motivationalProfile.preferredRewards.map((reward, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {reward}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {plan.motivationalProfile.demotivators.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 text-red-600">Watch Out For</h4>
+              <div className="flex flex-wrap gap-1">
+                {plan.motivationalProfile.demotivators.map((demotivator, index) => (
+                  <Badge key={index} variant="destructive" className="text-xs">
+                    {demotivator}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function BehavioralProfileView({ profile, riskAssessment }: {
+  profile: BehavioralProfile;
+  riskAssessment: RiskAssessment;
+}) {
+  return (
+    <div className="space-y-6">
+      {/* Personality Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            Your Habit Personality
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Personality Type</div>
+              <Badge variant="default" className="mb-3">{profile.personalityType}</Badge>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Habits Style</div>
+              <Badge variant="secondary">{profile.habitsPersonality}</Badge>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-semibold text-sm mb-2 text-green-600">Your Strengths</h4>
+              <ul className="space-y-1">
+                {profile.strengths.map((strength, index) => (
+                  <li key={index} className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    {strength}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-sm mb-2 text-orange-600">Growth Areas</h4>
+              <ul className="space-y-1">
+                {profile.challenges.map((challenge, index) => (
+                  <li key={index} className="flex items-center gap-2 text-sm">
+                    <AlertCircle className="h-3 w-3 text-orange-500" />
+                    {challenge}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Optimal Schedule */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-blue-500" />
+            Your Optimal Schedule
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-lg font-bold text-orange-500">
+                {profile.optimalSchedule.morningCapacity}
+              </div>
+              <div className="text-sm text-muted-foreground">Morning Habits</div>
+              <Progress value={profile.optimalSchedule.morningCapacity * 25} className="mt-2" />
+            </div>
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-lg font-bold text-blue-500">
+                {profile.optimalSchedule.afternoonCapacity}
+              </div>
+              <div className="text-sm text-muted-foreground">Afternoon Habits</div>
+              <Progress value={profile.optimalSchedule.afternoonCapacity * 25} className="mt-2" />
+            </div>
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-lg font-bold text-purple-500">
+                {profile.optimalSchedule.eveningCapacity}
+              </div>
+              <div className="text-sm text-muted-foreground">Evening Habits</div>
+              <Progress value={profile.optimalSchedule.eveningCapacity * 25} className="mt-2" />
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-sm mb-2">Recommended Habit Sequence</h4>
+            <div className="flex flex-wrap gap-2">
+              {profile.optimalSchedule.bestHabitSequence.map((sequence, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {index + 1}. {sequence}
+                  </Badge>
+                  {index < profile.optimalSchedule.bestHabitSequence.length - 1 && (
+                    <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-3 bg-blue-50/50 rounded-lg">
+            <h4 className="font-semibold text-sm mb-1 text-blue-600">Energy Pattern</h4>
+            <p className="text-sm text-muted-foreground">{profile.optimalSchedule.energyPattern}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Risk Assessment */}
+      <Card className={`${riskAssessment.overallRisk === 'high' ? 'border-red-200 bg-red-50/30' : ''}`}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-amber-500" />
+            Risk Assessment
+            <Badge variant={
+              riskAssessment.overallRisk === 'low' ? 'secondary' :
+                riskAssessment.overallRisk === 'medium' ? 'default' : 'destructive'
+            }>
+              {riskAssessment.overallRisk.toUpperCase()}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-lg font-bold text-red-500">{riskAssessment.burnoutRisk}%</div>
+              <div className="text-sm text-muted-foreground">Burnout Risk</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-orange-500">{riskAssessment.abandonmentRisk}%</div>
+              <div className="text-sm text-muted-foreground">Abandonment Risk</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-yellow-500">{riskAssessment.plateauRisk}%</div>
+              <div className="text-sm text-muted-foreground">Plateau Risk</div>
+            </div>
+          </div>
+
+          {riskAssessment.interventions.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2">Recommended Interventions</h4>
+              <div className="space-y-2">
+                {riskAssessment.interventions
+                  .sort((a, b) => a.priority - b.priority)
+                  .map((intervention, index) => (
+                    <div key={index} className="flex items-start gap-2 p-3 border rounded-lg">
+                      <div className="w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                        {intervention.priority}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{intervention.action}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          <strong>When:</strong> {intervention.trigger}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          <strong>Timeline:</strong> {intervention.timing}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Environmental Factors */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-green-500" />
+            Environmental Factors
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {profile.environmentalFactors.map((factor, index) => (
+              <Badge key={index} variant="outline" className="text-xs">
+                {factor}
+              </Badge>
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground mt-3">
+            These factors significantly influence your habit success. Consider them when planning new habits or troubleshooting existing ones.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
