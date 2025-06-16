@@ -10,6 +10,7 @@ import { TrendingUp, Target, Calendar, Award } from "lucide-react";
 import { UserNav } from "@/components/auth/user-nav";
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { getAIAnalytics } from "@/lib/actions/ai-analytics";
 // Function to get user's timezone (you might want to get this from user preferences)
 function getUserTimezone(): string {
   // Default to user's browser timezone or UTC
