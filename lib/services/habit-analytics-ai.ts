@@ -107,21 +107,37 @@ function createAnalyticsPrompt(
     const { weeklyData, categoryInsights, habitPerformance, scores } = analyticsData;
 
     const recentPerformance = weeklyData?.slice(-7) || [];
+    // Define types for analyticsData sub-objects if not already defined
+    type WeeklyDataItem = { name: string; percentage?: number };
+    type HabitPerfItem = { name: string; completionRate: number; currentStreak: number };
+    type CategoryInsightItem = { name: string; completionRate: number };
+
     const avgRecentCompletion = recentPerformance.length > 0
-        ? recentPerformance.reduce((sum, day) => sum + (day.percentage || 0), 0) / recentPerformance.length
+        ? recentPerformance.reduce(
+            (sum: number, day: WeeklyDataItem) => sum + (day.percentage || 0),
+            0
+        ) / recentPerformance.length
         : 0;
 
-    const strugglingHabits = habitPerformance?.filter(h => h.completionRate < 50) || [];
-    const excellentHabits = habitPerformance?.filter(h => h.completionRate >= 80) || [];
-    const longStreaks = habitPerformance?.filter(h => h.currentStreak >= 7) || [];
+    const strugglingHabits = (habitPerformance?.filter(
+        (h: HabitPerfItem) => h.completionRate < 50
+    )) || [];
+    const excellentHabits = (habitPerformance?.filter(
+        (h: HabitPerfItem) => h.completionRate >= 80
+    )) || [];
+    const longStreaks = (habitPerformance?.filter(
+        (h: HabitPerfItem) => h.currentStreak >= 7
+    )) || [];
 
-    const bestCategory = categoryInsights?.reduce((best, cat) =>
-        cat.completionRate > best.completionRate ? cat : best
-    ) || { name: 'None', completionRate: 0 };
+    const bestCategory = (categoryInsights?.reduce(
+        (best: CategoryInsightItem, cat: CategoryInsightItem) =>
+            cat.completionRate > best.completionRate ? cat : best
+    )) || { name: 'None', completionRate: 0 };
 
-    const strugglingCategory = categoryInsights?.reduce((worst, cat) =>
-        cat.completionRate < worst.completionRate ? cat : worst
-    ) || { name: 'None', completionRate: 0 };
+    const strugglingCategory = (categoryInsights?.reduce(
+        (worst: CategoryInsightItem, cat: CategoryInsightItem) =>
+            cat.completionRate < worst.completionRate ? cat : worst
+    )) || { name: 'None', completionRate: 0 };
 
     return `
 HABIT ANALYTICS DATA for ${profile?.firstName || 'User'}:
@@ -135,21 +151,20 @@ OVERALL METRICS:
 
 PERFORMANCE BREAKDOWN:
 - Excellent Habits (80%+): ${excellentHabits.length} habits
-  ${excellentHabits.slice(0, 3).map(h => `  • ${h.name}: ${h.completionRate}%`).join('\n')}
+  ${excellentHabits.slice(0, 3).map((h: HabitPerfItem) => `  • ${h.name}: ${h.completionRate}%`).join('\n')}
   
 - Struggling Habits (<50%): ${strugglingHabits.length} habits
-  ${strugglingHabits.slice(0, 3).map(h => `  • ${h.name}: ${h.completionRate}%`).join('\n')}
+  ${strugglingHabits.slice(0, 3).map((h: HabitPerfItem) => `  • ${h.name}: ${h.completionRate}%`).join('\n')}
   
 - Active Streaks (7+ days): ${longStreaks.length} habits
-  ${longStreaks.slice(0, 3).map(h => `  • ${h.name}: ${h.currentStreak} days`).join('\n')}
+  ${longStreaks.slice(0, 3).map((h: HabitPerfItem) => `  • ${h.name}: ${h.currentStreak} days`).join('\n')}
 
 CATEGORY PERFORMANCE:
 - Strongest: ${bestCategory.name} (${bestCategory.completionRate}% completion)
 - Needs Work: ${strugglingCategory.name} (${strugglingCategory.completionRate}% completion)
 
 RECENT TRENDS (Last 7 days):
-${recentPerformance.map(day => `${day.name}: ${day.percentage || 0}%`).join(', ')}
-
+${recentPerformance.map((day: WeeklyDataItem) => `${day.name}: ${day.percentage || 0}%`).join(', ')}
 Generate insights that help the user improve their habit journey.`;
 }
 
