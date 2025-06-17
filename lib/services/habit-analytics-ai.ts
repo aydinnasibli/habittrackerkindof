@@ -104,7 +104,7 @@ function createAnalyticsPrompt(
     profile: IProfile | null,
     analyticsData: any
 ): string {
-    const { weeklyData, categoryInsights, habitPerformance, scores } = analyticsData;
+    const { weeklyData, , habitPerformance, scores } = analyticsData;
 
     const recentPerformance = weeklyData?.slice(-7) || [];
     // Define types for analyticsData sub-objects if not already defined
