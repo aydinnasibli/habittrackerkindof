@@ -10,7 +10,7 @@ const isProtectedRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
     if (isProtectedRoute(req)) {
-        console.log("neco")
+        await auth.protect();
     }
 });
 
