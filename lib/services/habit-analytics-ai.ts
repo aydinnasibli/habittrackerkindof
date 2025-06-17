@@ -16,7 +16,7 @@ function getOpenAIClient(): OpenAI | null {
             apiKey: process.env.OPENAI_API_KEY,
         });
     }
-
+    console.log('OpenAI client initialized');
     return openaiClient;
 }
 
