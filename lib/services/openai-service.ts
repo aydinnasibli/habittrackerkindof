@@ -203,7 +203,7 @@ Current Habits Analysis:
 
 Trending: ${trending.trendingNow.slice(0, 4).join(', ')}
 
-Existing Habit Names: ${userHabits.map(h => h.name).join(', ')}
+Existing Habit Names: ${userHabits.map((h: IHabit) => h.name).join(', ')}
 `;
 
     switch (section) {

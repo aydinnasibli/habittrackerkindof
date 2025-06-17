@@ -69,7 +69,7 @@ export function RecommendedHabits() {
 
       setRecommendations(prev => ({
         ...prev,
-        [section]: result
+        [section]: result as RecommendationData
       }));
 
       if (!result.isFromCache && !force) {
@@ -141,7 +141,7 @@ export function RecommendedHabits() {
       await createHabit(formData);
 
       // Mark as added
-      setAddedHabits(prev => new Set([...prev, habit.id]));
+      setAddedHabits(prev => new Set([...Array.from(prev), habit.id]));
 
       toast({
         title: "🎉 Habit Added!",
