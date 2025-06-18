@@ -1,21 +1,4 @@
-// lib/types.ts
-export interface IHabit {
-    _id?: string;
-    clerkUserId: string;
-    name: string;
-    description: string;
-    category: string;
-    frequency: string;
-    timeOfDay: string;
-    timeToComplete: string;
-    priority: string;
-    streak: number;
-    status: 'active' | 'paused' | 'archived';
-    impactScore: number; // AI-generated impact score (1-10)
-    createdAt: Date;
-    updatedAt: Date;
-    completions: IHabitCompletion[];
-}
+
 
 export interface IHabitCompletion {
     date: Date;
@@ -316,4 +299,42 @@ export interface RepoContext {
     repoUrl: string;
     selectedFiles: RepoFile[];
     repoStructure: RepoFile[];
+}
+
+
+// lib/types.ts - Add these interfaces to your existing types
+
+export interface IHabitFeedback {
+    date: Date;
+    feedback: string;
+    completed: boolean; // Whether habit was completed that day
+    mood: 'very_negative' | 'negative' | 'neutral' | 'positive' | 'very_positive';
+    createdAt: Date;
+}
+
+// Updated IHabit interface - add this to your existing interface
+export interface IHabit {
+    _id?: string;
+    clerkUserId: string;
+    name: string;
+    description: string;
+    category: string;
+    frequency: string;
+    timeOfDay: string;
+    timeToComplete: string;
+    priority: string;
+    streak: number;
+    status: 'active' | 'paused' | 'archived';
+    impactScore: number; // AI-generated impact score (1-10)
+    createdAt: Date;
+    updatedAt: Date;
+    completions: IHabitCompletion[];
+    feedbacks: IHabitFeedback[]; // New feedback field
+}
+
+// Feedback submission interface
+export interface IFeedbackSubmission {
+    habitId: string;
+    feedback: string;
+    mood: 'very_negative' | 'negative' | 'neutral' | 'positive' | 'very_positive';
 }
