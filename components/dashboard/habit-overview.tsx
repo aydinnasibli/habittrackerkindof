@@ -391,6 +391,7 @@ export function HabitOverview() {
             </div>
           </div>
         </CardHeader>
+
         <CardContent className="space-y-8">
           {['Morning', 'Afternoon', 'Evening', 'Throughout day'].map((timeOfDay) => (
             <div key={timeOfDay} className="space-y-4">
