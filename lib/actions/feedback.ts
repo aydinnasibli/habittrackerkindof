@@ -5,7 +5,7 @@ import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 import { ensureConnection } from '@/lib/mongoose';
 import { Habit } from '@/lib/models/Habit';
-import { IHabitFeedback, IFeedbackSubmission } from '@/lib/types';
+import { IHabitFeedback, IFeedbackSubmission, IHabit } from '@/lib/types';
 import { Types } from 'mongoose';
 
 // Simplified date handling - always use YYYY-MM-DD format
@@ -73,7 +73,7 @@ export async function submitDailyFeedback(
 
         // Process each feedback
         const updatePromises = feedbacks.map(async (feedbackData) => {
-            const habit = validHabits.find(h => h._id.toString() === feedbackData.habitId);
+            const habit = validHabits.find(h => h._id && h._id.toString() === feedbackData.habitId);
             if (!habit) return;
 
             // Check if habit was completed today
