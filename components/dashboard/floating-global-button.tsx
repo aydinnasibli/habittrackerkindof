@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Clock, X } from 'lucide-react';
+import { Clock, X, Target, Compass } from 'lucide-react';
 import DailyFeedbackModal from '@/components/modals/habit-feedback-modal';
 import { canSubmitFeedback, getTodaysHabitsForFeedback, submitDailyFeedback } from '@/lib/actions/feedback';
-
+import EthosLogo from '@/app/assets/ethosts.png';
+import Image from 'next/image';
 interface HabitForFeedback {
     _id: string;
     name: string;
@@ -23,6 +24,8 @@ interface FeedbackSubmission {
     feedback: string;
 }
 
+
+
 export default function FloatingFeedbackButton() {
     const [canSubmit, setCanSubmit] = useState(false);
     const [timeUntilExpires, setTimeUntilExpires] = useState<string>('');
@@ -31,6 +34,7 @@ export default function FloatingFeedbackButton() {
     const [isLoading, setIsLoading] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [hasNewFeedback, setHasNewFeedback] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
 
     // Get user's timezone
     const getUserTimezone = () => {
@@ -133,48 +137,72 @@ export default function FloatingFeedbackButton() {
     return (
         <>
             {/* Floating Button */}
-            <div className="fixed bottom-6 right-6 z-40">
-                <div className="relative">
-                    {/* Notification dot for new feedback needed */}
+            <div className="fixed bottom-8 right-8 z-50">
+                <div className="relative group">
+                    {/* Notification indicator */}
                     {hasNewFeedback && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse z-10" />
+                        <div className="absolute -top-2 -right-2 z-20">
+                            <div className="relative">
+                                <div className="w-4 h-4 bg-amber-500 rounded-full border-2 border-gray-900 shadow-lg" />
+                                <div className="absolute inset-0 w-4 h-4 bg-amber-500 rounded-full animate-ping opacity-75" />
+                            </div>
+                        </div>
                     )}
 
                     {/* Main Button */}
                     <button
+                        onMouseEnter={() => setIsHovered(true)}
+                        onMouseLeave={() => setIsHovered(false)}
                         onClick={handleOpenModal}
                         disabled={isLoading}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Daily Reflection - Share your thoughts about today's habits"
+                        className="relative bg-gray-900 hover:bg-gray-800 text-gray-100 rounded-2xl p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-700 hover:border-gray-600 backdrop-blur-sm"
+                        title="Ethos Daily Reflection"
                     >
-                        {isLoading ? (
-                            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                            <MessageSquare className="w-6 h-6" />
-                        )}
+                        {/* Subtle gradient overlay */}
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-gray-800/50 to-gray-600/20 opacity-0 hover:opacity-100 transition-opacity duration-300" />
+
+                        {/* Button content */}
+                        <div className="relative z-10">
+                            {isLoading ? (
+                                <div className="w-7 h-7 border-2 border-gray-400 border-t-gray-100 rounded-full animate-spin" />
+                            ) : (
+                                <Image src={EthosLogo} alt="Ethos Logo" className="w-7 h-7 cursor-pointer scale-200 text-gray-100 group-hover:text-white transition-colors duration-200" />
+                            )}
+                        </div>
+
+                        {/* Subtle inner glow on hover */}
+                        <div className="absolute inset-1 rounded-xl bg-gradient-to-tr from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </button>
 
-                    {/* Time indicator tooltip */}
-                    {timeUntilExpires && (
-                        <div className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                            <div className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                <span>Expires in {timeUntilExpires}</span>
+                    {/* Professional tooltip */}
+                    <div className={`absolute bottom-full right-0 mb-4 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+                        } pointer-events-none`}>
+                        <div className="bg-gray-900 border border-gray-700 text-gray-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-sm">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-sm">Daily Reflection</span>
+                                {hasNewFeedback && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                        Pending
+                                    </span>
+                                )}
                             </div>
-                            {/* Arrow */}
-                            <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-800" />
+                            {timeUntilExpires && (
+                                <div className="flex items-center gap-1 text-xs text-gray-400">
+                                    <Clock className="w-3 h-3" />
+                                    <span>Available for {timeUntilExpires}</span>
+                                </div>
+                            )}
+                            <div className="text-xs text-gray-500 mt-1">
+                                Reflect on your habits and values
+                            </div>
                         </div>
-                    )}
-                </div>
 
-                {/* Floating text indicator */}
-                <div className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-white rounded-lg shadow-lg border text-sm text-gray-700 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                    Daily Reflection
-                    {hasNewFeedback && (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800">
-                            New
-                        </span>
-                    )}
+                        {/* Tooltip arrow */}
+                        <div className="absolute top-full right-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900" />
+                    </div>
+
+                    {/* Subtle background glow effect */}
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-gray-800/20 to-gray-600/10 blur-xl scale-110 opacity-50 group-hover:opacity-75 transition-opacity duration-300 -z-10" />
                 </div>
             </div>
 
