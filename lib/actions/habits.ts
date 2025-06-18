@@ -10,6 +10,7 @@ import { IHabit, IHabitChain, IHabitCompletion, XP_REWARDS } from '@/lib/types';
 import { Types, FlattenMaps } from 'mongoose';
 import { awardXP, checkStreakMilestone, checkDailyBonus, removeXP } from './xpSystem';
 import { updateProfileStats } from './profile';
+import { generateHabitImpactScore, HabitImpactData } from '@/lib/services/impact-score-service';
 
 type LeanHabit = FlattenMaps<IHabit> & { _id: Types.ObjectId };
 type LeanHabitChain = FlattenMaps<IHabitChain> & { _id: Types.ObjectId };
@@ -122,6 +123,50 @@ function calculateStreak(completions: IHabitCompletion[], frequency: string, tim
     return streak;
 }
 
+// Validate habit form data
+function validateHabitData(formData: FormData): HabitImpactData {
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    const category = formData.get('category') as string;
+    const frequency = formData.get('frequency') as string;
+    const timeOfDay = formData.get('timeOfDay') as string;
+    const timeToComplete = formData.get('timeToComplete') as string;
+    const priority = formData.get('priority') as string;
+
+    // Validate required fields
+    if (!name?.trim()) throw new Error('Habit name is required');
+    if (!description?.trim()) throw new Error('Habit description is required');
+
+    // Validate enum values
+    const validCategories = ['Mindfulness', 'Health', 'Learning', 'Productivity', 'Digital Wellbeing'];
+    const validFrequencies = ['Daily', 'Weekdays', 'Weekends', 'Mon, Wed, Fri', 'Tue, Thu'];
+    const validTimeOfDay = ['Morning', 'Afternoon', 'Evening', 'Throughout day'];
+    const validPriorities = ['High', 'Medium', 'Low'];
+
+    if (!validCategories.includes(category)) {
+        throw new Error('Invalid category selected');
+    }
+    if (!validFrequencies.includes(frequency)) {
+        throw new Error('Invalid frequency selected');
+    }
+    if (!validTimeOfDay.includes(timeOfDay)) {
+        throw new Error('Invalid time of day selected');
+    }
+    if (!validPriorities.includes(priority)) {
+        throw new Error('Invalid priority selected');
+    }
+
+    return {
+        name: name.trim(),
+        description: description.trim(),
+        category: category as any,
+        frequency: frequency as any,
+        timeOfDay: timeOfDay as any,
+        timeToComplete: timeToComplete || '5 minutes',
+        priority: priority as any,
+    };
+}
+
 export async function createHabit(formData: FormData) {
     try {
         const { userId } = await auth();
@@ -129,28 +174,55 @@ export async function createHabit(formData: FormData) {
 
         await ensureConnection();
 
-        const habitData = {
+        // Validate and extract habit data
+        const habitData = validateHabitData(formData);
+
+        // Generate AI impact score
+        console.log('Generating impact score for habit:', habitData.name);
+        const impactResult = await generateHabitImpactScore(habitData);
+        console.log('Generated impact score:', impactResult.score, 'for habit:', habitData.name);
+
+        // Create habit document with impact score
+        const habitDocument = {
             clerkUserId: userId,
-            name: formData.get('name') as string,
-            description: formData.get('description') as string,
-            category: formData.get('category') as string,
-            frequency: formData.get('frequency') as string,
-            timeOfDay: formData.get('timeOfDay') as string,
-            timeToComplete: formData.get('timeToComplete') as string,
-            priority: formData.get('priority') as string,
+            name: habitData.name,
+            description: habitData.description,
+            category: habitData.category,
+            frequency: habitData.frequency,
+            timeOfDay: habitData.timeOfDay,
+            timeToComplete: habitData.timeToComplete,
+            priority: habitData.priority,
+            impactScore: impactResult.score, // AI-generated impact score
             streak: 0,
             status: 'active' as const,
             completions: []
         };
 
-        const habit = new Habit(habitData);
+        const habit = new Habit(habitDocument);
         await habit.save();
 
+        // Log the impact score details for debugging
+        console.log('Habit created with impact analysis:', {
+            habitId: habit._id.toString(),
+            name: habitData.name,
+            impactScore: impactResult.score,
+            reasoning: impactResult.reasoning,
+            factors: impactResult.factors
+        });
+
         revalidatePath('/habits');
-        return { success: true, id: habit._id.toString() };
+        return {
+            success: true,
+            id: habit._id.toString(),
+            impactScore: impactResult.score,
+            impactReasoning: impactResult.reasoning
+        };
     } catch (error) {
         console.error('Error creating habit:', error);
-        return { success: false, error: error instanceof Error ? error.message : 'Failed to create habit' };
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to create habit'
+        };
     }
 }
 
@@ -164,7 +236,7 @@ export async function getUserHabits(timezone: string = 'UTC'): Promise<IHabit[]>
         // Optimized query with projection to reduce data transfer
         const habits = await Habit
             .find({ clerkUserId: userId })
-            .select('clerkUserId name description category frequency timeOfDay timeToComplete priority status completions createdAt updatedAt')
+            .select('clerkUserId name description category frequency timeOfDay timeToComplete priority status impactScore completions createdAt updatedAt')
             .sort({ createdAt: -1 })
             .lean<LeanHabit[]>()
             .exec();
@@ -195,6 +267,7 @@ export async function getUserHabits(timezone: string = 'UTC'): Promise<IHabit[]>
                 timeOfDay: habit.timeOfDay || 'Morning',
                 timeToComplete: habit.timeToComplete || '5 minutes',
                 priority: habit.priority || 'Medium',
+                impactScore: habit.impactScore || 5, // Include impact score in response
                 streak,
                 status: habit.status || 'active',
                 completions: Array.isArray(habit.completions) ? habit.completions : [],
@@ -474,17 +547,58 @@ export async function updateHabit(habitId: string, updateData: {
 
         await ensureConnection();
 
+        // Validate the update data
+        const validatedData = {
+            name: updateData.name?.trim(),
+            description: updateData.description?.trim(),
+            category: updateData.category,
+            frequency: updateData.frequency,
+            timeOfDay: updateData.timeOfDay,
+            timeToComplete: updateData.timeToComplete,
+            priority: updateData.priority
+        };
+
+        // Generate new impact score for the updated habit
+        const habitImpactData: HabitImpactData = {
+            name: validatedData.name,
+            description: validatedData.description,
+            category: validatedData.category as any,
+            frequency: validatedData.frequency as any,
+            timeOfDay: validatedData.timeOfDay as any,
+            timeToComplete: validatedData.timeToComplete,
+            priority: validatedData.priority as any,
+        };
+
+        console.log('Regenerating impact score for updated habit:', validatedData.name);
+        const impactResult = await generateHabitImpactScore(habitImpactData);
+        console.log('Updated impact score:', impactResult.score, 'for habit:', validatedData.name);
+
         const result = await Habit.updateOne(
             { _id: new Types.ObjectId(habitId), clerkUserId: userId },
-            { ...updateData, updatedAt: new Date() }
+            {
+                ...validatedData,
+                impactScore: impactResult.score, // Update impact score
+                updatedAt: new Date()
+            }
         );
 
         if (result.matchedCount === 0) {
             throw new Error('Habit not found or unauthorized');
         }
 
+        console.log('Habit updated with new impact analysis:', {
+            habitId,
+            name: validatedData.name,
+            impactScore: impactResult.score,
+            reasoning: impactResult.reasoning
+        });
+
         revalidatePath('/habits');
-        return { success: true };
+        return {
+            success: true,
+            impactScore: impactResult.score,
+            impactReasoning: impactResult.reasoning
+        };
     } catch (error) {
         console.error('Error updating habit:', error);
         return { success: false, error: error instanceof Error ? error.message : 'Failed to update habit' };
@@ -495,14 +609,14 @@ export async function getHabitAnalytics(days: number = 7, timezone: string = 'UT
     try {
         const { userId } = await auth();
         if (!userId) {
-            return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
+            return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [], averageImpactScore: 0 };
         }
 
         await ensureConnection();
 
         const habits = await Habit.find({ clerkUserId: userId, status: 'active' }).lean();
         if (!habits?.length) {
-            return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
+            return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [], averageImpactScore: 0 };
         }
 
         const today = getTodayString(timezone);
@@ -546,15 +660,73 @@ export async function getHabitAnalytics(days: number = 7, timezone: string = 'UT
             sum + calculateStreak(habit.completions || [], habit.frequency, timezone), 0
         );
 
+        // Calculate average impact score
+        const averageImpactScore = habits.length > 0
+            ? Math.round(habits.reduce((sum, habit) => sum + (habit.impactScore || 5), 0) / habits.length * 10) / 10
+            : 0;
+
         return {
             totalHabits: habits.length,
             completionRate: totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0,
             streakSum,
-            weeklyData
+            weeklyData,
+            averageImpactScore
         };
     } catch (error) {
         console.error('Error getting habit analytics:', error);
-        return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [] };
+        return { totalHabits: 0, completionRate: 0, streakSum: 0, weeklyData: [], averageImpactScore: 0 };
+    }
+}
+
+// Get habits sorted by impact score (highest impact first)
+export async function getHabitsByImpact(timezone: string = 'UTC'): Promise<IHabit[]> {
+    try {
+        const { userId } = await auth();
+        if (!userId) return [];
+
+        await ensureConnection();
+
+        const habits = await Habit
+            .find({ clerkUserId: userId, status: 'active' })
+            .sort({ impactScore: -1, createdAt: -1 }) // Sort by impact score descending
+            .lean<LeanHabit[]>()
+            .exec();
+
+        if (!habits?.length) return [];
+
+        const todayString = getTodayString(timezone);
+        const yesterdayString = getYesterdayString(timezone);
+
+        return habits.map(habit => {
+            const completionDates = new Set(
+                (habit.completions || [])
+                    .filter(c => c.completed)
+                    .map(c => getDateString(new Date(c.date), timezone))
+            );
+
+            const streak = calculateStreakOptimized(completionDates, habit.frequency || 'Daily', timezone, todayString, yesterdayString);
+
+            return {
+                _id: habit._id?.toString() || '',
+                clerkUserId: habit.clerkUserId || '',
+                name: habit.name || '',
+                description: habit.description || '',
+                category: habit.category || 'Health',
+                frequency: habit.frequency || 'Daily',
+                timeOfDay: habit.timeOfDay || 'Morning',
+                timeToComplete: habit.timeToComplete || '5 minutes',
+                priority: habit.priority || 'Medium',
+                impactScore: habit.impactScore || 5,
+                streak,
+                status: habit.status || 'active',
+                completions: Array.isArray(habit.completions) ? habit.completions : [],
+                createdAt: habit.createdAt || new Date(),
+                updatedAt: habit.updatedAt || new Date(),
+            };
+        }) as IHabit[];
+    } catch (error) {
+        console.error('Error fetching habits by impact:', error);
+        return [];
     }
 }
 
@@ -641,8 +813,3 @@ export async function deleteHabitChain(chainId: string) {
         return { success: false, error: error instanceof Error ? error.message : 'Failed to delete habit chain' };
     }
 }
-
-
-
-
-

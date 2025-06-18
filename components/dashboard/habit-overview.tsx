@@ -106,14 +106,6 @@ function isCompletedToday(completions: any[], timezone: string): boolean {
   });
 }
 
-// Helper function to calculate impact score
-function calculateImpactScore(habit: IHabit): number {
-  const priorityMultiplier = habit.priority === 'High' ? 1.5 : habit.priority === 'Medium' ? 1.2 : 1.0;
-  const streakBonus = Math.min(habit.streak * 0.1, 3); // Max 3 points from streak
-  const baseScore = 5; // Base score of 5
-  const impactScore = Math.min(10, (baseScore + streakBonus) * priorityMultiplier);
-  return Math.round(impactScore * 10) / 10;
-}
 
 // Helper function to group habits by time of day
 function groupHabitsByTimeOfDay(habits: HabitWithCompletion[]): GroupedHabits {
@@ -215,7 +207,7 @@ export function HabitOverview() {
         .filter(habit => shouldShowToday(habit.frequency, userTimezone))
         .map(habit => {
           const completedToday = isCompletedToday(habit.completions, userTimezone);
-          const impactScore = calculateImpactScore(habit);
+          const impactScore = habit.impactScore;
 
           return {
             ...habit,
@@ -584,7 +576,7 @@ export function HabitOverview() {
 
                                   <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
                                     <Target className="h-4 w-4" />
-                                    <span className="font-medium">{habit.impactScore}/10</span>
+                                    <span className="font-medium"> {habit.impactScore}</span>
                                   </div>
                                 </div>
                               </div>
