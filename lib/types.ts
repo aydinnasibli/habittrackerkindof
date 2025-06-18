@@ -308,7 +308,6 @@ export interface IHabitFeedback {
     date: Date;
     feedback: string;
     completed: boolean; // Whether habit was completed that day
-    mood: 'very_negative' | 'negative' | 'neutral' | 'positive' | 'very_positive';
     createdAt: Date;
 }
 
@@ -336,5 +335,4 @@ export interface IHabit {
 export interface IFeedbackSubmission {
     habitId: string;
     feedback: string;
-    mood: 'very_negative' | 'negative' | 'neutral' | 'positive' | 'very_positive';
 }

@@ -85,7 +85,6 @@ export async function submitDailyFeedback(
                 date: todayDate,
                 feedback: feedbackData.feedback.trim(),
                 completed: completedToday,
-                mood: feedbackData.mood,
                 createdAt: new Date()
             };
 

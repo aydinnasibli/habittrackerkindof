@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Header } from '@/components/header';
+import FloatingFeedbackButton from '@/components/dashboard/floating-global-button';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -33,6 +34,8 @@ export default function RootLayout({
               <Header />
               <main className="flex-1 w-full">{children}</main>
               <Toaster />
+              {/* Global Floating Feedback Button */}
+              <FloatingFeedbackButton />
             </div>
           </ThemeProvider>
         </body>

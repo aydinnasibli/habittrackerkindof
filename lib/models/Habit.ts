@@ -12,11 +12,6 @@ const HabitFeedbackSchema = new Schema<IHabitFeedback>({
     date: { type: Date, required: true },
     feedback: { type: String, required: true, maxlength: 500 },
     completed: { type: Boolean, required: true }, // Whether habit was completed that day
-    mood: {
-        type: String,
-        enum: ['very_negative', 'negative', 'neutral', 'positive', 'very_positive'],
-        default: 'neutral'
-    },
     createdAt: { type: Date, default: Date.now }
 }, { _id: false });
 

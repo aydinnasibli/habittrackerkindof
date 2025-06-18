@@ -11,14 +11,12 @@ interface HabitForFeedback {
     hasFeedback: boolean;
     existingFeedback?: {
         feedback: string;
-        mood: string;
     } | null;
 }
 
 interface FeedbackSubmission {
     habitId: string;
     feedback: string;
-    mood: 'very_negative' | 'negative' | 'neutral' | 'positive' | 'very_positive';
 }
 
 interface DailyFeedbackModalProps {
@@ -29,19 +27,7 @@ interface DailyFeedbackModalProps {
     timeUntilExpires?: string;
 }
 
-const moodOptions = [
-    { value: 'very_negative', label: '😤 Very Negative', color: 'text-red-600' },
-    { value: 'negative', label: '😕 Negative', color: 'text-red-400' },
-    { value: 'neutral', label: '😐 Neutral', color: 'text-gray-500' },
-    { value: 'positive', label: '😊 Positive', color: 'text-green-400' },
-    { value: 'very_positive', label: '🤩 Very Positive', color: 'text-green-600' },
-];
 
-const priorityColors = {
-    High: 'border-red-200 bg-red-50',
-    Medium: 'border-yellow-200 bg-yellow-50',
-    Low: 'border-green-200 bg-green-50',
-};
 
 export default function DailyFeedbackModal({
     isOpen,
@@ -62,14 +48,13 @@ export default function DailyFeedbackModal({
                 initialFeedbacks[habit._id] = {
                     habitId: habit._id,
                     feedback: habit.existingFeedback?.feedback || '',
-                    mood: (habit.existingFeedback?.mood as any) || 'neutral'
                 };
             });
             setFeedbacks(initialFeedbacks);
         }
     }, [habits]);
 
-    const updateFeedback = (habitId: string, field: 'feedback' | 'mood', value: string) => {
+    const updateFeedback = (habitId: string, field: 'feedback', value: string) => {
         setFeedbacks(prev => ({
             ...prev,
             [habitId]: {
@@ -169,7 +154,7 @@ export default function DailyFeedbackModal({
                                 habits.map((habit) => (
                                     <div
                                         key={habit._id}
-                                        className={`border-2 rounded-lg p-4 ${priorityColors[habit.priority as keyof typeof priorityColors]}`}
+                                        className={'border-2 rounded-lg p-4 '}
                                     >
                                         {/* Habit Header */}
                                         <div className="flex items-start justify-between mb-3">
@@ -182,8 +167,8 @@ export default function DailyFeedbackModal({
                                                     )}
                                                     <h3 className="font-semibold text-gray-800">{habit.name}</h3>
                                                     <span className={`px-2 py-1 text-xs rounded-full ${habit.priority === 'High' ? 'bg-red-100 text-red-700' :
-                                                            habit.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
-                                                                'bg-green-100 text-green-700'
+                                                        habit.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                                                            'bg-green-100 text-green-700'
                                                         }`}>
                                                         {habit.priority}
                                                     </span>
@@ -195,26 +180,7 @@ export default function DailyFeedbackModal({
                                             </div>
                                         </div>
 
-                                        {/* Mood Selection */}
-                                        <div className="mb-4">
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                How did you feel about this habit today?
-                                            </label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {moodOptions.map((mood) => (
-                                                    <button
-                                                        key={mood.value}
-                                                        onClick={() => updateFeedback(habit._id, 'mood', mood.value)}
-                                                        className={`px-3 py-2 text-sm rounded-lg border transition-all ${feedbacks[habit._id]?.mood === mood.value
-                                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                                : 'border-gray-300 hover:border-gray-400 text-gray-700'
-                                                            }`}
-                                                    >
-                                                        {mood.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
+
 
                                         {/* Feedback Text */}
                                         <div>
