@@ -159,7 +159,7 @@ export async function getTodaysHabitsForFeedback(timezone: string = 'UTC') {
             );
 
             return {
-                _id: habit._id.toString(),
+                _id: (habit._id as Types.ObjectId).toString(),
                 name: habit.name,
                 description: habit.description,
                 category: habit.category,
