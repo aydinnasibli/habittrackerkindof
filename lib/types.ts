@@ -11,6 +11,7 @@ export interface IHabit {
     priority: string;
     streak: number;
     status: 'active' | 'paused' | 'archived';
+    impactScore: number; // AI-generated impact score (1-10)
     createdAt: Date;
     updatedAt: Date;
     completions: IHabitCompletion[];
@@ -274,8 +275,6 @@ export const XP_REWARDS = {
         365: 5000   // 1 year streak
     }
 } as const;
-
-
 
 // lib/types.ts
 export interface Message {

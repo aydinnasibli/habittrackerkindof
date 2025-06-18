@@ -39,6 +39,14 @@ const HabitSchema = new Schema<IHabit>({
         enum: ['active', 'paused', 'archived'],
         default: 'active'
     },
+    // New field: AI-generated impact score
+    impactScore: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 10,
+        default: 5
+    },
     completions: [HabitCompletionSchema]
 }, {
     timestamps: true
@@ -47,7 +55,9 @@ const HabitSchema = new Schema<IHabit>({
 // Create indexes
 HabitSchema.index({ clerkUserId: 1, status: 1 });
 HabitSchema.index({ clerkUserId: 1, createdAt: -1 });
-// Add this at the bottom of your Habit.ts file
 HabitSchema.index({ clerkUserId: 1, status: 1, createdAt: -1 });
 HabitSchema.index({ clerkUserId: 1, 'completions.date': -1 }, { sparse: true });
+// Index for impact score queries
+HabitSchema.index({ clerkUserId: 1, impactScore: -1 });
+
 export const Habit = models.Habit || model<IHabit>('Habit', HabitSchema);
