@@ -150,7 +150,7 @@ export default function DailyFeedbackModal({
                                 onClick={onClose}
                                 className="p-2 hover:bg-primary-foreground/10 rounded-lg transition-colors"
                             >
-                                <X className="w-5 h-5" />
+                                <X className="w-5 h-5 cursor-pointer" />
                             </button>
                         </div>
                     </div>
@@ -320,7 +320,7 @@ export default function DailyFeedbackModal({
                             <div className="flex gap-3">
                                 <button
                                     onClick={onClose}
-                                    className="px-5 py-2.5 text-muted-foreground hover:text-foreground transition-colors font-medium"
+                                    className="px-5 cursor-pointer py-2.5 text-muted-foreground hover:text-foreground transition-colors font-medium"
                                     disabled={isSubmitting}
                                 >
                                     Cancel
@@ -328,7 +328,7 @@ export default function DailyFeedbackModal({
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting}
-                                    className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 font-medium shadow-md hover:shadow-lg"
+                                    className="px-6 cursor-pointer py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 font-medium shadow-md hover:shadow-lg"
                                 >
                                     {isSubmitting ? (
                                         <>
