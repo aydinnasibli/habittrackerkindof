@@ -84,7 +84,8 @@ Be thorough but concise in your responses.`;
                             // Send each chunk to the client
                             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: text, type: 'chunk' })}\n\n`));
                         } else if (chunk.type === 'message_stop') {
-                            usage = chunk.usage || null;
+                            // Usage information is not available on message_stop event
+                            usage = null;
                         }
                     }
 
