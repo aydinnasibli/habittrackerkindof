@@ -166,9 +166,9 @@ export default function Chat() {
     };
 
     return (
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex h-screen bg-gray-700">
             {/* Sidebar */}
-            <div className={`${showRepoBrowser ? 'w-1/3' : 'w-0'} transition-all duration-300 overflow-hidden bg-white border-r`}>
+            <div className={`${showRepoBrowser ? 'w-1/3' : 'w-0'} transition-all duration-300 overflow-hidden bg-gray-600 border-r`}>
                 {showRepoBrowser && (
                     <div className="p-4 h-full overflow-y-auto">
                         <div className="flex justify-between items-center mb-4">
@@ -240,12 +240,12 @@ export default function Chat() {
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {messages.length === 0 && (
-                        <div className="text-center text-gray-500 mt-8">
+                        <div className="text-center text-black mt-8">
                             <div className="mb-4">
                                 <h2 className="text-2xl font-semibold mb-2">Welcome to Claude Chat with Git!</h2>
                                 <p className="text-lg">Connect your GitHub repositories and chat with Claude about your code.</p>
                             </div>
-                            <div className="bg-blue-50 p-6 rounded-lg max-w-2xl mx-auto">
+                            <div className="bg-gray-700 p-6 rounded-lg max-w-2xl mx-auto">
                                 <h3 className="font-semibold mb-2">Features:</h3>
                                 <ul className="text-left space-y-1">
                                     <li>• Browse and load files from GitHub repositories</li>
@@ -266,7 +266,7 @@ export default function Chat() {
                             <div
                                 className={`max-w-xs lg:max-w-2xl px-4 py-3 rounded-lg ${message.role === 'user'
                                     ? 'bg-blue-600 text-white'
-                                    : 'bg-white text-gray-800 border shadow-sm'
+                                    : 'bg-gray-400 text-gray-800 border shadow-sm'
                                     }`}
                             >
                                 <div className="whitespace-pre-wrap">{message.content}</div>
@@ -297,7 +297,7 @@ export default function Chat() {
                 </div>
 
                 {/* Input */}
-                <div className="border-t bg-white p-4">
+                <div className="border-t bg-gray-600 p-4">
                     <div className="flex space-x-2">
                         <textarea
                             value={input}
@@ -308,7 +308,7 @@ export default function Chat() {
                                     ? "Ask Claude about your code..."
                                     : "Type your message... (Press Enter to send)"
                             }
-                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            className="flex-1 border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                             rows={2}
                             disabled={isLoading}
                         />
@@ -321,7 +321,7 @@ export default function Chat() {
                         </button>
                     </div>
                     {selectedFiles.length > 0 && (
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-black mt-1">
                             💡 Claude has access to your selected files and can help with code analysis, debugging, and improvements.
                         </div>
                     )}

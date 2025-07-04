@@ -63,7 +63,7 @@ Be thorough but concise in your responses.`;
         // Use streaming for better performance and to avoid timeouts
         const stream = await anthropic.messages.create({
             model: 'claude-opus-4-0',
-            max_tokens: 32000,
+            max_tokens: 20000,
             messages: finalMessages,
             stream: true, // Enable streaming
         });
@@ -84,8 +84,7 @@ Be thorough but concise in your responses.`;
                             // Send each chunk to the client
                             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: text, type: 'chunk' })}\n\n`));
                         } else if (chunk.type === 'message_stop') {
-                            // Usage information is not available on message_stop event
-                            usage = null;
+                            usage = chunk.usage || null;
                         }
                     }
 
