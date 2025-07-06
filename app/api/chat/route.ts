@@ -62,8 +62,8 @@ Be thorough but concise in your responses.`;
 
         // Use streaming for better performance and to avoid timeouts
         const stream = await anthropic.messages.create({
-            model: 'claude-opus-4-0',
-            max_tokens: 20000,
+            model: 'claude-4-sonnet-20250514',
+            max_tokens: 32000,
             messages: finalMessages,
             stream: true, // Enable streaming
         });
